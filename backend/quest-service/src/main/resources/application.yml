@@ -1,0 +1,23 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: quest-service
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/quests_db}
+    username: ${SPRING_DATASOURCE_USERNAME:finance}
+    password: ${SPRING_DATASOURCE_PASSWORD:finance}
+  flyway:
+    enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+

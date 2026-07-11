@@ -1,0 +1,4 @@
+-- Flyway baseline for users_db.
+-- Intentionally empty: establishes the migration chain in M0.
+-- Real schema (users, auth_identities, income_sources, savings_accounts, ...)
+-- arrives with its owning milestone. See DESIGN.md section 6.

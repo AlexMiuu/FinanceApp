@@ -1,0 +1,110 @@
+name: personal-finance
+
+x-service-defaults: &service-defaults
+  restart: unless-stopped
+  depends_on:
+    postgres:
+      condition: service_healthy
+    rabbitmq:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: finance
+      POSTGRES_PASSWORD: finance   # dev only — override in real deployments
+      POSTGRES_DB: finance
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./infra/postgres/init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U finance"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"   # management UI
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  gateway:
+    build:
+      context: ./backend
+      args: { MODULE: gateway }
+    ports:
+      - "8080:8080"
+    environment:
+      SERVICES_USER_URL: http://user-service:8081
+      SERVICES_EXPENSE_URL: http://expense-service:8082
+      SERVICES_REPORT_URL: http://report-service:8083
+      SERVICES_QUEST_URL: http://quest-service:8084
+      SERVICES_NOTIFICATION_URL: http://notification-service:8085
+    restart: unless-stopped
+    depends_on:
+      - user-service
+      - expense-service
+      - report-service
+      - quest-service
+      - notification-service
+
+  user-service:
+    <<: *service-defaults
+    build:
+      context: ./backend
+      args: { MODULE: user-service }
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/users_db
+
+  expense-service:
+    <<: *service-defaults
+    build:
+      context: ./backend
+      args: { MODULE: expense-service }
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/expenses_db
+
+  report-service:
+    <<: *service-defaults
+    build:
+      context: ./backend
+      args: { MODULE: report-service }
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/reports_db
+
+  quest-service:
+    <<: *service-defaults
+    build:
+      context: ./backend
+      args: { MODULE: quest-service }
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/quests_db
+
+  notification-service:
+    <<: *service-defaults
+    build:
+      context: ./backend
+      args: { MODULE: notification-service }
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/notifications_db
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "3000:80"
+    restart: unless-stopped
+    depends_on:
+      - gateway
+
+volumes:
+  postgres-data:
