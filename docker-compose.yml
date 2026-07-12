@@ -44,6 +44,7 @@ services:
     ports:
       - "8080:8080"
     environment:
+      AUTH_JWKS_URI: http://user-service:8081/api/v1/auth/jwks
       SERVICES_USER_URL: http://user-service:8081
       SERVICES_EXPENSE_URL: http://expense-service:8082
       SERVICES_REPORT_URL: http://report-service:8083
@@ -64,6 +65,9 @@ services:
       args: { MODULE: user-service }
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/users_db
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      AUTH_JWT_PRIVATE_KEY_PEM: ${AUTH_JWT_PRIVATE_KEY_PEM:-}
 
   expense-service:
     <<: *service-defaults

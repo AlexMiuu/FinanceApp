@@ -2,7 +2,7 @@
 
 Personal finance web app: expense tracking, reports & dashboards, goal calendar, spending quests, net worth, Romanian salary calculator.
 
-Full spec: [DESIGN.md](DESIGN.md) · Current milestone: **M0 — skeleton**
+Full spec: [DESIGN.md](DESIGN.md) · Current milestone: **M1 — auth**
 
 ## Architecture
 
@@ -30,9 +30,27 @@ Requires Docker Desktop.
 docker compose up --build
 ```
 
-- Frontend: http://localhost:3000
-- Gateway hello checks: http://localhost:8080/api/v1/expenses/hello (same pattern for auth, reports, quests, notifications)
+- Frontend: http://localhost:3000 — register an account or sign in
 - RabbitMQ UI: http://localhost:15672 (guest/guest)
+
+## Authentication (M1)
+
+- Email/password (Argon2id) and optional Google OAuth. Access tokens are 15-minute RS256 JWTs
+  issued by user-service and validated by the gateway against `/api/v1/auth/jwks`.
+  Refresh tokens are rotating, stored hashed, and travel only in an HttpOnly cookie
+  scoped to `/api/v1/auth`. Reusing a rotated refresh token revokes all of that user's sessions.
+- Every route except `/api/v1/auth/**` requires `Authorization: Bearer <token>` at the gateway.
+- Endpoints: `POST /api/v1/auth/register | login | refresh | logout`, `GET /api/v1/me`,
+  `GET /api/v1/auth/jwks`, `GET /api/v1/auth/oauth/providers`.
+
+**Google OAuth setup (optional):** create an OAuth client at
+https://console.cloud.google.com/apis/credentials with redirect URI
+`http://localhost:3000/api/v1/auth/oauth/callback/google`, then copy `.env.example` to `.env`
+and fill `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`. Without credentials the Google button
+simply doesn't appear.
+
+**Dev note:** without `AUTH_JWT_PRIVATE_KEY_PEM` the signing key is ephemeral —
+restarting user-service invalidates existing sessions.
 
 ## Local development
 

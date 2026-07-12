@@ -1,5 +1,6 @@
 server:
   port: 8081
+  forward-headers-strategy: framework   # trust X-Forwarded-* from nginx/gateway for OAuth redirect URIs
 
 spring:
   application:
@@ -10,6 +11,22 @@ spring:
     password: ${SPRING_DATASOURCE_PASSWORD:finance}
   flyway:
     enabled: true
+  jpa:
+    hibernate:
+      # Flyway owns the schema. Not 'validate': Hibernate's validator can't map
+      # the pg-specific column types we use (citext, char(3) -> bpchar).
+      ddl-auto: none
+    open-in-view: false
+
+auth:
+  access-token-ttl: 15m
+  refresh-token-ttl: 30d
+  cookie-secure: ${AUTH_COOKIE_SECURE:false}   # true once served over HTTPS
+  jwt:
+    private-key-pem: ${AUTH_JWT_PRIVATE_KEY_PEM:}   # PKCS#8 PEM; ephemeral key when empty (dev)
+  google:
+    client-id: ${GOOGLE_CLIENT_ID:}
+    client-secret: ${GOOGLE_CLIENT_SECRET:}
 
 management:
   endpoints:
