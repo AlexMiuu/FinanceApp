@@ -115,15 +115,24 @@ public class CategoryService {
         events.publishEvent(new Events.CategoryDeleted(id, userId, Instant.now()));
     }
 
-    /** "Parent > Child" for event snapshots consumed by report/quest projections. */
+    public record CategorySnapshot(String path, boolean effectiveMandatory) {
+    }
+
+    /**
+     * Denormalized view for event snapshots consumed by report/quest
+     * projections: "Parent > Child" path, and a mandatory flag that inherits
+     * from the parent (a Rent expense is mandatory because Housing is).
+     */
     @Transactional(readOnly = true)
-    public String pathOf(CategoryEntity category) {
+    public CategorySnapshot snapshotOf(CategoryEntity category) {
         if (category.getParentId() == null) {
-            return category.getName();
+            return new CategorySnapshot(category.getName(), category.isMandatory());
         }
         return categories.findById(category.getParentId())
-                .map(parent -> parent.getName() + " > " + category.getName())
-                .orElse(category.getName());
+                .map(parent -> new CategorySnapshot(
+                        parent.getName() + " > " + category.getName(),
+                        category.isMandatory() || parent.isMandatory()))
+                .orElse(new CategorySnapshot(category.getName(), category.isMandatory()));
     }
 
     private void publishChanged(CategoryEntity category) {

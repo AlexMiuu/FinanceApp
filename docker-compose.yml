@@ -87,6 +87,8 @@ services:
       args: { MODULE: report-service }
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/reports_db
+      SPRING_RABBITMQ_HOST: rabbitmq
+      AUTH_JWKS_URI: http://user-service:8081/api/v1/auth/jwks
 
   quest-service:
     <<: *service-defaults

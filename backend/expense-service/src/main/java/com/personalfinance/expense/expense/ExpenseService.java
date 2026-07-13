@@ -91,10 +91,11 @@ public class ExpenseService {
     }
 
     private void publishChanged(ExpenseEntity expense, CategoryEntity category, boolean created) {
+        CategoryService.CategorySnapshot snapshot = categoryService.snapshotOf(category);
         events.publishEvent(new Events.ExpenseChanged(
                 expense.getId(), expense.getUserId(), category.getId(),
-                categoryService.pathOf(category), category.isMandatory(),
-                expense.getAmount(), expense.getCurrency(), expense.getExpenseDate(),
+                snapshot.path(), snapshot.effectiveMandatory(),
+                expense.getAmount(), expense.getCurrency(), expense.getNote(), expense.getExpenseDate(),
                 Instant.now(), created));
     }
 }

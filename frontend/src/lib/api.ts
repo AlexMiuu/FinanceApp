@@ -34,8 +34,11 @@ async function parseError(res: Response): Promise<ApiError> {
   }
 }
 
-/** Fetch wrapper: attaches the access token and retries once after a refresh on 401. */
-export async function api<T>(path: string, init?: RequestInit): Promise<T> {
+/**
+ * Fetch wrapper: attaches the access token and retries once after a refresh
+ * on 401. Pass raw=true to get the Response itself (file downloads).
+ */
+export async function api<T>(path: string, init?: RequestInit, raw = false): Promise<T> {
   const doFetch = () =>
     fetch(path, {
       ...init,
@@ -53,6 +56,7 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
     res = await doFetch()
   }
   if (!res.ok) throw await parseError(res)
+  if (raw) return res as unknown as T
   if (res.status === 204) return undefined as T
   return res.json()
 }
@@ -179,3 +183,63 @@ export const deleteExpense = (id: string) =>
 
 export const formatRon = (bani: number) =>
   new Intl.NumberFormat("ro-RO", { style: "currency", currency: "RON" }).format(bani / 100)
+
+// ---- Dashboard & reports (M3) ----
+
+export type Dashboard = {
+  month: string
+  totalSpent: number
+  mandatorySpent: number
+  expenseCount: number
+  previousMonthTotal: number
+  projectedMonthEnd: number | null
+  byCategory: { category: string; amount: number }[]
+  byDay: { date: string; amount: number }[]
+}
+
+export const getDashboard = (month?: string) =>
+  api<Dashboard>(`/api/v1/dashboard${month ? `?month=${month}` : ""}`)
+
+export type ReportFilters = {
+  from: string | null
+  to: string | null
+  categoryIds: string[] | null
+}
+
+export type ReportResult = {
+  totalSpent: number
+  expenseCount: number
+  byCategory: Record<string, number>
+  byMonth: Record<string, number>
+}
+
+export type Report = {
+  id: string
+  name: string
+  filters: ReportFilters
+  lastRunAt: string | null
+  cachedResult: ReportResult | null
+}
+
+export const listReports = () => api<Report[]>("/api/v1/reports")
+
+export const createReport = (name: string, filters: ReportFilters) =>
+  api<Report>("/api/v1/reports", { method: "POST", body: JSON.stringify({ name, filters }) })
+
+export const deleteReport = (id: string) =>
+  api<void>(`/api/v1/reports/${id}`, { method: "DELETE" })
+
+export const runReport = (id: string) =>
+  api<ReportResult>(`/api/v1/reports/${id}/run`, { method: "POST" })
+
+/** Downloads the report CSV with the auth header, then triggers a save. */
+export async function downloadReportCsv(id: string, name: string) {
+  const res = await api<Response>(`/api/v1/reports/${id}/export`, undefined, true)
+  const blob = await (res as Response).blob()
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url
+  a.download = `${name}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}

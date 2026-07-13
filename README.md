@@ -2,7 +2,17 @@
 
 Personal finance web app: expense tracking, reports & dashboards, goal calendar, spending quests, net worth, Romanian salary calculator.
 
-Full spec: [DESIGN.md](DESIGN.md) · Current milestone: **M2 — expenses & categories**
+Full spec: [DESIGN.md](DESIGN.md) · Current milestone: **M3 — dashboard & reports**
+
+## Dashboard & reports (M3)
+
+- report-service keeps an **event-fed projection** of expenses (never queries other services);
+  category renames re-denormalize projected rows.
+- `GET /api/v1/dashboard?month=` — totals, mandatory share, per-category and per-day
+  aggregates, linear month-end projection.
+- Saved reports = named filter sets, re-evaluated on `POST /reports/{id}/run` (result cached);
+  `GET /reports/{id}/export` downloads CSV (FR-4).
+- Frontend: dashboard tab (stat tiles, category donut, daily bars — Recharts) and reports tab.
 
 ## Expenses (M2)
 

@@ -23,9 +23,10 @@ public final class Events {
             UUID userId,
             UUID categoryId,
             String categoryPath,
-            boolean categoryMandatory,
+            boolean categoryMandatory,   // effective: the category or its parent is mandatory
             long amount,
             String currency,
+            String note,
             LocalDate expenseDate,
             Instant occurredAt,
             boolean created) implements DomainEvent {

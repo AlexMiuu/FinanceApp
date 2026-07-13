@@ -3,8 +3,10 @@ import { useAuth } from "@/auth/AuthContext"
 import { getCategories, type Category } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import DashboardTab from "@/pages/DashboardTab"
 import ExpensesTab from "@/pages/ExpensesTab"
 import CategoriesTab from "@/pages/CategoriesTab"
+import ReportsTab from "@/pages/ReportsTab"
 
 export default function HomePage() {
   const { user, logout } = useAuth()
@@ -34,16 +36,24 @@ export default function HomePage() {
         </Button>
       </header>
 
-      <Tabs defaultValue="expenses">
+      <Tabs defaultValue="dashboard">
         <TabsList>
+          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="expenses">Expenses</TabsTrigger>
           <TabsTrigger value="categories">Categories</TabsTrigger>
+          <TabsTrigger value="reports">Reports</TabsTrigger>
         </TabsList>
+        <TabsContent value="dashboard" className="pt-4">
+          <DashboardTab />
+        </TabsContent>
         <TabsContent value="expenses" className="pt-4">
           <ExpensesTab categories={categories} />
         </TabsContent>
         <TabsContent value="categories" className="pt-4">
           <CategoriesTab categories={categories} onChanged={reloadCategories} />
+        </TabsContent>
+        <TabsContent value="reports" className="pt-4">
+          <ReportsTab categories={categories} />
         </TabsContent>
       </Tabs>
     </main>
