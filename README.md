@@ -2,7 +2,16 @@
 
 Personal finance web app: expense tracking, reports & dashboards, goal calendar, spending quests, net worth, Romanian salary calculator.
 
-Full spec: [DESIGN.md](DESIGN.md) · Current milestone: **M1 — auth**
+Full spec: [DESIGN.md](DESIGN.md) · Current milestone: **M2 — expenses & categories**
+
+## Expenses (M2)
+
+- Categories/subcategories (one level deep) with a **mandatory** flag that will drive quest
+  tailoring; sensible defaults are seeded per user via the `user.registered` event
+  (lazy-seeded on first read as fallback).
+- Expense CRUD with date/category filters and pagination; amounts stored as `bigint` bani.
+- Domain events (`expense.created|updated|deleted`, `category.updated|deleted`) publish to
+  the `pf.events` topic exchange after commit — report/quest projections consume them in M3+.
 
 ## Architecture
 

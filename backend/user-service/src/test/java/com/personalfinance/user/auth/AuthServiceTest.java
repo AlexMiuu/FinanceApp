@@ -39,7 +39,7 @@ class AuthServiceTest {
         identities = mock(AuthIdentityRepository.class);
         refreshTokens = mock(RefreshTokenRepository.class);
         service = new AuthService(users, identities, refreshTokens, encoder,
-                new JwtService("", Duration.ofMinutes(15)), Duration.ofDays(30));
+                new JwtService("", Duration.ofMinutes(15)), event -> { }, Duration.ofDays(30));
         when(users.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(refreshTokens.save(any())).thenAnswer(inv -> inv.getArgument(0));
     }

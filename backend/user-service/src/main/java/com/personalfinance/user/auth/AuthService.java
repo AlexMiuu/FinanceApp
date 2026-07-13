@@ -9,9 +9,12 @@ import java.util.HexFormat;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.personalfinance.user.events.UserRegisteredEvent;
 
 import com.personalfinance.user.domain.AuthIdentityEntity;
 import com.personalfinance.user.domain.AuthIdentityRepository;
@@ -33,6 +36,7 @@ public class AuthService {
     private final RefreshTokenRepository refreshTokens;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final ApplicationEventPublisher eventPublisher;
     private final Duration refreshTokenTtl;
 
     public AuthService(UserRepository users,
@@ -40,12 +44,14 @@ public class AuthService {
             RefreshTokenRepository refreshTokens,
             PasswordEncoder passwordEncoder,
             JwtService jwtService,
+            ApplicationEventPublisher eventPublisher,
             @Value("${auth.refresh-token-ttl:30d}") Duration refreshTokenTtl) {
         this.users = users;
         this.identities = identities;
         this.refreshTokens = refreshTokens;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.eventPublisher = eventPublisher;
         this.refreshTokenTtl = refreshTokenTtl;
     }
 
@@ -57,6 +63,8 @@ public class AuthService {
         UserEntity user = new UserEntity(email, passwordEncoder.encode(password), displayName, null);
         users.save(user);
         identities.save(new AuthIdentityEntity(user, AuthIdentityEntity.PROVIDER_PASSWORD, user.getId().toString()));
+        eventPublisher.publishEvent(
+                new UserRegisteredEvent(user.getId(), user.getEmail(), user.getDisplayName(), Instant.now()));
         return issueTokens(user);
     }
 
@@ -84,7 +92,10 @@ public class AuthService {
         }
         UserEntity user = users.findByEmailIgnoreCase(email).orElseGet(() -> {
             UserEntity created = new UserEntity(email, null, name != null ? name : email, avatarUrl);
-            return users.save(created);
+            users.save(created);
+            eventPublisher.publishEvent(new UserRegisteredEvent(
+                    created.getId(), created.getEmail(), created.getDisplayName(), Instant.now()));
+            return created;
         });
         if (user.getAvatarUrl() == null && avatarUrl != null) {
             user.setAvatarUrl(avatarUrl);

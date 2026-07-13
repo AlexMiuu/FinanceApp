@@ -107,3 +107,75 @@ export async function oauthProviders(): Promise<{ google: boolean }> {
   if (!res.ok) return { google: false }
   return res.json()
 }
+
+// ---- Categories & expenses (M2) ----
+
+export type Category = {
+  id: string
+  name: string
+  parentId: string | null
+  isMandatory: boolean
+}
+
+export type Expense = {
+  id: string
+  amount: number // bani (RON cents)
+  currency: string
+  categoryId: string
+  note: string | null
+  expenseDate: string // ISO date
+}
+
+export type ExpensePage = {
+  items: Expense[]
+  page: number
+  size: number
+  totalElements: number
+}
+
+export const getCategories = () => api<Category[]>("/api/v1/categories")
+
+export const createCategory = (body: {
+  name: string
+  parentId: string | null
+  isMandatory: boolean
+}) => api<Category>("/api/v1/categories", { method: "POST", body: JSON.stringify(body) })
+
+export const updateCategory = (id: string, body: { name: string; isMandatory: boolean }) =>
+  api<Category>(`/api/v1/categories/${id}`, { method: "PUT", body: JSON.stringify(body) })
+
+export const deleteCategory = (id: string) =>
+  api<void>(`/api/v1/categories/${id}`, { method: "DELETE" })
+
+export type ExpenseInput = {
+  amount: number
+  categoryId: string
+  note: string | null
+  expenseDate: string
+}
+
+export const listExpenses = (filters: {
+  from?: string
+  to?: string
+  categoryId?: string
+  page?: number
+}) => {
+  const params = new URLSearchParams()
+  if (filters.from) params.set("from", filters.from)
+  if (filters.to) params.set("to", filters.to)
+  if (filters.categoryId) params.set("categoryId", filters.categoryId)
+  if (filters.page) params.set("page", String(filters.page))
+  return api<ExpensePage>(`/api/v1/expenses?${params}`)
+}
+
+export const createExpense = (body: ExpenseInput) =>
+  api<Expense>("/api/v1/expenses", { method: "POST", body: JSON.stringify(body) })
+
+export const updateExpense = (id: string, body: ExpenseInput) =>
+  api<Expense>(`/api/v1/expenses/${id}`, { method: "PUT", body: JSON.stringify(body) })
+
+export const deleteExpense = (id: string) =>
+  api<void>(`/api/v1/expenses/${id}`, { method: "DELETE" })
+
+export const formatRon = (bani: number) =>
+  new Intl.NumberFormat("ro-RO", { style: "currency", currency: "RON" }).format(bani / 100)
