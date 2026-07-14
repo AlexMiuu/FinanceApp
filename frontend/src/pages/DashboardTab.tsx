@@ -11,7 +11,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts"
-import { formatRon, getDashboard, type Dashboard } from "@/lib/api"
+import { formatRon, getDashboard, getNetWorth, type Dashboard, type NetWorth } from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 
@@ -53,6 +53,7 @@ function StatTile({ label, value, hint }: { label: string; value: string; hint?:
 export default function DashboardTab() {
   const [month, setMonth] = useState(thisMonth())
   const [data, setData] = useState<Dashboard | null>(null)
+  const [netWorth, setNetWorth] = useState<NetWorth | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -63,6 +64,10 @@ export default function DashboardTab() {
       })
       .catch((e) => setError(e instanceof Error ? e.message : "Failed to load"))
   }, [month])
+
+  useEffect(() => {
+    getNetWorth().then(setNetWorth).catch(() => setNetWorth(null))
+  }, [])
 
   // ≤ 8 categorical slots: smallest categories fold into "Other".
   const slices = useMemo(() => {
@@ -107,6 +112,14 @@ export default function DashboardTab() {
           aria-label="Month"
         />
       </div>
+
+      {netWorth && (
+        <StatTile
+          label="Net worth"
+          value={formatRon(netWorth.total)}
+          hint={`${netWorth.accounts} savings account${netWorth.accounts === 1 ? "" : "s"} · income ${formatRon(netWorth.monthlyIncome)}/month`}
+        />
+      )}
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile

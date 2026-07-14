@@ -232,6 +232,63 @@ export const deleteReport = (id: string) =>
 export const runReport = (id: string) =>
   api<ReportResult>(`/api/v1/reports/${id}/run`, { method: "POST" })
 
+// ---- Profile & money (M4) ----
+
+export type IncomeSource = {
+  id: string
+  name: string
+  amount: number // bani
+  recurrence: "MONTHLY" | "YEARLY" | "ONE_OFF"
+  startDate: string
+  endDate: string | null
+}
+
+export type IncomeInput = Omit<IncomeSource, "id">
+
+export type SavingsAccount = {
+  id: string
+  name: string
+  balance: number // bani
+}
+
+export type NetWorth = {
+  total: number
+  accounts: number
+  monthlyIncome: number
+}
+
+export type SalaryBreakdown = {
+  gross: number
+  cas: number
+  cass: number
+  taxable: number
+  incomeTax: number
+  net: number
+  rulesValidFrom: string
+}
+
+export const listIncomeSources = () => api<IncomeSource[]>("/api/v1/me/income-sources")
+export const createIncomeSource = (body: IncomeInput) =>
+  api<IncomeSource>("/api/v1/me/income-sources", { method: "POST", body: JSON.stringify(body) })
+export const deleteIncomeSource = (id: string) =>
+  api<void>(`/api/v1/me/income-sources/${id}`, { method: "DELETE" })
+
+export const listSavings = () => api<SavingsAccount[]>("/api/v1/me/savings")
+export const createSavings = (name: string, balance: number) =>
+  api<SavingsAccount>("/api/v1/me/savings", { method: "POST", body: JSON.stringify({ name, balance }) })
+export const updateSavings = (id: string, name: string, balance: number) =>
+  api<SavingsAccount>(`/api/v1/me/savings/${id}`, { method: "PUT", body: JSON.stringify({ name, balance }) })
+export const deleteSavings = (id: string) =>
+  api<void>(`/api/v1/me/savings/${id}`, { method: "DELETE" })
+
+export const getNetWorth = () => api<NetWorth>("/api/v1/me/net-worth")
+
+export const calculateSalary = (mode: "GROSS_TO_NET" | "NET_TO_GROSS", amount: number) =>
+  api<SalaryBreakdown>("/api/v1/salary-calculator", {
+    method: "POST",
+    body: JSON.stringify({ mode, amount }),
+  })
+
 /** Downloads the report CSV with the auth header, then triggers a save. */
 export async function downloadReportCsv(id: string, name: string) {
   const res = await api<Response>(`/api/v1/reports/${id}/export`, undefined, true)

@@ -2,7 +2,16 @@
 
 Personal finance web app: expense tracking, reports & dashboards, goal calendar, spending quests, net worth, Romanian salary calculator.
 
-Full spec: [DESIGN.md](DESIGN.md) · Current milestone: **M3 — dashboard & reports**
+Full spec: [DESIGN.md](DESIGN.md) · Current milestone: **M4 — profile & money**
+
+## Profile & money (M4)
+
+- Income sources (amount + recurrence) and savings accounts under `/api/v1/me/**`;
+  `GET /api/v1/me/net-worth` returns savings total + normalized monthly income and
+  feeds the dashboard's net-worth tile (FR-8).
+- `POST /api/v1/salary-calculator` — Romanian gross↔net with CAS/CASS/income-tax
+  breakdown; rates live in the versioned `tax_config` table (a law change is an
+  INSERT, not a redeploy).
 
 ## Dashboard & reports (M3)
 
