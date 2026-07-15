@@ -2,7 +2,18 @@
 
 Personal finance web app: expense tracking, reports & dashboards, goal calendar, spending quests, net worth, Romanian salary calculator.
 
-Full spec: [DESIGN.md](DESIGN.md) · Current milestone: **M4 — profile & money**
+Full spec: [DESIGN.md](DESIGN.md) · Current milestone: **M5 — goals & calendar**
+
+## Goals & calendar (M5)
+
+- Spending-limit goals per day/month/year, overall or per category (subcategories
+  inherit the parent's goal scope). Current-period status on every goal.
+- `GET /api/v1/calendar?month=` — per-day met/missed/in-progress/future for daily
+  goals plus monthly/yearly summaries; completed periods are persisted to
+  `goal_evaluations` (history feeds M6 quest tailoring).
+- quest-service runs its own event-fed expense/category projection like report-service.
+- `SAVING_TARGET` goals are schema-reserved but deferred: they need savings events
+  from user-service that don't exist yet.
 
 ## Profile & money (M4)
 

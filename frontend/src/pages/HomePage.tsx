@@ -8,6 +8,7 @@ import ExpensesTab from "@/pages/ExpensesTab"
 import CategoriesTab from "@/pages/CategoriesTab"
 import ReportsTab from "@/pages/ReportsTab"
 import ProfileTab from "@/pages/ProfileTab"
+import GoalsTab from "@/pages/GoalsTab"
 
 export default function HomePage() {
   const { user, logout } = useAuth()
@@ -42,6 +43,7 @@ export default function HomePage() {
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="expenses">Expenses</TabsTrigger>
           <TabsTrigger value="categories">Categories</TabsTrigger>
+          <TabsTrigger value="goals">Goals</TabsTrigger>
           <TabsTrigger value="reports">Reports</TabsTrigger>
           <TabsTrigger value="profile">Profile</TabsTrigger>
         </TabsList>
@@ -53,6 +55,9 @@ export default function HomePage() {
         </TabsContent>
         <TabsContent value="categories" className="pt-4">
           <CategoriesTab categories={categories} onChanged={reloadCategories} />
+        </TabsContent>
+        <TabsContent value="goals" className="pt-4">
+          <GoalsTab categories={categories} />
         </TabsContent>
         <TabsContent value="reports" className="pt-4">
           <ReportsTab categories={categories} />

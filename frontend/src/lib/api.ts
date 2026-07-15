@@ -289,6 +289,64 @@ export const calculateSalary = (mode: "GROSS_TO_NET" | "NET_TO_GROSS", amount: n
     body: JSON.stringify({ mode, amount }),
   })
 
+// ---- Goals & calendar (M5) ----
+
+export type Goal = {
+  id: string
+  name: string
+  categoryId: string | null
+  targetAmount: number // bani
+  period: "DAILY" | "MONTHLY" | "YEARLY"
+  startDate: string
+  endDate: string | null
+  active: boolean
+  currentActual: number
+  currentMet: boolean
+  periodStart: string
+  periodEnd: string
+}
+
+export type GoalInput = {
+  name: string
+  categoryId: string | null
+  targetAmount: number
+  period: Goal["period"]
+  startDate: string
+  endDate: string | null
+}
+
+export type DayStatus = "MET" | "MISSED" | "IN_PROGRESS" | "FUTURE" | "NO_GOAL"
+
+export type CalendarDay = {
+  date: string
+  status: DayStatus
+  totalSpent: number
+  goals: { goalId: string; name: string; target: number; actual: number; met: boolean }[]
+}
+
+export type PeriodSummary = {
+  goalId: string
+  name: string
+  target: number
+  actual: number
+  met: boolean
+  inProgress: boolean
+}
+
+export type GoalCalendar = {
+  month: string
+  days: CalendarDay[]
+  monthlyGoals: PeriodSummary[]
+  yearlyGoals: PeriodSummary[]
+}
+
+export const listGoals = () => api<Goal[]>("/api/v1/goals")
+export const createGoal = (body: GoalInput) =>
+  api<Goal>("/api/v1/goals", { method: "POST", body: JSON.stringify(body) })
+export const deleteGoal = (id: string) => api<void>(`/api/v1/goals/${id}`, { method: "DELETE" })
+export const getCalendar = (month?: string) =>
+  api<GoalCalendar>(`/api/v1/calendar${month ? `?month=${month}` : ""}`)
+
 /** Downloads the report CSV with the auth header, then triggers a save. */
 export async function downloadReportCsv(id: string, name: string) {
   const res = await api<Response>(`/api/v1/reports/${id}/export`, undefined, true)
