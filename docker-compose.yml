@@ -12,8 +12,9 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
+      TZ: Europe/Bucharest
       POSTGRES_USER: finance
-      POSTGRES_PASSWORD: finance   # dev only — override in real deployments
+      POSTGRES_PASSWORD: finance   # dev only - override in real deployments
       POSTGRES_DB: finance
     ports:
       - "5432:5432"
@@ -44,6 +45,7 @@ services:
     ports:
       - "8080:8080"
     environment:
+      TZ: Europe/Bucharest
       AUTH_JWKS_URI: http://user-service:8081/api/v1/auth/jwks
       SERVICES_USER_URL: http://user-service:8081
       SERVICES_EXPENSE_URL: http://expense-service:8082
@@ -64,6 +66,7 @@ services:
       context: ./backend
       args: { MODULE: user-service }
     environment:
+      TZ: Europe/Bucharest
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/users_db
       SPRING_RABBITMQ_HOST: rabbitmq
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
@@ -76,6 +79,7 @@ services:
       context: ./backend
       args: { MODULE: expense-service }
     environment:
+      TZ: Europe/Bucharest
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/expenses_db
       SPRING_RABBITMQ_HOST: rabbitmq
       AUTH_JWKS_URI: http://user-service:8081/api/v1/auth/jwks
@@ -86,6 +90,7 @@ services:
       context: ./backend
       args: { MODULE: report-service }
     environment:
+      TZ: Europe/Bucharest
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/reports_db
       SPRING_RABBITMQ_HOST: rabbitmq
       AUTH_JWKS_URI: http://user-service:8081/api/v1/auth/jwks
@@ -96,6 +101,7 @@ services:
       context: ./backend
       args: { MODULE: quest-service }
     environment:
+      TZ: Europe/Bucharest
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/quests_db
       SPRING_RABBITMQ_HOST: rabbitmq
       AUTH_JWKS_URI: http://user-service:8081/api/v1/auth/jwks
@@ -106,7 +112,10 @@ services:
       context: ./backend
       args: { MODULE: notification-service }
     environment:
+      TZ: Europe/Bucharest
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/notifications_db
+      SPRING_RABBITMQ_HOST: rabbitmq
+      AUTH_JWKS_URI: http://user-service:8081/api/v1/auth/jwks
 
   frontend:
     build:

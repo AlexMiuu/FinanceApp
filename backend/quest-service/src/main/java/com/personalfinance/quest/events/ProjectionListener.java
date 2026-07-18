@@ -16,6 +16,9 @@ import com.personalfinance.quest.domain.CategoryProjectionEntity;
 import com.personalfinance.quest.domain.CategoryProjectionRepository;
 import com.personalfinance.quest.domain.ExpenseProjectionEntity;
 import com.personalfinance.quest.domain.ExpenseProjectionRepository;
+import com.personalfinance.quest.quest.QuestService;
+import com.personalfinance.quest.quest.UserIncomeEntity;
+import com.personalfinance.quest.quest.UserIncomeRepository;
 
 /**
  * Maintains the local read models from expense-service events. Handlers are
@@ -36,12 +39,20 @@ public class ProjectionListener {
             Boolean mandatory, Instant occurredAt) {
     }
 
+    public record IncomeEvent(UUID userId, Long monthlyIncome, Instant occurredAt) {
+    }
+
     private final ExpenseProjectionRepository expenses;
     private final CategoryProjectionRepository categories;
+    private final UserIncomeRepository incomes;
+    private final QuestService questService;
 
-    public ProjectionListener(ExpenseProjectionRepository expenses, CategoryProjectionRepository categories) {
+    public ProjectionListener(ExpenseProjectionRepository expenses, CategoryProjectionRepository categories,
+            UserIncomeRepository incomes, QuestService questService) {
         this.expenses = expenses;
         this.categories = categories;
+        this.incomes = incomes;
+        this.questService = questService;
     }
 
     @Transactional
@@ -49,13 +60,22 @@ public class ProjectionListener {
     public void onExpenseEvent(ExpenseEvent event, @Header(AmqpHeaders.RECEIVED_ROUTING_KEY) String routingKey) {
         if ("expense.deleted".equals(routingKey)) {
             expenses.deleteById(event.expenseId());
-            return;
+        } else {
+            expenses.save(new ExpenseProjectionEntity(
+                    event.expenseId(), event.userId(), event.categoryId(), event.categoryPath(),
+                    Boolean.TRUE.equals(event.categoryMandatory()), event.amount(), event.currency(),
+                    event.note(), event.expenseDate()));
         }
-        expenses.save(new ExpenseProjectionEntity(
-                event.expenseId(), event.userId(), event.categoryId(), event.categoryPath(),
-                Boolean.TRUE.equals(event.categoryMandatory()), event.amount(), event.currency(),
-                event.note(), event.expenseDate()));
+        // Every spend can complete or fail an active quest right away (FR-11).
+        questService.refreshActiveQuests(event.userId(), LocalDate.now());
         log.debug("Projected {} for user {}", routingKey, event.userId());
+    }
+
+    @Transactional
+    @RabbitListener(queues = EventsConfig.INCOME_QUEUE)
+    public void onIncomeEvent(IncomeEvent event) {
+        incomes.save(new UserIncomeEntity(event.userId(),
+                event.monthlyIncome() == null ? 0 : event.monthlyIncome()));
     }
 
     @Transactional

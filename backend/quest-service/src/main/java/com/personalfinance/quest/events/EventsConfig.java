@@ -17,6 +17,17 @@ public class EventsConfig {
     public static final String EXCHANGE = "pf.events";
     public static final String EXPENSE_QUEUE = "quest-service.expense-events";
     public static final String CATEGORY_QUEUE = "quest-service.category-events";
+    public static final String INCOME_QUEUE = "quest-service.income-events";
+
+    @Bean
+    Queue incomeQueue() {
+        return new Queue(INCOME_QUEUE, true);
+    }
+
+    @Bean
+    Binding incomeBinding(Queue incomeQueue, TopicExchange eventsExchange) {
+        return BindingBuilder.bind(incomeQueue).to(eventsExchange).with("income.updated");
+    }
 
     @Bean
     TopicExchange eventsExchange() {

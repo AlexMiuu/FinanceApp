@@ -64,10 +64,13 @@ public class MoneyController {
 
     private final IncomeSourceRepository incomes;
     private final SavingsAccountRepository savings;
+    private final IncomeEventPublisher incomeEvents;
 
-    public MoneyController(IncomeSourceRepository incomes, SavingsAccountRepository savings) {
+    public MoneyController(IncomeSourceRepository incomes, SavingsAccountRepository savings,
+            IncomeEventPublisher incomeEvents) {
         this.incomes = incomes;
         this.savings = savings;
+        this.incomeEvents = incomeEvents;
     }
 
     // ---- income sources ----
@@ -81,8 +84,10 @@ public class MoneyController {
     @ResponseStatus(HttpStatus.CREATED)
     public IncomeDto createIncome(@AuthenticationPrincipal UUID userId,
             @Valid @RequestBody IncomeRequest request) {
-        return IncomeDto.of(incomes.save(new IncomeSourceEntity(userId, request.name(), request.amount(),
-                request.recurrence(), request.startDate(), request.endDate())));
+        IncomeDto dto = IncomeDto.of(incomes.save(new IncomeSourceEntity(userId, request.name(),
+                request.amount(), request.recurrence(), request.startDate(), request.endDate())));
+        incomeEvents.publishFor(userId);
+        return dto;
     }
 
     @PutMapping("/income-sources/{id}")
@@ -92,7 +97,9 @@ public class MoneyController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Income source not found"));
         income.update(request.name(), request.amount(), request.recurrence(),
                 request.startDate(), request.endDate());
-        return IncomeDto.of(incomes.save(income));
+        IncomeDto dto = IncomeDto.of(incomes.save(income));
+        incomeEvents.publishFor(userId);
+        return dto;
     }
 
     @DeleteMapping("/income-sources/{id}")
@@ -101,6 +108,7 @@ public class MoneyController {
         IncomeSourceEntity income = incomes.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Income source not found"));
         incomes.delete(income);
+        incomeEvents.publishFor(userId);
     }
 
     // ---- savings ----

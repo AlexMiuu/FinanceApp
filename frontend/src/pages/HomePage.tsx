@@ -9,6 +9,8 @@ import CategoriesTab from "@/pages/CategoriesTab"
 import ReportsTab from "@/pages/ReportsTab"
 import ProfileTab from "@/pages/ProfileTab"
 import GoalsTab from "@/pages/GoalsTab"
+import QuestsTab from "@/pages/QuestsTab"
+import { NotificationsBell } from "@/components/NotificationsBell"
 
 export default function HomePage() {
   const { user, logout } = useAuth()
@@ -33,9 +35,12 @@ export default function HomePage() {
             Signed in as {user?.displayName} ({user?.email})
           </p>
         </div>
-        <Button variant="outline" onClick={logout}>
-          Sign out
-        </Button>
+        <div className="flex items-center gap-2">
+          <NotificationsBell />
+          <Button variant="outline" onClick={logout}>
+            Sign out
+          </Button>
+        </div>
       </header>
 
       <Tabs defaultValue="dashboard">
@@ -44,6 +49,7 @@ export default function HomePage() {
           <TabsTrigger value="expenses">Expenses</TabsTrigger>
           <TabsTrigger value="categories">Categories</TabsTrigger>
           <TabsTrigger value="goals">Goals</TabsTrigger>
+          <TabsTrigger value="quests">Quests</TabsTrigger>
           <TabsTrigger value="reports">Reports</TabsTrigger>
           <TabsTrigger value="profile">Profile</TabsTrigger>
         </TabsList>
@@ -58,6 +64,9 @@ export default function HomePage() {
         </TabsContent>
         <TabsContent value="goals" className="pt-4">
           <GoalsTab categories={categories} />
+        </TabsContent>
+        <TabsContent value="quests" className="pt-4">
+          <QuestsTab />
         </TabsContent>
         <TabsContent value="reports" className="pt-4">
           <ReportsTab categories={categories} />

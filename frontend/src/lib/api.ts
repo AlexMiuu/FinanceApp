@@ -16,6 +16,10 @@ export function setAccessToken(token: string | null) {
   accessToken = token
 }
 
+export function getAccessToken(): string | null {
+  return accessToken
+}
+
 export class ApiError extends Error {
   status: number
 
@@ -346,6 +350,47 @@ export const createGoal = (body: GoalInput) =>
 export const deleteGoal = (id: string) => api<void>(`/api/v1/goals/${id}`, { method: "DELETE" })
 export const getCalendar = (month?: string) =>
   api<GoalCalendar>(`/api/v1/calendar${month ? `?month=${month}` : ""}`)
+
+// ---- Quests & notifications (M6) ----
+
+export type Quest = {
+  id: string
+  templateCode: string
+  title: string
+  status: "SUGGESTED" | "ACTIVE" | "COMPLETED" | "FAILED" | "DECLINED"
+  kind: "CAP" | "DAYS"
+  target: number // bani for CAP, day count for DAYS
+  progress: number
+  periodStart: string
+  periodEnd: string
+  params: Record<string, unknown>
+}
+
+export const listQuests = () => api<Quest[]>("/api/v1/quests")
+export const acceptQuest = (id: string) =>
+  api<{ status: string }>(`/api/v1/quests/${id}/accept`, { method: "POST" })
+export const declineQuest = (id: string) =>
+  api<{ status: string }>(`/api/v1/quests/${id}/decline`, { method: "POST" })
+
+export type AppNotification = {
+  id: string
+  type: string
+  title: string
+  body: string
+  createdAt: string
+  read: boolean
+}
+
+export type NotificationList = {
+  items: AppNotification[]
+  unread: number
+}
+
+export const listNotifications = () => api<NotificationList>("/api/v1/notifications")
+export const markNotificationRead = (id: string) =>
+  api<{ read: boolean }>(`/api/v1/notifications/${id}/read`, { method: "POST" })
+export const markAllNotificationsRead = () =>
+  api<{ read: boolean }>("/api/v1/notifications/read-all", { method: "POST" })
 
 /** Downloads the report CSV with the auth header, then triggers a save. */
 export async function downloadReportCsv(id: string, name: string) {

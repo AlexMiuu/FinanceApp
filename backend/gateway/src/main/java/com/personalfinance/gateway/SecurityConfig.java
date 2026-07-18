@@ -30,6 +30,9 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeExchange(exchange -> exchange
                         .pathMatchers("/api/v1/auth/**", "/actuator/**").permitAll()
+                        // WS handshake can't carry headers; STOMP CONNECT is
+                        // authenticated inside notification-service instead.
+                        .pathMatchers("/ws/**", "/ws").permitAll()
                         .anyExchange().authenticated())
                 .oauth2ResourceServer(oauth -> oauth.jwt(jwt -> jwt.jwtDecoder(jwtDecoder)))
                 .build();

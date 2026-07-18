@@ -2,7 +2,21 @@
 
 Personal finance web app: expense tracking, reports & dashboards, goal calendar, spending quests, net worth, Romanian salary calculator.
 
-Full spec: [DESIGN.md](DESIGN.md) · Current milestone: **M5 — goals & calendar**
+Full spec: [DESIGN.md](DESIGN.md) · Current milestone: **M6 — quests & notifications**
+
+## Quests & notifications (M6)
+
+- Four seeded quest templates (`quest_templates`): CATEGORY_CAP, WEEKLY_CAP,
+  NO_SPEND_DAYS, BEAT_LAST_MONTH. Caps are tailored from the previous full weeks'
+  discretionary spend (85%), with an income-based fallback (`income.updated` events feed a
+  projection); mandatory categories are excluded; dead-on-arrival caps are never suggested.
+- Lifecycle: SUGGESTED → accept/decline → ACTIVE → COMPLETED/FAILED. Cap quests fail the
+  moment an expense event pushes them over; a nightly job (and lazy reads) finalize ended
+  periods. Transitions publish `quest.*` events.
+- notification-service persists quest events and pushes them over **STOMP/WebSocket**
+  (`/ws`, JWT on the CONNECT frame, per-user queues). Bell + notification center in the
+  header update live — no reload.
+- All containers run in `Europe/Bucharest` so day boundaries match the user.
 
 ## Goals & calendar (M5)
 

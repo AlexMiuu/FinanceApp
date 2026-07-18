@@ -15,6 +15,7 @@ export default defineConfig({
     proxy: {
       // Dev-mode: forward API calls to the gateway (same path nginx proxies in docker)
       '/api': 'http://localhost:8080',
+      '/ws': { target: 'ws://localhost:8080', ws: true },
     },
   },
 })

@@ -10,6 +10,15 @@ spring:
     password: ${SPRING_DATASOURCE_PASSWORD:finance}
   flyway:
     enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: none   # Flyway owns the schema
+    open-in-view: false
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:localhost}
+
+auth:
+  jwks-uri: ${AUTH_JWKS_URI:http://localhost:8081/api/v1/auth/jwks}
 
 management:
   endpoints:
@@ -20,4 +29,3 @@ management:
     health:
       probes:
         enabled: true
-
