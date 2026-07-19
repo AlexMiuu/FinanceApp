@@ -3,32 +3,27 @@ import { useAuth } from "@/auth/AuthContext"
 import { oauthProviders } from "@/lib/api"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default function AuthPage() {
   const { login, register } = useAuth()
+  const [mode, setMode] = useState<"login" | "register">("login")
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [googleAvailable, setGoogleAvailable] = useState(false)
 
   useEffect(() => {
-    oauthProviders().then((p) => setGoogleAvailable(p.google))
+    oauthProviders()
+      .then((p) => setGoogleAvailable(p.google))
+      .catch(() => {})
     if (new URLSearchParams(window.location.search).get("login") === "error") {
       setError("Google sign-in failed. Please try again.")
       window.history.replaceState(null, "", "/")
     }
   }, [])
 
-  async function submit(e: FormEvent<HTMLFormElement>, mode: "login" | "register") {
+  async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
     setBusy(true)
@@ -49,74 +44,66 @@ export default function AuthPage() {
   }
 
   return (
-    <main className="flex min-h-svh items-center justify-center p-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>Personal Finance App</CardTitle>
-          <CardDescription>Sign in to track your money.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Tabs defaultValue="login">
-            <TabsList className="w-full">
-              <TabsTrigger value="login" className="flex-1">
-                Sign in
-              </TabsTrigger>
-              <TabsTrigger value="register" className="flex-1">
-                Create account
-              </TabsTrigger>
-            </TabsList>
+    <main className="bg-background grid min-h-svh place-items-center p-4 [background-image:radial-gradient(800px_500px_at_50%_-10%,color-mix(in_oklab,var(--primary)_16%,transparent),transparent)]">
+      <div className="bg-card w-full max-w-[400px] rounded-2xl border p-9 shadow-2xl">
+        <div className="flex items-center justify-center gap-2.5">
+          <span className="bg-primary text-primary-foreground grid size-[30px] place-items-center rounded-lg font-mono text-[15px] font-bold">
+            L
+          </span>
+          <span className="text-[17px] font-semibold tracking-wide">LEDGER</span>
+        </div>
+        <p className="text-muted-foreground mt-2 text-center text-[13px]">
+          {mode === "login" ? "Sign in to your account" : "Create your account"}
+        </p>
 
-            <TabsContent value="login">
-              <form className="space-y-3" onSubmit={(e) => submit(e, "login")}>
-                <div className="space-y-1.5">
-                  <Label htmlFor="login-email">Email</Label>
-                  <Input id="login-email" name="email" type="email" required autoComplete="email" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="login-password">Password</Label>
-                  <Input
-                    id="login-password"
-                    name="password"
-                    type="password"
-                    required
-                    autoComplete="current-password"
-                  />
-                </div>
-                <Button type="submit" className="w-full" disabled={busy}>
-                  {busy ? "Signing in…" : "Sign in"}
-                </Button>
-              </form>
-            </TabsContent>
+        <form className="mt-7 flex flex-col gap-3.5" onSubmit={submit}>
+          {mode === "register" && (
+            <div className="space-y-1.5">
+              <Label htmlFor="displayName">Name</Label>
+              <Input id="displayName" name="displayName" required autoComplete="name" />
+            </div>
+          )}
+          <div className="space-y-1.5">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              placeholder="you@example.com"
+              required
+              autoComplete="email"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              placeholder="••••••••"
+              required
+              minLength={mode === "register" ? 8 : undefined}
+              autoComplete={mode === "login" ? "current-password" : "new-password"}
+            />
+          </div>
+          <Button type="submit" className="mt-1 w-full" disabled={busy}>
+            {busy
+              ? mode === "login"
+                ? "Signing in…"
+                : "Creating account…"
+              : mode === "login"
+                ? "Sign in"
+                : "Create account"}
+          </Button>
+        </form>
 
-            <TabsContent value="register">
-              <form className="space-y-3" onSubmit={(e) => submit(e, "register")}>
-                <div className="space-y-1.5">
-                  <Label htmlFor="register-name">Name</Label>
-                  <Input id="register-name" name="displayName" required autoComplete="name" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="register-email">Email</Label>
-                  <Input id="register-email" name="email" type="email" required autoComplete="email" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="register-password">Password</Label>
-                  <Input
-                    id="register-password"
-                    name="password"
-                    type="password"
-                    required
-                    minLength={8}
-                    autoComplete="new-password"
-                  />
-                </div>
-                <Button type="submit" className="w-full" disabled={busy}>
-                  {busy ? "Creating account…" : "Create account"}
-                </Button>
-              </form>
-            </TabsContent>
-          </Tabs>
-
-          {googleAvailable && (
+        {googleAvailable && (
+          <>
+            <div className="my-3.5 flex items-center gap-3">
+              <span className="bg-border h-px flex-1" />
+              <span className="text-muted-foreground text-[11px]">OR</span>
+              <span className="bg-border h-px flex-1" />
+            </div>
             <Button
               variant="outline"
               className="w-full"
@@ -124,17 +111,32 @@ export default function AuthPage() {
                 window.location.href = "/api/v1/auth/oauth/google"
               }}
             >
+              <span className="text-primary font-mono text-[13px] font-bold">G</span>
               Continue with Google
             </Button>
-          )}
+          </>
+        )}
 
-          {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-        </CardContent>
-      </Card>
+        {error && (
+          <Alert variant="destructive" className="mt-3.5">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        <p className="text-muted-foreground mt-5 text-center text-[12.5px]">
+          {mode === "login" ? "No account? " : "Have an account? "}
+          <button
+            type="button"
+            className="text-primary cursor-pointer border-none bg-transparent font-medium"
+            onClick={() => {
+              setMode(mode === "login" ? "register" : "login")
+              setError(null)
+            }}
+          >
+            {mode === "login" ? "Create one" : "Sign in"}
+          </button>
+        </p>
+      </div>
     </main>
   )
 }
