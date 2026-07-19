@@ -351,6 +351,30 @@ export const deleteGoal = (id: string) => api<void>(`/api/v1/goals/${id}`, { met
 export const getCalendar = (month?: string) =>
   api<GoalCalendar>(`/api/v1/calendar${month ? `?month=${month}` : ""}`)
 
+// ---- Recurring expenses (manual-flow robustness) ----
+
+export type RecurringExpense = {
+  id: string
+  categoryId: string
+  amount: number // bani
+  note: string | null
+  dayOfMonth: number
+  nextRun: string
+  active: boolean
+}
+
+export const listRecurring = () => api<RecurringExpense[]>("/api/v1/expenses/recurring")
+
+export const createRecurring = (body: {
+  amount: number
+  categoryId: string
+  note: string | null
+  startDate: string
+}) => api<RecurringExpense>("/api/v1/expenses/recurring", { method: "POST", body: JSON.stringify(body) })
+
+export const deleteRecurring = (id: string) =>
+  api<void>(`/api/v1/expenses/recurring/${id}`, { method: "DELETE" })
+
 // ---- Quests & notifications (M6) ----
 
 export type Quest = {

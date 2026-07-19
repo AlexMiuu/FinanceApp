@@ -4,6 +4,16 @@ Personal finance web app: expense tracking, reports & dashboards, goal calendar,
 
 Full spec: [DESIGN.md](DESIGN.md) · Current milestone: **M6 — quests & notifications**
 
+## Quick entry & recurring expenses
+
+- **Recurring monthly templates** (`/api/v1/expenses/recurring`): tick "Repeat monthly"
+  on the add-expense form. A daily job + startup catch-up posts occurrences through the
+  normal expense flow (events, projections, quests all see them). Backdating a template
+  auto-fills the missed months; end-of-month anchors clamp (31st → Feb 28) and recover.
+- **Quick-add ergonomics**: one-tap chips for your most-used categories, last-used
+  category preselected, "Again" re-adds a row dated today, amount field refocuses after
+  each save. (Interim measures until CSV bank-statement import lands.)
+
 ## Quests & notifications (M6)
 
 - Four seeded quest templates (`quest_templates`): CATEGORY_CAP, WEEKLY_CAP,
