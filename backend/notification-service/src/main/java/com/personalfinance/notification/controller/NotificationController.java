@@ -1,4 +1,4 @@
-package com.personalfinance.notification.web;
+package com.personalfinance.notification.controller;
 
 import java.time.Instant;
 import java.util.List;

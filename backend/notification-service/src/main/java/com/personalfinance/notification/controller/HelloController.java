@@ -1,4 +1,4 @@
-package com.personalfinance.notification;
+package com.personalfinance.notification.controller;
 
 import java.util.Map;
 

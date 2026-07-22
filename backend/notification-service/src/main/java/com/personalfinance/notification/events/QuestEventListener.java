@@ -13,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.personalfinance.notification.domain.NotificationEntity;
 import com.personalfinance.notification.domain.NotificationRepository;
-import com.personalfinance.notification.web.NotificationController;
+import com.personalfinance.notification.controller.NotificationController;
 
 /** Persists quest events as notifications and pushes them live (FR-12). */
 @Component
