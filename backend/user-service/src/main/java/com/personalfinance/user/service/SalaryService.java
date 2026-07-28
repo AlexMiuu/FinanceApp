@@ -1,8 +1,11 @@
-package com.personalfinance.user.money;
+package com.personalfinance.user.service;
 
 import java.time.LocalDate;
 import java.util.Map;
 
+import com.personalfinance.user.entity.TaxConfigEntity;
+import com.personalfinance.user.repository.TaxConfigRepository;
+import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
  * All amounts in bani.
  */
 @Service
+@AllArgsConstructor
 public class SalaryService {
 
     public record TaxRules(double casRate, double cassRate, double incomeTaxRate, long personalDeduction,
@@ -23,10 +27,6 @@ public class SalaryService {
     }
 
     private final TaxConfigRepository taxConfigs;
-
-    public SalaryService(TaxConfigRepository taxConfigs) {
-        this.taxConfigs = taxConfigs;
-    }
 
     @Transactional(readOnly = true)
     public TaxRules rulesFor(LocalDate date) {

@@ -1,4 +1,4 @@
-package com.personalfinance.user.domain;
+package com.personalfinance.user.entity;
 
 import java.time.Instant;
 import java.util.UUID;

@@ -1,4 +1,4 @@
-package com.personalfinance.user.auth;
+package com.personalfinance.user.service;
 
 import java.security.MessageDigest;
 import java.security.SecureRandom;
@@ -8,6 +8,12 @@ import java.util.Base64;
 import java.util.HexFormat;
 import java.util.Optional;
 
+import com.personalfinance.user.exception.EmailAlreadyUsedException;
+import com.personalfinance.user.exception.InvalidCredentialsException;
+import com.personalfinance.user.exception.InvalidRefreshTokenException;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -16,14 +22,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.personalfinance.user.events.UserRegisteredEvent;
 
-import com.personalfinance.user.domain.AuthIdentityEntity;
-import com.personalfinance.user.domain.AuthIdentityRepository;
-import com.personalfinance.user.domain.RefreshTokenEntity;
-import com.personalfinance.user.domain.RefreshTokenRepository;
-import com.personalfinance.user.domain.UserEntity;
-import com.personalfinance.user.domain.UserRepository;
+import com.personalfinance.user.entity.AuthIdentityEntity;
+import com.personalfinance.user.repository.AuthIdentityRepository;
+import com.personalfinance.user.entity.RefreshTokenEntity;
+import com.personalfinance.user.repository.RefreshTokenRepository;
+import com.personalfinance.user.entity.UserEntity;
+import com.personalfinance.user.repository.UserRepository;
 
 @Service
+@AllArgsConstructor
 public class AuthService {
 
     public record TokenPair(String accessToken, String refreshToken, Duration refreshTtl, UserEntity user) {
@@ -38,22 +45,6 @@ public class AuthService {
     private final JwtService jwtService;
     private final ApplicationEventPublisher eventPublisher;
     private final Duration refreshTokenTtl;
-
-    public AuthService(UserRepository users,
-            AuthIdentityRepository identities,
-            RefreshTokenRepository refreshTokens,
-            PasswordEncoder passwordEncoder,
-            JwtService jwtService,
-            ApplicationEventPublisher eventPublisher,
-            @Value("${auth.refresh-token-ttl:30d}") Duration refreshTokenTtl) {
-        this.users = users;
-        this.identities = identities;
-        this.refreshTokens = refreshTokens;
-        this.passwordEncoder = passwordEncoder;
-        this.jwtService = jwtService;
-        this.eventPublisher = eventPublisher;
-        this.refreshTokenTtl = refreshTokenTtl;
-    }
 
     @Transactional
     public TokenPair register(String email, String password, String displayName) {

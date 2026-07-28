@@ -2,19 +2,16 @@ package com.personalfinance.user.config;
 
 import java.io.IOException;
 
-import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 
-import com.personalfinance.user.auth.AuthService;
-import com.personalfinance.user.auth.AuthService.TokenPair;
+import com.personalfinance.user.service.AuthService;
+import com.personalfinance.user.service.AuthService.TokenPair;
 import com.personalfinance.user.auth.RefreshCookies;
-import com.personalfinance.user.domain.UserEntity;
+import com.personalfinance.user.entity.UserEntity;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

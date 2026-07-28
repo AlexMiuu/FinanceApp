@@ -1,4 +1,4 @@
-package com.personalfinance.user;
+package com.personalfinance.user.controller;
 
 import java.util.Map;
 

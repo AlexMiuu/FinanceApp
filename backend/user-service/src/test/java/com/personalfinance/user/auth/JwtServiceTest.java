@@ -5,10 +5,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.time.Duration;
 import java.util.Optional;
 
+import com.personalfinance.user.service.JwtService;
 import org.junit.jupiter.api.Test;
 
 import com.nimbusds.jwt.JWTClaimsSet;
-import com.personalfinance.user.domain.UserEntity;
+import com.personalfinance.user.entity.UserEntity;
 
 class JwtServiceTest {
 

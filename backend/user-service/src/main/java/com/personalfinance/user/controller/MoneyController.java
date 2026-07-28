@@ -1,9 +1,17 @@
-package com.personalfinance.user.money;
+package com.personalfinance.user.controller;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
+import com.personalfinance.user.dto.IncomeDto;
+import com.personalfinance.user.dto.IncomeRequestDto;
+import com.personalfinance.user.entity.IncomeSourceEntity;
+import com.personalfinance.user.entity.SavingsAccountEntity;
+import com.personalfinance.user.events.IncomeEventPublisher;
+import com.personalfinance.user.repository.IncomeSourceRepository;
+import com.personalfinance.user.repository.SavingsAccountRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -27,25 +35,9 @@ import jakarta.validation.constraints.Size;
 
 /** Income sources, savings, and net worth (FR-2, FR-8). */
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/me")
 public class MoneyController {
-
-    public record IncomeDto(UUID id, String name, long amount, String recurrence,
-            LocalDate startDate, LocalDate endDate) {
-
-        static IncomeDto of(IncomeSourceEntity e) {
-            return new IncomeDto(e.getId(), e.getName(), e.getAmount(), e.getRecurrence(),
-                    e.getStartDate(), e.getEndDate());
-        }
-    }
-
-    public record IncomeRequest(
-            @NotBlank @Size(max = 100) String name,
-            @Positive long amount,
-            @NotNull @Pattern(regexp = "MONTHLY|YEARLY|ONE_OFF") String recurrence,
-            @NotNull LocalDate startDate,
-            LocalDate endDate) {
-    }
 
     public record SavingsDto(UUID id, String name, long balance) {
 
@@ -66,13 +58,6 @@ public class MoneyController {
     private final SavingsAccountRepository savings;
     private final IncomeEventPublisher incomeEvents;
 
-    public MoneyController(IncomeSourceRepository incomes, SavingsAccountRepository savings,
-            IncomeEventPublisher incomeEvents) {
-        this.incomes = incomes;
-        this.savings = savings;
-        this.incomeEvents = incomeEvents;
-    }
-
     // ---- income sources ----
 
     @GetMapping("/income-sources")
@@ -83,16 +68,19 @@ public class MoneyController {
     @PostMapping("/income-sources")
     @ResponseStatus(HttpStatus.CREATED)
     public IncomeDto createIncome(@AuthenticationPrincipal UUID userId,
-            @Valid @RequestBody IncomeRequest request) {
+            @Valid @RequestBody IncomeRequestDto request) {
         IncomeDto dto = IncomeDto.of(incomes.save(new IncomeSourceEntity(userId, request.name(),
                 request.amount(), request.recurrence(), request.startDate(), request.endDate())));
+
+        IncomeSourceEntity
+
         incomeEvents.publishFor(userId);
         return dto;
     }
 
     @PutMapping("/income-sources/{id}")
     public IncomeDto updateIncome(@AuthenticationPrincipal UUID userId, @PathVariable UUID id,
-            @Valid @RequestBody IncomeRequest request) {
+            @Valid @RequestBody IncomeRequestDto request) {
         IncomeSourceEntity income = incomes.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Income source not found"));
         income.update(request.name(), request.amount(), request.recurrence(),

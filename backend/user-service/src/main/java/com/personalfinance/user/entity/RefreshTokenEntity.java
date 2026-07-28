@@ -1,4 +1,4 @@
-package com.personalfinance.user.domain;
+package com.personalfinance.user.entity;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -8,8 +8,13 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import lombok.*;
 
 @Entity
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
 @Table(name = "refresh_tokens")
 public class RefreshTokenEntity {
 
@@ -31,27 +36,9 @@ public class RefreshTokenEntity {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
-    protected RefreshTokenEntity() {
-    }
-
-    public RefreshTokenEntity(UUID userId, String tokenHash, Instant expiresAt) {
-        this.id = UUID.randomUUID();
-        this.userId = userId;
-        this.tokenHash = tokenHash;
-        this.expiresAt = expiresAt;
-    }
-
     @PrePersist
     void onCreate() {
         createdAt = Instant.now();
-    }
-
-    public UUID getUserId() {
-        return userId;
-    }
-
-    public Instant getExpiresAt() {
-        return expiresAt;
     }
 
     public boolean isRevoked() {

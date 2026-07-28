@@ -4,11 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.LocalDate;
 
+import com.personalfinance.user.repository.TaxConfigRepository;
+import com.personalfinance.user.service.SalaryService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import com.personalfinance.user.money.SalaryService.Breakdown;
-import com.personalfinance.user.money.SalaryService.TaxRules;
+import com.personalfinance.user.service.SalaryService.Breakdown;
+import com.personalfinance.user.service.SalaryService.TaxRules;
 
 class SalaryServiceTest {
 

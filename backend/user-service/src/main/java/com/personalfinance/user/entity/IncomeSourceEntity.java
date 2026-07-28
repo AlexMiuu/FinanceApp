@@ -1,4 +1,4 @@
-package com.personalfinance.user.money;
+package com.personalfinance.user.entity;
 
 import java.time.Instant;
 import java.time.LocalDate;

@@ -12,17 +12,22 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 
+import com.personalfinance.user.exception.EmailAlreadyUsedException;
+import com.personalfinance.user.exception.InvalidCredentialsException;
+import com.personalfinance.user.exception.InvalidRefreshTokenException;
+import com.personalfinance.user.service.AuthService;
+import com.personalfinance.user.service.JwtService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import com.personalfinance.user.domain.AuthIdentityRepository;
-import com.personalfinance.user.domain.RefreshTokenEntity;
-import com.personalfinance.user.domain.RefreshTokenRepository;
-import com.personalfinance.user.domain.UserEntity;
-import com.personalfinance.user.domain.UserRepository;
+import com.personalfinance.user.repository.AuthIdentityRepository;
+import com.personalfinance.user.entity.RefreshTokenEntity;
+import com.personalfinance.user.repository.RefreshTokenRepository;
+import com.personalfinance.user.entity.UserEntity;
+import com.personalfinance.user.repository.UserRepository;
 
 class AuthServiceTest {
 

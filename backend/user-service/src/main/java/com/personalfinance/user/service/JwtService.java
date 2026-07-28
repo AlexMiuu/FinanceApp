@@ -1,4 +1,4 @@
-package com.personalfinance.user.auth;
+package com.personalfinance.user.service;
 
 import java.security.KeyFactory;
 import java.security.KeyPair;
@@ -30,7 +30,7 @@ import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-import com.personalfinance.user.domain.UserEntity;
+import com.personalfinance.user.entity.UserEntity;
 
 /**
  * Issues and validates RS256 access tokens. The public key is published at

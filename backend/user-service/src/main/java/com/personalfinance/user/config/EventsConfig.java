@@ -1,4 +1,4 @@
-package com.personalfinance.user.events;
+package com.personalfinance.user.config;
 
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;

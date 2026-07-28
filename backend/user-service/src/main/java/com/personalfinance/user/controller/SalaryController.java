@@ -1,7 +1,8 @@
-package com.personalfinance.user.money;
+package com.personalfinance.user.controller;
 
 import java.time.LocalDate;
 
+import com.personalfinance.user.service.SalaryService;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;

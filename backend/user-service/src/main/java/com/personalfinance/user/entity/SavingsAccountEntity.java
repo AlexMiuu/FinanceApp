@@ -1,4 +1,4 @@
-package com.personalfinance.user.money;
+package com.personalfinance.user.entity;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -9,8 +9,13 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import lombok.*;
 
 @Entity
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
 @Table(name = "savings_accounts")
 public class SavingsAccountEntity {
 
@@ -30,16 +35,6 @@ public class SavingsAccountEntity {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    protected SavingsAccountEntity() {
-    }
-
-    public SavingsAccountEntity(UUID userId, String name, long balance) {
-        this.id = UUID.randomUUID();
-        this.userId = userId;
-        this.name = name;
-        this.balance = balance;
-    }
-
     @PrePersist
     void onCreate() {
         updatedAt = Instant.now();
@@ -48,22 +43,6 @@ public class SavingsAccountEntity {
     @PreUpdate
     void onUpdate() {
         updatedAt = Instant.now();
-    }
-
-    public UUID getId() {
-        return id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public long getBalance() {
-        return balance;
-    }
-
-    public Instant getUpdatedAt() {
-        return updatedAt;
     }
 
     public void update(String name, long balance) {

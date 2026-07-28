@@ -1,9 +1,10 @@
-package com.personalfinance.user.money;
+package com.personalfinance.user.entity;
 
 import java.time.LocalDate;
 import java.util.Map;
 import java.util.UUID;
 
+import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -13,6 +14,10 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 @Entity
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
 @Table(name = "tax_config")
 public class TaxConfigEntity {
 
@@ -25,15 +30,4 @@ public class TaxConfigEntity {
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(nullable = false)
     private Map<String, Object> rules;
-
-    protected TaxConfigEntity() {
-    }
-
-    public LocalDate getValidFrom() {
-        return validFrom;
-    }
-
-    public Map<String, Object> getRules() {
-        return rules;
-    }
 }

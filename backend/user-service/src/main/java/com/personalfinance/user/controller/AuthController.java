@@ -1,7 +1,13 @@
-package com.personalfinance.user.auth;
+package com.personalfinance.user.controller;
 
 import java.util.Map;
 
+import com.personalfinance.user.auth.RefreshCookies;
+import com.personalfinance.user.dto.AuthDtos;
+import com.personalfinance.user.exception.InvalidRefreshTokenException;
+import com.personalfinance.user.service.AuthService;
+import com.personalfinance.user.service.JwtService;
+import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -14,11 +20,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.personalfinance.user.auth.AuthService.TokenPair;
+import com.personalfinance.user.service.AuthService.TokenPair;
 
 import jakarta.validation.Valid;
 
 @RestController
+@AllArgsConstructor
 @RequestMapping("/api/v1/auth")
 public class AuthController {
 
@@ -26,16 +33,6 @@ public class AuthController {
     private final JwtService jwtService;
     private final RefreshCookies cookies;
     private final boolean googleEnabled;
-
-    public AuthController(AuthService authService,
-            JwtService jwtService,
-            RefreshCookies cookies,
-            ObjectProvider<ClientRegistrationRepository> clientRegistrations) {
-        this.authService = authService;
-        this.jwtService = jwtService;
-        this.cookies = cookies;
-        this.googleEnabled = clientRegistrations.getIfAvailable() != null;
-    }
 
     @PostMapping("/register")
     public ResponseEntity<AuthDtos.AuthResponse> register(@Valid @RequestBody AuthDtos.RegisterRequest request) {

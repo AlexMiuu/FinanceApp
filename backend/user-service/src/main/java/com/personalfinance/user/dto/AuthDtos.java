@@ -1,16 +1,15 @@
-package com.personalfinance.user.auth;
+package com.personalfinance.user.dto;
 
-import com.personalfinance.user.auth.AuthService.TokenPair;
-import com.personalfinance.user.domain.UserEntity;
+import com.personalfinance.user.service.AuthService.TokenPair;
+import com.personalfinance.user.entity.UserEntity;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import lombok.NoArgsConstructor;
 
+@NoArgsConstructor
 public final class AuthDtos {
-
-    private AuthDtos() {
-    }
 
     public record RegisterRequest(
             @NotBlank @Email String email,

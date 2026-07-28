@@ -1,4 +1,4 @@
-package com.personalfinance.user.auth;
+package com.personalfinance.user.exception;
 
 import java.util.Map;
 

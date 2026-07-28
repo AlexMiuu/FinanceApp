@@ -1,5 +1,6 @@
 package com.personalfinance.user.events;
 
+import com.personalfinance.user.config.EventsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
