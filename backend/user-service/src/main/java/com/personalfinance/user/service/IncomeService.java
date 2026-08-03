@@ -11,9 +11,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.UUID;
+
+import static com.personalfinance.user.service.RequestGuards.requireBody;
+import static com.personalfinance.user.service.RequestGuards.requireFound;
+import static com.personalfinance.user.service.RequestGuards.requireId;
+import static com.personalfinance.user.service.RequestGuards.requireUser;
 
 @Service
 @RequiredArgsConstructor
@@ -25,11 +29,14 @@ public class IncomeService {
 
     @Transactional(readOnly = true)
     public ResponseEntity<?> listAllIncome(UUID userId) {
+        requireUser(userId);
         return ResponseEntity.ok(incomeMapper.toDtos(incomes.findByUserIdOrderByCreatedAtAsc(userId)));
     }
 
     @Transactional
     public ResponseEntity<?> createIncome(UUID userId, IncomeRequestDto request) {
+        requireUser(userId);
+        requireBody(request);
 
         IncomeSourceEntity entity = IncomeSourceEntity.builder()
                 .userId(userId)
@@ -47,6 +54,9 @@ public class IncomeService {
 
     @Transactional
     public ResponseEntity<?> updateIncome(UUID userId, UUID id, IncomeRequestDto request) {
+        requireUser(userId);
+        requireId(id, "Income source");
+        requireBody(request);
 
         IncomeSourceEntity income = findOwned(userId, id);
         income.update(request.getName(), request.getAmount(), request.getRecurrence(),
@@ -59,6 +69,9 @@ public class IncomeService {
 
     @Transactional
     public ResponseEntity<?> deleteIncome(UUID userId, UUID id) {
+        requireUser(userId);
+        requireId(id, "Income source");
+
         incomes.delete(findOwned(userId, id));
         incomeEvents.publishFor(userId);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
@@ -66,7 +79,6 @@ public class IncomeService {
 
     /** Scoping the lookup by userId is what keeps one user out of another's rows. */
     private IncomeSourceEntity findOwned(UUID userId, UUID id) {
-        return incomes.findByIdAndUserId(id, userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Income source not found"));
+        return requireFound(incomes.findByIdAndUserId(id, userId), "Income source not found");
     }
 }

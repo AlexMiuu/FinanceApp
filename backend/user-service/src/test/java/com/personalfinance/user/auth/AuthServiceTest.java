@@ -12,6 +12,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 
+import com.personalfinance.user.config.AuthProperties;
 import com.personalfinance.user.exception.EmailAlreadyUsedException;
 import com.personalfinance.user.exception.InvalidCredentialsException;
 import com.personalfinance.user.exception.InvalidRefreshTokenException;
@@ -43,8 +44,11 @@ class AuthServiceTest {
         users = mock(UserRepository.class);
         identities = mock(AuthIdentityRepository.class);
         refreshTokens = mock(RefreshTokenRepository.class);
+        AuthProperties authProperties = new AuthProperties(
+                Duration.ofMinutes(15), Duration.ofDays(30), false,
+                new AuthProperties.Jwt(""), new AuthProperties.Google("", ""));
         service = new AuthService(users, identities, refreshTokens, encoder,
-                new JwtService("", Duration.ofMinutes(15)), event -> { }, Duration.ofDays(30));
+                new JwtService(authProperties), event -> { }, authProperties);
         when(users.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(refreshTokens.save(any())).thenAnswer(inv -> inv.getArgument(0));
     }

@@ -3,16 +3,15 @@ package com.personalfinance.user.controller;
 import java.util.Map;
 
 import com.personalfinance.user.auth.RefreshCookies;
+import com.personalfinance.user.config.AuthProperties;
 import com.personalfinance.user.dto.AuthDtos;
 import com.personalfinance.user.exception.InvalidRefreshTokenException;
 import com.personalfinance.user.service.AuthService;
 import com.personalfinance.user.service.JwtService;
-import lombok.AllArgsConstructor;
-import org.springframework.beans.factory.ObjectProvider;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -25,14 +24,14 @@ import com.personalfinance.user.service.AuthService.TokenPair;
 import jakarta.validation.Valid;
 
 @RestController
-@AllArgsConstructor
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/auth")
 public class AuthController {
 
     private final AuthService authService;
     private final JwtService jwtService;
     private final RefreshCookies cookies;
-    private final boolean googleEnabled;
+    private final AuthProperties authProperties;
 
     @PostMapping("/register")
     public ResponseEntity<AuthDtos.AuthResponse> register(@Valid @RequestBody AuthDtos.RegisterRequest request) {
@@ -74,7 +73,8 @@ public class AuthController {
 
     @GetMapping("/oauth/providers")
     public Map<String, Boolean> providers() {
-        return Map.of("google", googleEnabled);
+        String clientId = authProperties.google().clientId();
+        return Map.of("google", clientId != null && !clientId.isBlank());
     }
 
     private ResponseEntity<AuthDtos.AuthResponse> withRefreshCookie(HttpStatus status, TokenPair tokens) {

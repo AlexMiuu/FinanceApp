@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.time.Duration;
 import java.util.Optional;
 
+import com.personalfinance.user.config.AuthProperties;
 import com.personalfinance.user.service.JwtService;
 import org.junit.jupiter.api.Test;
 
@@ -13,9 +14,15 @@ import com.personalfinance.user.entity.UserEntity;
 
 class JwtServiceTest {
 
+    /** Ephemeral key pair, 15 minute access tokens — the dev defaults. */
+    private static AuthProperties authProperties() {
+        return new AuthProperties(Duration.ofMinutes(15), Duration.ofDays(30), false,
+                new AuthProperties.Jwt(""), new AuthProperties.Google("", ""));
+    }
+
     @Test
     void issuedTokenRoundTrips() throws Exception {
-        JwtService service = new JwtService("", Duration.ofMinutes(15));
+        JwtService service = new JwtService(authProperties());
         UserEntity user = new UserEntity("alex@example.com", null, "Alex", null);
 
         String token = service.issueAccessToken(user);
@@ -29,7 +36,7 @@ class JwtServiceTest {
 
     @Test
     void tamperedTokenIsRejected() throws Exception {
-        JwtService service = new JwtService("", Duration.ofMinutes(15));
+        JwtService service = new JwtService(authProperties());
         UserEntity user = new UserEntity("alex@example.com", null, "Alex", null);
 
         String token = service.issueAccessToken(user);
@@ -40,8 +47,8 @@ class JwtServiceTest {
 
     @Test
     void tokenFromDifferentKeyIsRejected() throws Exception {
-        JwtService issuer = new JwtService("", Duration.ofMinutes(15));
-        JwtService verifier = new JwtService("", Duration.ofMinutes(15));
+        JwtService issuer = new JwtService(authProperties());
+        JwtService verifier = new JwtService(authProperties());
         UserEntity user = new UserEntity("alex@example.com", null, "Alex", null);
 
         String token = issuer.issueAccessToken(user);

@@ -3,11 +3,15 @@ package com.personalfinance.user.service;
 import java.time.LocalDate;
 import java.util.Map;
 
+import com.personalfinance.user.dto.SalaryRequestDto;
 import com.personalfinance.user.entity.TaxConfigEntity;
 import com.personalfinance.user.repository.TaxConfigRepository;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import static com.personalfinance.user.service.RequestGuards.requireBody;
 
 /**
  * Romanian net ↔ gross salary calculator (FR-10). Rates come from the
@@ -15,7 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
  * All amounts in bani.
  */
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class SalaryService {
 
     public record TaxRules(double casRate, double cassRate, double incomeTaxRate, long personalDeduction,
@@ -27,6 +31,17 @@ public class SalaryService {
     }
 
     private final TaxConfigRepository taxConfigs;
+
+    @Transactional(readOnly = true)
+    public ResponseEntity<?> calculate(SalaryRequestDto request) {
+        requireBody(request);
+
+        TaxRules rules = rulesFor(LocalDate.now());
+        Breakdown breakdown = SalaryRequestDto.GROSS_TO_NET.equals(request.getMode())
+                ? netFromGross(request.getAmount(), rules)
+                : grossFromNet(request.getAmount(), rules);
+        return ResponseEntity.ok(breakdown);
+    }
 
     @Transactional(readOnly = true)
     public TaxRules rulesFor(LocalDate date) {

@@ -12,8 +12,7 @@ import jakarta.persistence.Table;
 import lombok.*;
 
 @Entity
-@AllArgsConstructor
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
 @Setter
 @Table(name = "savings_accounts")
@@ -34,6 +33,13 @@ public class SavingsAccountEntity {
 
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
+
+    public SavingsAccountEntity(UUID userId, String name, long balance) {
+        this.id = UUID.randomUUID();
+        this.userId = userId;
+        this.name = name;
+        this.balance = balance;
+    }
 
     @PrePersist
     void onCreate() {

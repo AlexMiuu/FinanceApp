@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 import com.personalfinance.user.repository.IncomeSourceRepository;
+import com.personalfinance.user.service.IncomeCalculator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -27,16 +28,8 @@ public class IncomeEventPublisher {
 
     /** Recomputes normalized monthly income and broadcasts it. */
     public void publishFor(UUID userId) {
-        LocalDate today = LocalDate.now();
-        long monthlyIncome = incomes.findByUserIdOrderByCreatedAtAsc(userId).stream()
-                .filter(i -> !i.getStartDate().isAfter(today))
-                .filter(i -> i.getEndDate() == null || !i.getEndDate().isBefore(today))
-                .mapToLong(i -> switch (i.getRecurrence()) {
-                    case "MONTHLY" -> i.getAmount();
-                    case "YEARLY" -> Math.round(i.getAmount() / 12.0);
-                    default -> 0;
-                })
-                .sum();
+        long monthlyIncome = IncomeCalculator.monthlyIncome(
+                incomes.findByUserIdOrderByCreatedAtAsc(userId), LocalDate.now());
         try {
             rabbitTemplate.convertAndSend(EventsConfig.EXCHANGE, "income.updated",
                     new IncomeUpdatedEvent(userId, monthlyIncome, Instant.now()));
