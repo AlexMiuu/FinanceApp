@@ -3,7 +3,7 @@
 Personal finance web app: expense tracking, reports & dashboards, goal calendar, spending quests, net worth, Romanian salary calculator.
 
 Full spec: [DESIGN.md](DESIGN.md) · Current milestone: **M6 — quests & notifications**
-
+Refactoring REFACTOR.md
 ## Quick entry & recurring expenses
 
 - **Recurring monthly templates** (`/api/v1/expenses/recurring`): tick "Repeat monthly"
