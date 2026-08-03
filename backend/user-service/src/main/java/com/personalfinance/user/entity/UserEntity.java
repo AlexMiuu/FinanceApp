@@ -12,8 +12,7 @@ import jakarta.persistence.Table;
 import lombok.*;
 
 @Entity
-@AllArgsConstructor
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
 @Setter
 @Table(name = "users")
@@ -42,6 +41,18 @@ public class UserEntity {
 
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
+
+    /**
+     * Ids are assigned here rather than by the database: register() needs the id
+     * to link the auth identity and publish the event before the flush.
+     */
+    public UserEntity(String email, String passwordHash, String displayName, String avatarUrl) {
+        this.id = UUID.randomUUID();
+        this.email = email;
+        this.passwordHash = passwordHash;
+        this.displayName = displayName;
+        this.avatarUrl = avatarUrl;
+    }
 
     @PrePersist
     void onCreate() {

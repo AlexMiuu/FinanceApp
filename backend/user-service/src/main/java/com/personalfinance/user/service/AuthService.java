@@ -8,13 +8,11 @@ import java.util.Base64;
 import java.util.HexFormat;
 import java.util.Optional;
 
+import com.personalfinance.user.config.AuthProperties;
 import com.personalfinance.user.exception.EmailAlreadyUsedException;
 import com.personalfinance.user.exception.InvalidCredentialsException;
 import com.personalfinance.user.exception.InvalidRefreshTokenException;
-import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -30,7 +28,7 @@ import com.personalfinance.user.entity.UserEntity;
 import com.personalfinance.user.repository.UserRepository;
 
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class AuthService {
 
     public record TokenPair(String accessToken, String refreshToken, Duration refreshTtl, UserEntity user) {
@@ -44,7 +42,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final ApplicationEventPublisher eventPublisher;
-    private final Duration refreshTokenTtl;
+    private final AuthProperties authProperties;
 
     @Transactional
     public TokenPair register(String email, String password, String displayName) {
@@ -98,8 +96,9 @@ public class AuthService {
     @Transactional
     public TokenPair issueTokens(UserEntity user) {
         String raw = newOpaqueToken();
-        refreshTokens.save(new RefreshTokenEntity(user.getId(), sha256(raw), Instant.now().plus(refreshTokenTtl)));
-        return new TokenPair(jwtService.issueAccessToken(user), raw, refreshTokenTtl, user);
+        Duration ttl = authProperties.refreshTokenTtl();
+        refreshTokens.save(new RefreshTokenEntity(user.getId(), sha256(raw), Instant.now().plus(ttl)));
+        return new TokenPair(jwtService.issueAccessToken(user), raw, ttl, user);
     }
 
     /**

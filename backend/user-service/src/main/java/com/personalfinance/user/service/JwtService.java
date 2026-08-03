@@ -18,7 +18,6 @@ import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.nimbusds.jose.JOSEObjectType;
@@ -30,6 +29,7 @@ import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import com.personalfinance.user.config.AuthProperties;
 import com.personalfinance.user.entity.UserEntity;
 
 /**
@@ -53,10 +53,9 @@ public class JwtService {
     private final String keyId;
     private final Duration accessTokenTtl;
 
-    public JwtService(
-            @Value("${auth.jwt.private-key-pem:}") String privateKeyPem,
-            @Value("${auth.access-token-ttl:15m}") Duration accessTokenTtl) throws Exception {
-        this.accessTokenTtl = accessTokenTtl;
+    public JwtService(AuthProperties authProperties) throws Exception {
+        String privateKeyPem = authProperties.jwt().privateKeyPem();
+        this.accessTokenTtl = authProperties.accessTokenTtl();
         if (privateKeyPem != null && !privateKeyPem.isBlank()) {
             RSAPrivateCrtKey key = parsePkcs8(privateKeyPem);
             this.privateKey = key;

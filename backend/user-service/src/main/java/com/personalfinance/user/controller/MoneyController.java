@@ -6,13 +6,14 @@ import java.util.UUID;
 
 import com.personalfinance.user.dto.IncomeDto;
 import com.personalfinance.user.dto.IncomeRequestDto;
-import com.personalfinance.user.entity.IncomeSourceEntity;
 import com.personalfinance.user.entity.SavingsAccountEntity;
 import com.personalfinance.user.events.IncomeEventPublisher;
-import com.personalfinance.user.repository.IncomeSourceRepository;
 import com.personalfinance.user.repository.SavingsAccountRepository;
+import com.personalfinance.user.repository.UserRepository;
+import com.personalfinance.user.service.IncomeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,17 +28,16 @@ import org.springframework.web.server.ResponseStatusException;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 
-/** Income sources, savings, and net worth (FR-2, FR-8). */
+/** Income sources, savings, and net worth */
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/me")
 public class MoneyController {
+
+    private final UserRepository userRepository;
 
     public record SavingsDto(UUID id, String name, long balance) {
 
@@ -54,49 +54,31 @@ public class MoneyController {
     public record NetWorth(long total, int accounts, long monthlyIncome) {
     }
 
-    private final IncomeSourceRepository incomes;
     private final SavingsAccountRepository savings;
     private final IncomeEventPublisher incomeEvents;
-
+    private final IncomeService incomeService;
     // ---- income sources ----
 
     @GetMapping("/income-sources")
-    public List<IncomeDto> listIncome(@AuthenticationPrincipal UUID userId) {
-        return incomes.findByUserIdOrderByCreatedAtAsc(userId).stream().map(IncomeDto::of).toList();
+    public ResponseEntity<?> listIncome(@AuthenticationPrincipal UUID userId) {
+       // return incomes.findByUserIdOrderByCreatedAtAsc(userId).stream().map(IncomeDto::of).toList();
+        return incomeService.listAllIncome(userId);
     }
 
     @PostMapping("/income-sources")
-    @ResponseStatus(HttpStatus.CREATED)
-    public IncomeDto createIncome(@AuthenticationPrincipal UUID userId,
-            @Valid @RequestBody IncomeRequestDto request) {
-        IncomeDto dto = IncomeDto.of(incomes.save(new IncomeSourceEntity(userId, request.name(),
-                request.amount(), request.recurrence(), request.startDate(), request.endDate())));
-
-        IncomeSourceEntity
-
-        incomeEvents.publishFor(userId);
-        return dto;
+    public ResponseEntity<?> createIncome(@AuthenticationPrincipal UUID userId, @Valid @RequestBody IncomeRequestDto request) {
+        return incomeService.createIncome(userId,request);
     }
 
     @PutMapping("/income-sources/{id}")
-    public IncomeDto updateIncome(@AuthenticationPrincipal UUID userId, @PathVariable UUID id,
+    public ResponseEntity<?> updateIncome(@AuthenticationPrincipal UUID userId, @PathVariable UUID id,
             @Valid @RequestBody IncomeRequestDto request) {
-        IncomeSourceEntity income = incomes.findByIdAndUserId(id, userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Income source not found"));
-        income.update(request.name(), request.amount(), request.recurrence(),
-                request.startDate(), request.endDate());
-        IncomeDto dto = IncomeDto.of(incomes.save(income));
-        incomeEvents.publishFor(userId);
-        return dto;
+        return incomeService.updateIncome(userId,id,request);
     }
 
     @DeleteMapping("/income-sources/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteIncome(@AuthenticationPrincipal UUID userId, @PathVariable UUID id) {
-        IncomeSourceEntity income = incomes.findByIdAndUserId(id, userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Income source not found"));
-        incomes.delete(income);
-        incomeEvents.publishFor(userId);
+    public ResponseEntity<?> deleteIncome(@AuthenticationPrincipal UUID userId, @PathVariable UUID id) {
+        return incomeService.deleteIncome(userId,id);
     }
 
     // ---- savings ----
@@ -108,8 +90,7 @@ public class MoneyController {
 
     @PostMapping("/savings")
     @ResponseStatus(HttpStatus.CREATED)
-    public SavingsDto createSavings(@AuthenticationPrincipal UUID userId,
-            @Valid @RequestBody SavingsRequest request) {
+    public SavingsDto createSavings(@AuthenticationPrincipal UUID userId, @Valid @RequestBody SavingsRequest request) {
         return SavingsDto.of(savings.save(new SavingsAccountEntity(userId, request.name(), request.balance())));
     }
 
@@ -131,7 +112,7 @@ public class MoneyController {
     }
 
     // ---- net worth (FR-8) ----
-
+/*
     @GetMapping("/net-worth")
     public NetWorth netWorth(@AuthenticationPrincipal UUID userId) {
         List<SavingsAccountEntity> accounts = savings.findByUserIdOrderByNameAsc(userId);
@@ -151,4 +132,5 @@ public class MoneyController {
 
         return new NetWorth(total, accounts.size(), monthlyIncome);
     }
+    */
 }

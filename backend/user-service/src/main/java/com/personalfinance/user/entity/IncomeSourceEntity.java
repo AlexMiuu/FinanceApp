@@ -9,6 +9,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import lombok.Builder;
 
 @Entity
 @Table(name = "income_sources")
@@ -42,6 +43,7 @@ public class IncomeSourceEntity {
     protected IncomeSourceEntity() {
     }
 
+    @Builder
     public IncomeSourceEntity(UUID userId, String name, long amount, String recurrence,
             LocalDate startDate, LocalDate endDate) {
         this.id = UUID.randomUUID();

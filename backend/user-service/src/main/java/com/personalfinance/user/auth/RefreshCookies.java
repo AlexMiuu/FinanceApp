@@ -2,9 +2,10 @@ package com.personalfinance.user.auth;
 
 import java.time.Duration;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
+
+import com.personalfinance.user.config.AuthProperties;
 
 /**
  * The refresh token travels only in an HttpOnly cookie scoped to the auth
@@ -18,8 +19,8 @@ public class RefreshCookies {
 
     private final boolean secure;
 
-    public RefreshCookies(@Value("${auth.cookie-secure:false}") boolean secure) {
-        this.secure = secure;
+    public RefreshCookies(AuthProperties authProperties) {
+        this.secure = authProperties.cookieSecure();
     }
 
     public ResponseCookie create(String value, Duration ttl) {

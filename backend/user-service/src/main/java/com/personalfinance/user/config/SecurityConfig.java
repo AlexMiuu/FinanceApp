@@ -1,7 +1,6 @@
 package com.personalfinance.user.config;
 
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -29,12 +28,10 @@ public class SecurityConfig {
      */
     @Bean
     @ConditionalOnExpression("!'${auth.google.client-id:}'.isEmpty()")
-    ClientRegistrationRepository clientRegistrationRepository(
-            @Value("${auth.google.client-id}") String clientId,
-            @Value("${auth.google.client-secret}") String clientSecret) {
+    ClientRegistrationRepository clientRegistrationRepository(AuthProperties authProperties) {
         ClientRegistration google = CommonOAuth2Provider.GOOGLE.getBuilder("google")
-                .clientId(clientId)
-                .clientSecret(clientSecret)
+                .clientId(authProperties.google().clientId())
+                .clientSecret(authProperties.google().clientSecret())
                 .redirectUri("{baseUrl}/api/v1/auth/oauth/callback/{registrationId}")
                 .build();
         return new InMemoryClientRegistrationRepository(google);

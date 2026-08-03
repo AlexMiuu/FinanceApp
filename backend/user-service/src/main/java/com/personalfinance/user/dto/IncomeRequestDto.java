@@ -4,26 +4,28 @@ package com.personalfinance.user.dto;
 import jakarta.validation.constraints.*;
 import lombok.Builder;
 import lombok.Data;
+import lombok.extern.jackson.Jacksonized;
 
 import java.time.LocalDate;
 
 @Data
 @Builder
+@Jacksonized   // @Builder leaves no no-arg constructor; this points Jackson at the builder
 public class IncomeRequestDto {
     @NotBlank
     @Size(max = 100)
-    public String name;
+    private String name;
 
+    @NotNull
     @Positive
-    public long amount;
+    private Long amount;
 
     @NotNull
     @Pattern(regexp = "MONTHLY|YEARLY|ONE_OFF")
-    public String recurrence;
+    private String recurrence;
 
     @NotNull
-    public LocalDate startDate;
-
+    private LocalDate startDate;
     @NotNull
-    public LocalDate endDate;
+    private LocalDate endDate;
 }

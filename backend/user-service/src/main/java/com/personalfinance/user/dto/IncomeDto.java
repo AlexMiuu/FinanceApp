@@ -11,11 +11,11 @@ import java.util.UUID;
 @Builder
 public class IncomeDto {
 
-    public UUID id;
-    public String name;
-    public long amount;
-    public String recurrence;
-    public LocalDate startDate;
-    public LocalDate endDate;
+    private UUID id;
+    private String name;
+    private long amount;
+    private String recurrence;
+    private LocalDate startDate;
+    private LocalDate endDate;
 
 }

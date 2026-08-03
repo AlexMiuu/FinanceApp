@@ -13,8 +13,7 @@ import lombok.*;
 @Entity
 @Getter
 @Setter
-@AllArgsConstructor
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "refresh_tokens")
 public class RefreshTokenEntity {
 
@@ -35,6 +34,13 @@ public class RefreshTokenEntity {
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
+
+    public RefreshTokenEntity(UUID userId, String tokenHash, Instant expiresAt) {
+        this.id = UUID.randomUUID();
+        this.userId = userId;
+        this.tokenHash = tokenHash;
+        this.expiresAt = expiresAt;
+    }
 
     @PrePersist
     void onCreate() {
