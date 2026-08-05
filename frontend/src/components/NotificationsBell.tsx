@@ -5,7 +5,7 @@ import {
   type AppNotification,
 } from "@/lib/api"
 import { connectNotifications } from "@/lib/ws"
-import { Badge } from "@/components/ui/badge"
+import { BellIcon } from "@/components/brand"
 import { Button } from "@/components/ui/button"
 import {
   Popover,
@@ -51,14 +51,16 @@ export function NotificationsBell() {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="relative" aria-label="Notifications">
-          🔔
+        <button
+          className="bg-card text-foreground/85 relative grid size-11 cursor-pointer place-items-center rounded-xl border border-white/[0.08] transition-colors hover:bg-[#241C17] hover:text-foreground"
+          aria-label={unread > 0 ? `Notifications — ${unread} unread` : "Notifications"}
+          title={unread > 0 ? `Notifications — ${unread} unread` : "Notifications"}
+        >
+          <BellIcon />
           {unread > 0 && (
-            <Badge className="absolute -right-2 -top-2 h-5 min-w-5 justify-center rounded-full px-1">
-              {unread}
-            </Badge>
+            <span className="bg-destructive border-card absolute right-2 top-2 size-2 rounded-full border-[1.5px]" />
           )}
-        </Button>
+        </button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 p-0">
         <div className="flex items-center justify-between border-b p-3">

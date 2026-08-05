@@ -18,9 +18,6 @@ import {
 } from "@/lib/api"
 import { useToast } from "@/components/Toast"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import {
   Select,
   SelectContent,
@@ -29,8 +26,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-const GOOD = "#0ca30c"
-const DANGER = "#ff4500"
+const GOOD = "#9cb37a"
+const OUT = "#c96a4e"
 
 const today = () => new Date().toISOString().slice(0, 10)
 const toBani = (v: FormDataEntryValue | null) => Math.round(parseFloat(String(v)) * 100)
@@ -39,6 +36,16 @@ const RECURRENCE_LABEL: Record<IncomeSource["recurrence"], string> = {
   MONTHLY: "Monthly",
   YEARLY: "Yearly",
   ONE_OFF: "One-off",
+}
+
+const CARD = "bg-card rounded-3xl border border-white/[0.07] p-6"
+const FIELD =
+  "text-foreground w-full rounded-xl border border-white/10 bg-[#241C17] px-3.5 py-2.5 text-sm outline-none focus-visible:border-primary"
+
+function monogram(label: string): string {
+  const w = label.trim().split(/\s+/).filter(Boolean)
+  if (!w.length) return "··"
+  return (w.length === 1 ? w[0].slice(0, 2) : w[0][0] + w[1][0]).toUpperCase()
 }
 
 function SalaryCalculatorCard() {
@@ -57,86 +64,88 @@ function SalaryCalculatorCard() {
     }
   }
 
-  const row = "flex justify-between border-b py-2 text-[13px]"
+  const row = "flex items-baseline justify-between border-b border-white/[0.06] py-3.5 text-[15px]"
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="flex flex-wrap items-center justify-between gap-2 text-base">
-          Salary calculator
-          <span className="bg-secondary/60 flex gap-0.5 rounded-lg p-[3px]">
-            {(["GROSS_TO_NET", "NET_TO_GROSS"] as const).map((m) => (
-              <button
-                key={m}
-                onClick={() => setMode(m)}
-                className={`cursor-pointer rounded-md border-none px-3 py-1 text-xs font-medium ${
-                  mode === m ? "bg-primary text-primary-foreground" : "text-muted-foreground bg-transparent"
-                }`}
-              >
-                {m === "GROSS_TO_NET" ? "Gross → Net" : "Net → Gross"}
-              </button>
-            ))}
-          </span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <form className="flex gap-2" onSubmit={submit}>
-          <Input
+    <section className={CARD}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-[20px] font-semibold">Salary calculator</h2>
+        <span className="flex gap-0.5 rounded-lg bg-white/[0.06] p-[3px]">
+          {(["GROSS_TO_NET", "NET_TO_GROSS"] as const).map((m) => (
+            <button
+              key={m}
+              onClick={() => setMode(m)}
+              className={`cursor-pointer rounded-md border-none px-3 py-1 font-mono text-[11.5px] font-medium ${
+                mode === m ? "bg-primary text-primary-foreground" : "text-muted-foreground bg-transparent"
+              }`}
+            >
+              {m === "GROSS_TO_NET" ? "gross → net" : "net → gross"}
+            </button>
+          ))}
+        </span>
+      </div>
+
+      <form className="mt-5.5" onSubmit={submit}>
+        <label className="text-muted-foreground mb-2.5 block text-[13.5px]">
+          {mode === "GROSS_TO_NET" ? "Gross salary (RON)" : "Desired net salary (RON)"}
+        </label>
+        <div className="flex gap-2.5">
+          <input
             name="salary"
             type="number"
             step="0.01"
             min="1"
             required
-            className="h-11 font-mono text-base"
-            placeholder={mode === "GROSS_TO_NET" ? "Gross salary (RON)" : "Desired net salary (RON)"}
+            inputMode="decimal"
+            placeholder="0.00"
+            className={`${FIELD} tnum !py-4 font-mono text-[22px] font-bold`}
           />
-          <Button type="submit" className="h-11">
-            Calculate
-          </Button>
-        </form>
-        {error && (
-          <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-        {result && (
-          <div className="rounded-xl border bg-white/[.03] px-4 py-2">
-            <div className={row}>
-              <span>Gross salary</span>
-              <span className="font-mono">{formatRon(result.gross)}</span>
-            </div>
-            <div className={row}>
-              <span>CAS — pension (25%)</span>
-              <span className="font-mono" style={{ color: DANGER }}>
-                −{formatRon(result.cas)}
-              </span>
-            </div>
-            <div className={row}>
-              <span>CASS — health (10%)</span>
-              <span className="font-mono" style={{ color: DANGER }}>
-                −{formatRon(result.cass)}
-              </span>
-            </div>
-            <div className={row}>
-              <span>Income tax (10%)</span>
-              <span className="font-mono" style={{ color: DANGER }}>
-                −{formatRon(result.incomeTax)}
-              </span>
-            </div>
-            <div className="flex justify-between py-2.5 text-[15px] font-semibold">
-              <span>Net salary</span>
-              <span className="font-mono" style={{ color: GOOD }}>
-                {formatRon(result.net)}
-              </span>
-            </div>
+          <button
+            type="submit"
+            className="bg-primary text-primary-foreground cursor-pointer rounded-xl border-none px-5 text-[14px] font-semibold hover:bg-[#D8B27A]"
+          >
+            Go
+          </button>
+        </div>
+      </form>
+
+      {error && (
+        <Alert variant="destructive" className="mt-4">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {result && (
+        <div className="mt-5 rounded-2xl border border-white/[0.07] bg-[#241C17] p-5.5">
+          <div className={row}>
+            <span>Gross salary</span>
+            <span className="tnum font-mono">{formatRon(result.gross)}</span>
           </div>
-        )}
-        <p className="text-muted-foreground text-[11px] leading-relaxed">
-          Rates are versioned config ({result?.rulesValidFrom?.slice(0, 4) ?? "2026"}). Personal
-          deduction not applied in this quick view.
-        </p>
-      </CardContent>
-    </Card>
+          {[
+            ["CAS — pension (25%)", result.cas],
+            ["CASS — health (10%)", result.cass],
+            ["Income tax (10%)", result.incomeTax],
+          ].map(([label, value]) => (
+            <div key={label as string} className={row}>
+              <span>{label}</span>
+              <span className="tnum font-mono" style={{ color: OUT }}>
+                −{formatRon(value as number)}
+              </span>
+            </div>
+          ))}
+          <div className="flex items-baseline justify-between pt-4 text-[17px] font-semibold">
+            <span>Net salary</span>
+            <span className="tnum font-mono text-[22px] font-bold" style={{ color: GOOD }}>
+              {formatRon(result.net)}
+            </span>
+          </div>
+        </div>
+      )}
+      <p className="text-muted-foreground mt-4.5 text-[12.5px]">
+        Rates are versioned config ({result?.rulesValidFrom?.slice(0, 4) ?? "2026"}). Personal
+        deduction not applied in this quick view.
+      </p>
+    </section>
   )
 }
 
@@ -216,170 +225,168 @@ export default function ProfileTab() {
     }
   }
 
-  return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <h1 className="text-[22px] font-semibold tracking-tight">Profile &amp; Money</h1>
-        <Button variant="outline" size="sm" onClick={logout}>
-          Sign out →
-        </Button>
-      </div>
+  const initial = (user?.displayName ?? "?").charAt(0).toUpperCase()
 
+  return (
+    <div className="flex flex-col gap-[22px]">
       {error && (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
-      <div className="grid items-start gap-6 lg:grid-cols-2">
-        <div className="space-y-5">
-          <Card>
-            <CardContent className="flex items-center gap-3.5 pt-5">
-              <span className="bg-secondary grid size-11 place-items-center rounded-full text-base font-semibold">
-                {(user?.displayName ?? "?").charAt(0).toUpperCase()}
-              </span>
-              <div>
-                <p className="text-[15px] font-semibold">{user?.displayName}</p>
-                <p className="text-muted-foreground text-xs">{user?.email}</p>
-              </div>
-              <div className="ml-auto text-right">
-                <p className="ledger-label text-[10px]">Net worth</p>
-                <p className="mt-0.5 font-mono text-lg font-semibold">
-                  {netWorth ? formatRon(netWorth.total) : "—"}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+      <div className="flex flex-wrap items-start gap-[22px]">
+        {/* Left */}
+        <div className="flex min-w-[min(100%,360px)] flex-1 basis-[46%] flex-col gap-[22px]">
+          {/* Profile */}
+          <section
+            className="flex items-center gap-5 rounded-3xl border border-white/[0.09] p-6"
+            style={{ background: "linear-gradient(160deg,#3A2A1E 0%,#191210 100%)" }}
+          >
+            <div
+              className="grid size-[66px] flex-none place-items-center rounded-full text-[26px] font-semibold"
+              style={{ background: "#C79A5B", color: "#14100D" }}
+            >
+              {initial}
+            </div>
+            <div>
+              <div className="text-[24px] font-semibold tracking-tight">{user?.displayName}</div>
+              <div className="text-muted-foreground mt-1 text-[14px]">{user?.email}</div>
+            </div>
+          </section>
 
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="ledger-label font-normal">Income sources</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <form className="space-y-2" onSubmit={addIncome}>
-                <div className="grid grid-cols-2 gap-2">
-                  <Input name="name" required placeholder="Salary" aria-label="Income name" />
-                  <Input
-                    name="amount"
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    required
-                    placeholder="Amount (RON)"
-                    aria-label="Amount"
-                    className="font-mono"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <Select
-                    value={recurrence}
-                    onValueChange={(v) => setRecurrence(v as IncomeSource["recurrence"])}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="MONTHLY">Monthly</SelectItem>
-                      <SelectItem value="YEARLY">Yearly</SelectItem>
-                      <SelectItem value="ONE_OFF">One-off</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Input name="startDate" type="date" required defaultValue={today()} aria-label="Start date" className="font-mono" />
-                </div>
-                <Button type="submit" size="sm">
-                  Add income source
-                </Button>
-              </form>
-              <div>
-                {income.map((source) => (
-                  <div
-                    key={source.id}
-                    className="flex items-center gap-3 border-b py-2.5 last:border-b-0"
-                  >
-                    <span className="text-sm">💼</span>
-                    <div className="flex-1">
-                      <p className="text-[13px] font-medium">{source.name}</p>
-                      <p className="text-muted-foreground text-[11px]">
-                        {RECURRENCE_LABEL[source.recurrence]}
-                      </p>
-                    </div>
-                    <span className="font-mono text-[13px] font-medium" style={{ color: GOOD }}>
-                      {formatRon(source.amount)}
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteIncomeSource(source.id).then(reload)}
-                    >
-                      ✕
-                    </Button>
+          {/* Net worth strip */}
+          <section className={`${CARD} flex items-center justify-between`}>
+            <div>
+              <div className="ledger-label">Net worth</div>
+              <div className="tnum mt-1.5 font-mono text-[22px] font-bold">
+                {netWorth ? formatRon(netWorth.total) : "—"}
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="ledger-label">Income / month</div>
+              <div className="tnum mt-1.5 font-mono text-[18px] font-semibold" style={{ color: GOOD }}>
+                {netWorth ? formatRon(netWorth.monthlyIncome) : "—"}
+              </div>
+            </div>
+          </section>
+
+          {/* Income sources */}
+          <section className={CARD}>
+            <div className="ledger-label mb-4">Income sources</div>
+            <form className="space-y-2.5" onSubmit={addIncome}>
+              <div className="grid grid-cols-2 gap-2.5">
+                <input name="name" required placeholder="Salary" aria-label="Income name" className={FIELD} />
+                <input name="amount" type="number" step="0.01" min="0.01" required placeholder="Amount (RON)" aria-label="Amount" className={`${FIELD} font-mono`} />
+              </div>
+              <div className="grid grid-cols-2 gap-2.5">
+                <Select value={recurrence} onValueChange={(v) => setRecurrence(v as IncomeSource["recurrence"])}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="MONTHLY">Monthly</SelectItem>
+                    <SelectItem value="YEARLY">Yearly</SelectItem>
+                    <SelectItem value="ONE_OFF">One-off</SelectItem>
+                  </SelectContent>
+                </Select>
+                <input name="startDate" type="date" required defaultValue={today()} aria-label="Start date" className={`${FIELD} font-mono`} />
+              </div>
+              <button
+                type="submit"
+                className="bg-primary text-primary-foreground cursor-pointer rounded-xl border-none px-4 py-2.5 text-[13.5px] font-semibold hover:bg-[#D8B27A]"
+              >
+                Add income source
+              </button>
+            </form>
+            <div className="mt-2">
+              {income.map((source) => (
+                <div key={source.id} className="flex items-center gap-3.5 border-b border-white/[0.05] py-3 last:border-b-0">
+                  <div className="grid size-10 flex-none place-items-center rounded-xl bg-[#241C17] font-mono text-[13px] text-[#CFC1AE]">
+                    {monogram(source.name)}
                   </div>
-                ))}
-                {income.length === 0 && (
-                  <p className="text-muted-foreground py-2 text-sm">No income sources yet.</p>
-                )}
-              </div>
-              {netWorth && (
-                <div className="flex justify-between border-t pt-3 text-[13.5px] font-semibold">
-                  <span>Total monthly income</span>
-                  <span className="font-mono">{formatRon(netWorth.monthlyIncome)}</span>
+                  <div className="flex-1">
+                    <p className="text-[14px] font-medium">{source.name}</p>
+                    <p className="text-muted-foreground text-[12px]">{RECURRENCE_LABEL[source.recurrence]}</p>
+                  </div>
+                  <span className="tnum font-mono text-[14px] font-medium" style={{ color: GOOD }}>
+                    {formatRon(source.amount)}
+                  </span>
+                  <button
+                    onClick={() => deleteIncomeSource(source.id).then(reload)}
+                    aria-label="Remove income source"
+                    className="text-muted-foreground hover:text-foreground cursor-pointer px-1"
+                  >
+                    ✕
+                  </button>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              ))}
+              {income.length === 0 && <p className="text-muted-foreground py-2 text-sm">No income sources yet.</p>}
+            </div>
+            {netWorth && (
+              <div className="mt-2 flex justify-between border-t border-white/[0.07] pt-4 text-[15px] font-semibold">
+                <span>Total monthly income</span>
+                <span className="tnum font-mono">{formatRon(netWorth.monthlyIncome)}</span>
+              </div>
+            )}
+          </section>
 
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="ledger-label font-normal">Savings pots</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <form className="flex gap-2" onSubmit={addSavings}>
-                <Input name="name" required placeholder="Emergency fund" aria-label="Savings name" />
-                <Input
-                  name="balance"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  required
-                  placeholder="Balance (RON)"
-                  aria-label="Balance"
-                  className="max-w-36 font-mono"
-                />
-                <Button type="submit" size="sm">
-                  Add
-                </Button>
-              </form>
-              <ul className="space-y-1.5">
-                {savings.map((account) => (
-                  <li key={account.id} className="flex items-center justify-between gap-2 text-sm">
-                    <span className="flex items-center gap-2">
-                      <span className="text-sm">🐷</span>
-                      {account.name}
+          {/* Savings pots */}
+          <section className={CARD}>
+            <div className="ledger-label mb-4">Savings pots</div>
+            <form className="flex gap-2.5" onSubmit={addSavings}>
+              <input name="name" required placeholder="Emergency fund" aria-label="Savings name" className={FIELD} />
+              <input name="balance" type="number" step="0.01" min="0" required placeholder="Balance" aria-label="Balance" className={`${FIELD} max-w-36 font-mono`} />
+              <button
+                type="submit"
+                className="bg-primary text-primary-foreground cursor-pointer rounded-xl border-none px-4 text-[13.5px] font-semibold hover:bg-[#D8B27A]"
+              >
+                Add
+              </button>
+            </form>
+            <ul className="mt-3 space-y-1.5">
+              {savings.map((account) => (
+                <li key={account.id} className="flex items-center justify-between gap-2 py-2 text-sm">
+                  <span className="flex items-center gap-3">
+                    <span className="grid size-9 flex-none place-items-center rounded-lg bg-[#241C17] font-mono text-[12px] text-[#CFC1AE]">
+                      {monogram(account.name)}
                     </span>
-                    <span className="flex items-center gap-1">
-                      <span className="font-mono font-medium">{formatRon(account.balance)}</span>
-                      <Button variant="ghost" size="sm" onClick={() => adjustBalance(account)}>
-                        Adjust
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => deleteSavings(account.id).then(reload)}
-                      >
-                        ✕
-                      </Button>
-                    </span>
-                  </li>
-                ))}
-                {savings.length === 0 && (
-                  <p className="text-muted-foreground py-2 text-sm">No savings pots yet.</p>
-                )}
-              </ul>
-            </CardContent>
-          </Card>
+                    {account.name}
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="tnum font-mono font-medium">{formatRon(account.balance)}</span>
+                    <button onClick={() => adjustBalance(account)} className="text-muted-foreground hover:text-foreground cursor-pointer px-1.5 text-[12.5px]">
+                      Adjust
+                    </button>
+                    <button onClick={() => deleteSavings(account.id).then(reload)} aria-label="Delete pot" className="text-muted-foreground hover:text-foreground cursor-pointer px-1">
+                      ✕
+                    </button>
+                  </span>
+                </li>
+              ))}
+              {savings.length === 0 && <p className="text-muted-foreground py-2 text-sm">No savings pots yet.</p>}
+            </ul>
+          </section>
+
+          {/* Sign out */}
+          <section className={`${CARD} flex flex-wrap items-center justify-between gap-4`}>
+            <div>
+              <div className="text-[16px] font-semibold">Sign out</div>
+              <div className="text-muted-foreground mt-1 text-[13.5px]">End your session on this device</div>
+            </div>
+            <button
+              onClick={logout}
+              className="text-destructive cursor-pointer rounded-full border border-[#c96a4e]/50 bg-transparent px-6 py-2.5 text-[14px] font-medium hover:bg-[#c96a4e]/12"
+            >
+              Log out
+            </button>
+          </section>
         </div>
 
-        <SalaryCalculatorCard />
+        {/* Right */}
+        <div className="flex min-w-[min(100%,360px)] flex-1 basis-[46%]">
+          <SalaryCalculatorCard />
+        </div>
       </div>
     </div>
   )

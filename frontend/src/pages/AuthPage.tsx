@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react"
 import { useAuth } from "@/auth/AuthContext"
 import { oauthProviders } from "@/lib/api"
+import { ArgaliMark } from "@/components/brand"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -46,11 +47,9 @@ export default function AuthPage() {
   return (
     <main className="bg-background grid min-h-svh place-items-center p-4 [background-image:radial-gradient(800px_500px_at_50%_-10%,color-mix(in_oklab,var(--primary)_16%,transparent),transparent)]">
       <div className="bg-card w-full max-w-[400px] rounded-2xl border p-9 shadow-2xl">
-        <div className="flex items-center justify-center gap-2.5">
-          <span className="bg-primary text-primary-foreground grid size-[30px] place-items-center rounded-lg font-mono text-[15px] font-bold">
-            L
-          </span>
-          <span className="text-[17px] font-semibold tracking-wide">LEDGER</span>
+        <div className="flex items-center justify-center gap-3">
+          <ArgaliMark className="text-foreground size-9" />
+          <span className="text-[17px] font-semibold tracking-[0.22em]">ARGALI</span>
         </div>
         <p className="text-muted-foreground mt-2 text-center text-[13px]">
           {mode === "login" ? "Sign in to your account" : "Create your account"}
