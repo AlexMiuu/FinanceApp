@@ -427,3 +427,17 @@ export async function downloadReportCsv(id: string, name: string) {
   a.click()
   URL.revokeObjectURL(url)
 }
+
+// ---- Privacy / GDPR (M8) ----
+
+export async function deleteAccount(): Promise<void> {
+  return api("/api/v1/me", { method: "DELETE", body: JSON.stringify({ confirm: true }) })
+}
+
+export async function exportMyData(): Promise<{ user: unknown; expenses: unknown }> {
+  const [user, expenses] = await Promise.all([
+    api("/api/v1/me/data-export"),
+    api("/api/v1/expenses/export/me"),
+  ])
+  return { user, expenses }
+}

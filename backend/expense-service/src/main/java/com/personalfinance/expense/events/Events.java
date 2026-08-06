@@ -14,7 +14,8 @@ public final class Events {
     private Events() {
     }
 
-    public sealed interface DomainEvent permits ExpenseChanged, ExpenseDeleted, CategoryChanged, CategoryDeleted {
+    public sealed interface DomainEvent permits ExpenseChanged, ExpenseDeleted, CategoryChanged, CategoryDeleted,
+            ErasureCompleted {
         String routingKey();
     }
 
@@ -67,7 +68,20 @@ public final class Events {
         }
     }
 
+    public record ErasureCompleted(UUID erasureRequestId, UUID userId, String service, Instant occurredAt)
+            implements DomainEvent {
+
+        @Override
+        public String routingKey() {
+            return "user.erasure.completed";
+        }
+    }
+
     /** Mirror of user-service's user.registered payload (consumed here). */
     public record UserRegistered(UUID userId, String email, String displayName, Instant occurredAt) {
+    }
+
+    /** Mirror of user-service's user.erasure.requested payload (consumed here). */
+    public record UserErasureRequested(UUID erasureRequestId, UUID userId, Instant occurredAt) {
     }
 }

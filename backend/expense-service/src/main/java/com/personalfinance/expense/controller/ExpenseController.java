@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.personalfinance.expense.dto.ExpenseRequestDto;
 import com.personalfinance.expense.service.ExpenseService;
+import com.personalfinance.expense.service.PrivacyService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ import lombok.RequiredArgsConstructor;
 public class ExpenseController {
 
     private final ExpenseService expenseService;
+    private final PrivacyService privacyService;
 
     @GetMapping
     public ResponseEntity<?> list(@AuthenticationPrincipal Jwt jwt,
@@ -55,5 +57,10 @@ public class ExpenseController {
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
         return expenseService.delete(id, CurrentUser.id(jwt));
+    }
+
+    @GetMapping("/export/me")
+    public ResponseEntity<?> exportMyData(@AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(privacyService.exportUserData(CurrentUser.id(jwt)));
     }
 }

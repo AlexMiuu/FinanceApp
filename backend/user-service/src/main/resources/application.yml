@@ -28,6 +28,15 @@ auth:
     client-id: ${GOOGLE_CLIENT_ID:}
     client-secret: ${GOOGLE_CLIENT_SECRET:}
 
+privacy:
+  erasure:
+    # Includes report,quest,notification even though those services have no
+    # erasure handler yet (M9): they hold user-scoped data today, so an
+    # erasure request must stay honestly PENDING rather than flip to
+    # COMPLETED while their rows are still untouched. M9 adds the handlers
+    # that make these acks actually arrive — see docs/erasure-event-contract.md.
+    expected-services: user,expense,report,quest,notification
+
 management:
   endpoints:
     web:

@@ -18,6 +18,7 @@ public class EventsConfig {
 
     public static final String EXCHANGE = "pf.events";
     public static final String USER_REGISTERED_QUEUE = "expense-service.user-registered";
+    public static final String ERASURE_REQUESTED_QUEUE = "expense-service.user-erasure-requested";
 
     @Bean
     TopicExchange eventsExchange() {
@@ -32,6 +33,16 @@ public class EventsConfig {
     @Bean
     Binding userRegisteredBinding(Queue userRegisteredQueue, TopicExchange eventsExchange) {
         return BindingBuilder.bind(userRegisteredQueue).to(eventsExchange).with("user.registered");
+    }
+
+    @Bean
+    Queue erasureRequestedQueue() {
+        return new Queue(ERASURE_REQUESTED_QUEUE, true);
+    }
+
+    @Bean
+    Binding erasureRequestedBinding(Queue erasureRequestedQueue, TopicExchange eventsExchange) {
+        return BindingBuilder.bind(erasureRequestedQueue).to(eventsExchange).with("user.erasure.requested");
     }
 
     @Bean

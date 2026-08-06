@@ -4,8 +4,10 @@ import {
   calculateSalary,
   createIncomeSource,
   createSavings,
+  deleteAccount,
   deleteIncomeSource,
   deleteSavings,
+  exportMyData,
   formatRon,
   getNetWorth,
   listIncomeSources,
@@ -26,6 +28,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 const GOOD = "#9cb37a"
 const OUT = "#c96a4e"
@@ -158,6 +168,10 @@ export default function ProfileTab() {
   const [netWorth, setNetWorth] = useState<NetWorth | null>(null)
   const [recurrence, setRecurrence] = useState<IncomeSource["recurrence"]>("MONTHLY")
   const [error, setError] = useState<string | null>(null)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState("")
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   const reload = useCallback(() => {
     Promise.all([listIncomeSources(), listSavings(), getNetWorth()])
@@ -223,6 +237,44 @@ export default function ProfileTab() {
       reload()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Update failed")
+    }
+  }
+
+  async function handleExport() {
+    setError(null)
+    try {
+      const { user: userData, expenses } = await exportMyData()
+      const payload = { exportedAt: new Date().toISOString(), user: userData, expenses }
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `argali-data-export-${today()}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast("Data export downloaded")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Export failed")
+    }
+  }
+
+  function onDeleteDialogChange(open: boolean) {
+    setDeleteOpen(open)
+    setDeleteConfirmText("")
+    setDeleteError(null)
+  }
+
+  async function handleDeleteAccount() {
+    setDeleteError(null)
+    setDeleting(true)
+    try {
+      await deleteAccount()
+      localStorage.clear()
+      await logout()
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : "Deletion failed")
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -369,6 +421,22 @@ export default function ProfileTab() {
             </ul>
           </section>
 
+          {/* Export my data */}
+          <section className={`${CARD} flex flex-wrap items-center justify-between gap-4`}>
+            <div>
+              <div className="text-[16px] font-semibold">Export my data</div>
+              <div className="text-muted-foreground mt-1 text-[13.5px]">
+                Download a copy of your profile, income, savings and expenses
+              </div>
+            </div>
+            <button
+              onClick={handleExport}
+              className="text-foreground cursor-pointer rounded-full border border-white/15 bg-transparent px-6 py-2.5 text-[14px] font-medium hover:bg-white/[0.06]"
+            >
+              Download export
+            </button>
+          </section>
+
           {/* Sign out */}
           <section className={`${CARD} flex flex-wrap items-center justify-between gap-4`}>
             <div>
@@ -382,6 +450,67 @@ export default function ProfileTab() {
               Log out
             </button>
           </section>
+
+          {/* Delete account */}
+          <section className={`${CARD} flex flex-wrap items-center justify-between gap-4`}>
+            <div>
+              <div className="text-[16px] font-semibold">Delete account</div>
+              <div className="text-muted-foreground mt-1 text-[13.5px]">
+                Permanently erase your account and all your data — this cannot be undone.
+              </div>
+            </div>
+            <button
+              onClick={() => setDeleteOpen(true)}
+              className="text-destructive cursor-pointer rounded-full border border-[#c96a4e]/50 bg-transparent px-6 py-2.5 text-[14px] font-medium hover:bg-[#c96a4e]/12"
+            >
+              Delete account
+            </button>
+          </section>
+
+          <Dialog open={deleteOpen} onOpenChange={onDeleteDialogChange}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Delete account</DialogTitle>
+                <DialogDescription>
+                  This permanently deletes your account and all associated data — income sources,
+                  savings, expenses and goals. This action cannot be undone.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="py-2">
+                <label className="text-muted-foreground mb-2 block text-[13px]">
+                  Type <span className="text-foreground font-semibold">DELETE</span> to confirm
+                </label>
+                <input
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  aria-label="Type DELETE to confirm"
+                  placeholder="DELETE"
+                  className={FIELD}
+                />
+              </div>
+              {deleteError && (
+                <Alert variant="destructive">
+                  <AlertDescription>{deleteError}</AlertDescription>
+                </Alert>
+              )}
+              <DialogFooter>
+                <button
+                  onClick={() => onDeleteDialogChange(false)}
+                  className="text-foreground cursor-pointer rounded-full border border-white/15 bg-transparent px-5 py-2.5 text-[14px] font-medium hover:bg-white/[0.06]"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteAccount}
+                  disabled={deleteConfirmText !== "DELETE" || deleting}
+                  style={{ background: OUT, color: "#14100D" }}
+                  className="cursor-pointer rounded-full border-none px-5 py-2.5 text-[14px] font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {deleting ? "Deleting…" : "Delete my account"}
+                </button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
 
         {/* Right */}
