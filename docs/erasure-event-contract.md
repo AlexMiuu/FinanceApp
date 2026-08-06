@@ -88,11 +88,18 @@ split/contains check in the service layer is simpler and has one fewer failure m
 ```yaml
 privacy:
   erasure:
-    expected-services: user,expense   # M9 appends: report,quest,notification
+    # Lists all five services from M8, not just the two with a handler today.
+    # Report, Quest, and Notification hold user-scoped data now even though
+    # their erasure handlers land in M9 — listing them means a request stays
+    # honestly PENDING until every service that holds data has actually
+    # erased it, instead of flipping to COMPLETED the moment User and
+    # Expense finish while three services still hold the user's rows.
+    expected-services: user,expense,report,quest,notification
 ```
 
-This is the **only** file-level change M9 needs to make the fanout wait for the new services —
-see §4.
+Implementation deliberately deviates from a `user,expense`-only default for the reason above.
+This means **M9 needs no config change** — §4 below is one step shorter than a strict
+incremental default would require.
 
 ---
 
@@ -111,24 +118,27 @@ see §4.
 6. expense-service publishes `user.erasure.completed` with `service = "expense"`.
 7. user-service's ack listener consumes `user.erasure.completed`, appends `"expense"` to
    `completed_services` for that `erasureRequestId`.
-8. `completed_services = "user,expense"` is now a superset of `expected_services =
-   "user,expense"` — the listener flips `status` to `COMPLETED` and sets `completed_at`.
+8. `completed_services = "user,expense"` is **not yet** a superset of `expected_services =
+   "user,expense,report,quest,notification"` (§2.3) — `status` stays `PENDING`. This is
+   intentional: Report, Quest, and Notification still hold the user's rows at M8, so a
+   `COMPLETED` status here would be false.
 
-At M8, the trace ends at step 8. At M9, steps 5–7 repeat once per newly-standardized service
-before the request completes.
+At M8, the trace ends at step 8 in `PENDING` — a request never reaches `COMPLETED` until M9's
+three handlers exist and ack. At M9, steps 5–7 repeat once per newly-standardized service; the
+request flips to `COMPLETED` the moment `completed_services` becomes a superset of
+`expected_services`, i.e. once Report, Quest, and Notification have all acked.
 
 ---
 
 ## 4. How M9 extends this
 
-No schema change, no new routing key, no contract renegotiation. Per service:
+No schema change, no new routing key, no contract renegotiation. `expected-services` (§2.3)
+already lists all five services from M8, so **no config change is needed**. Per service:
 
-1. Add your service's name to `privacy.erasure.expected-services` in user-service's config
-   (e.g. `user,expense,report`).
-2. Add a `@RabbitListener` on `user.erasure.requested` in your service — mirror
+1. Add a `@RabbitListener` on `user.erasure.requested` in your service — mirror
    expense-service's `UserErasureRequestedListener`.
-3. In that listener, delete your service's rows for the given `userId`.
-4. Publish `user.erasure.completed` with `service` set to your service's name
+2. In that listener, delete your service's rows for the given `userId`.
+3. Publish `user.erasure.completed` with `service` set to your service's name
    (`"report"` / `"quest"` / `"notification"`).
 
 That's the whole extension. The tracking table, the exchange, the routing keys, and the
