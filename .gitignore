@@ -28,3 +28,8 @@ Thumbs.db
 
 # Logs
 *.log
+*.stackdump
+
+# Agent/tool operational state (see .claude/CLAUDE.md worktree_paths)
+.omc/
+!.omc/skills/
