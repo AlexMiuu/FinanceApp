@@ -16,6 +16,7 @@ import {
 import { lastUsedCategory, recordCategoryUse, topCategories } from "@/lib/categoryUsage"
 import { useToast } from "@/components/Toast"
 import { CategorySelect } from "@/components/CategorySelect"
+import { ChevronIcon, CloseIcon } from "@/components/brand"
 import CategoriesTab from "@/pages/CategoriesTab"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -196,17 +197,17 @@ export default function ExpensesTab({
     try {
       if (editing) {
         await updateExpense(editing.id, body)
-        toast("✓", "Expense updated")
+        toast("Expense updated")
         cancelEdit()
       } else if (repeatMonthly) {
         await createRecurring({ ...body, startDate: date })
         setRepeatMonthly(false)
-        toast("🔁", `Recurring expense created — posts on day ${Number(date.slice(8, 10))} monthly`)
+        toast(`Recurring expense created — posts on day ${Number(date.slice(8, 10))} monthly`)
         setAmount("")
         setNote("")
       } else {
         await createExpense(body)
-        toast("✓", "Expense added")
+        toast("Expense added")
         setAmount("")
         setNote("")
       }
@@ -227,7 +228,7 @@ export default function ExpensesTab({
         expenseDate: today(),
       })
       recordCategoryUse(userId, expense.categoryId)
-      toast("✓", "Added again, dated today")
+      toast("Added again, dated today")
       await reload()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Duplicate failed")
@@ -237,7 +238,7 @@ export default function ExpensesTab({
   async function remove(id: string) {
     try {
       await deleteExpense(id)
-      toast("🗑", "Expense deleted")
+      toast("Expense deleted")
       setOpen(null)
       await reload()
     } catch (err) {
@@ -306,7 +307,7 @@ export default function ExpensesTab({
         <div className="ledger-label">{resultLabel}</div>
 
         {/* Ledger list */}
-        <section className="bg-card rounded-2xl border border-white/[0.07] px-6 py-3">
+        <section className="ledger-card px-6 py-3">
           {loading ? (
             <div className="flex flex-col items-center justify-center gap-4 py-[70px]">
               <div className="text-foreground size-16">
@@ -328,32 +329,40 @@ export default function ExpensesTab({
                   <circle cx="32" cy="52" r="4" fill="currentColor" stroke="none" />
                 </svg>
               </div>
-              <div className="ledger-label" style={{ color: "#8C7D6C" }}>
+              <div className="ledger-label" style={{ color: "#a89473" }}>
                 Loading transactions
               </div>
             </div>
           ) : shown.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 px-6 py-14 text-center">
-              <div className="mb-2.5 size-20" style={{ color: "#3D3229" }}>
-                <svg
-                  viewBox="-8 -13 116 116"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={7}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="size-full"
-                  aria-hidden="true"
-                >
-                  <path d="M86 78H38L10 60V50L48 12A24 24 0 1 1 65 53A14 14 0 0 1 65 25A7 7 0 0 1 65 39" />
-                  <circle cx="32" cy="52" r="4" fill="currentColor" stroke="none" />
-                </svg>
+            <div className="flex flex-col items-center gap-2.5 px-6 py-16 text-center">
+              {/* Ram brand-iron stamped on a blank page — an intentional empty ledger. */}
+              <div
+                className="grid size-[72px] place-items-center rounded-full border"
+                style={{ borderColor: "rgba(199,154,91,0.25)", background: "rgba(199,154,91,0.06)" }}
+              >
+                <div className="size-10" style={{ color: "#8a725a" }}>
+                  <svg
+                    viewBox="-8 -13 116 116"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={7}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="size-full"
+                    aria-hidden="true"
+                  >
+                    <path d="M86 78H38L10 60V50L48 12A24 24 0 1 1 65 53A14 14 0 0 1 65 25A7 7 0 0 1 65 39" />
+                    <circle cx="32" cy="52" r="4" fill="currentColor" stroke="none" />
+                  </svg>
+                </div>
               </div>
-              <div className="text-[17px] font-semibold">No transactions match</div>
-              <p className="text-muted-foreground max-w-[320px] text-sm text-pretty">
+              <div className="mt-1.5 text-[18px] font-semibold">
+                {total === 0 ? "Your ledger is empty" : "No entries match"}
+              </div>
+              <p className="text-muted-foreground max-w-[330px] text-sm text-pretty">
                 {total === 0
-                  ? "No expenses yet — add your first with the + button."
-                  : "Try a different merchant, a broader category, or clear the filters."}
+                  ? "Add your first entry with the + button — every expense gets its own line here."
+                  : "Try a different merchant, a broader category, or clear the filters to see every entry."}
               </p>
               {(localQuery || chip !== "All") && (
                 <button
@@ -363,7 +372,7 @@ export default function ExpensesTab({
                   }}
                   className="bg-primary text-primary-foreground mt-3.5 cursor-pointer rounded-xl border-none px-5 py-2.5 text-sm font-semibold hover:bg-[#D8B27A]"
                 >
-                  Reset filters
+                  Clear filters
                 </button>
               )}
             </div>
@@ -412,10 +421,10 @@ export default function ExpensesTab({
                         </div>
                       </div>
                       <span
-                        className="text-[19px] transition-transform"
+                        className="grid size-[18px] place-items-center transition-transform"
                         style={{ color: "#B0A18F", transform: `rotate(${isOpen ? 90 : 0}deg)` }}
                       >
-                        ›
+                        <ChevronIcon size={18} />
                       </span>
                     </div>
                   </div>
@@ -476,9 +485,9 @@ export default function ExpensesTab({
 
         {/* Date-range / category server filters */}
         <details className="group">
-          <summary className="ledger-label cursor-pointer list-none py-1 select-none">
-            <span className="group-open:hidden">▸ Filter by date &amp; category</span>
-            <span className="hidden group-open:inline">▾ Filter by date &amp; category</span>
+          <summary className="ledger-label flex cursor-pointer list-none items-center gap-1.5 py-1 select-none">
+            <ChevronIcon size={13} className="transition-transform group-open:rotate-90" />
+            Filter by date &amp; category
           </summary>
           <div className="bg-card mt-2 grid gap-2 rounded-2xl border border-white/[0.07] p-4 sm:grid-cols-3">
             <Input
@@ -507,7 +516,7 @@ export default function ExpensesTab({
 
       {/* Right column */}
       <div className="flex min-w-[min(100%,320px)] flex-1 basis-[30%] flex-col gap-[22px]">
-        <section className="bg-card rounded-2xl border border-white/[0.07] p-6">
+        <section className="ledger-card p-6">
           <h2 className="text-[17px] font-semibold">This month</h2>
           <div className="mt-5 flex gap-5">
             <div className="flex-1">
@@ -529,7 +538,7 @@ export default function ExpensesTab({
         </section>
 
         {monthByCat.length > 0 && (
-          <section className="bg-card rounded-2xl border border-white/[0.07] p-6">
+          <section className="ledger-card p-6">
             <h2 className="mb-5 text-[17px] font-semibold">Top categories</h2>
             <div className="flex flex-col gap-4.5">
               {monthByCat.map((cat, i) => (
@@ -556,7 +565,7 @@ export default function ExpensesTab({
         {/* Add / edit form */}
         <section
           ref={editRef}
-          className={`bg-card rounded-2xl border p-6 ${editing ? "border-primary/50" : "border-white/[0.07]"}`}
+          className={`ledger-card p-6 ${editing ? "!border-primary/50" : ""}`}
         >
           <h2 className="mb-4 text-[17px] font-semibold">
             {editing ? "Edit expense" : "Add expense"}
@@ -571,7 +580,7 @@ export default function ExpensesTab({
                       key={c.id}
                       type="button"
                       onClick={() => setCategoryId(c.id)}
-                      className={`cursor-pointer rounded-full border px-3 py-1.5 text-[12.5px] transition-colors ${
+                      className={`cursor-pointer rounded-full border px-3 py-1.5 text-[13px] transition-colors ${
                         active
                           ? "border-primary bg-primary/15 text-foreground"
                           : "border-white/12 bg-white/[0.05] hover:border-primary"
@@ -660,7 +669,7 @@ export default function ExpensesTab({
         )}
 
         {recurring.length > 0 && (
-          <section className="bg-card rounded-2xl border border-white/[0.07] p-6">
+          <section className="ledger-card p-6">
             <h2 className="text-[17px] font-semibold">Recurring monthly</h2>
             <p className="text-muted-foreground mt-1 text-[13px]">
               Posted automatically — no typing required.
@@ -675,15 +684,15 @@ export default function ExpensesTab({
                     <p className="truncate text-[13.5px] font-medium">
                       {r.note || categoryLabel(categories, r.categoryId)}
                     </p>
-                    <p className="text-muted-foreground text-[11.5px]">day {r.dayOfMonth} · next {r.nextRun}</p>
+                    <p className="text-muted-foreground text-[12.5px]">day {r.dayOfMonth} · next {r.nextRun}</p>
                   </div>
                   <span className="tnum font-mono text-[13.5px] font-medium">{formatRon(r.amount)}</span>
                   <button
                     onClick={() => deleteRecurring(r.id).then(reload)}
                     aria-label="Remove recurring"
-                    className="text-muted-foreground hover:text-foreground cursor-pointer px-1"
+                    className="text-muted-foreground hover:text-foreground grid size-9 flex-none cursor-pointer place-items-center rounded-lg hover:bg-white/[0.06]"
                   >
-                    ✕
+                    <CloseIcon size={15} />
                   </button>
                 </li>
               ))}
@@ -692,9 +701,9 @@ export default function ExpensesTab({
         )}
 
         <details className="group">
-          <summary className="ledger-label cursor-pointer list-none py-1 select-none">
-            <span className="group-open:hidden">▸ Manage categories</span>
-            <span className="hidden group-open:inline">▾ Manage categories</span>
+          <summary className="ledger-label flex cursor-pointer list-none items-center gap-1.5 py-1 select-none">
+            <ChevronIcon size={13} className="transition-transform group-open:rotate-90" />
+            Manage categories
           </summary>
           <div className="pt-2">
             <CategoriesTab categories={categories} onChanged={onCategoriesChanged} />

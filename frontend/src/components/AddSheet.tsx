@@ -4,6 +4,7 @@ import { createExpense, type Category } from "@/lib/api"
 import { lastUsedCategory, recordCategoryUse, topCategories } from "@/lib/categoryUsage"
 import { useToast } from "@/components/Toast"
 import { CategorySelect } from "@/components/CategorySelect"
+import { CloseIcon } from "@/components/brand"
 
 const today = () => new Date().toISOString().slice(0, 10)
 
@@ -83,7 +84,7 @@ export function AddSheet({
     try {
       await createExpense({ amount: bani, categoryId, note: note || null, expenseDate: date })
       recordCategoryUse(userId, categoryId)
-      toast("✓", "Transaction added")
+      toast("Transaction added")
       onSaved?.()
       onClose()
     } catch (err) {
@@ -119,9 +120,9 @@ export function AddSheet({
           <button
             onClick={onClose}
             aria-label="Close"
-            className="text-muted-foreground grid size-9 flex-none cursor-pointer place-items-center rounded-[10px] border border-white/10 bg-white/[0.06] text-[15px] hover:bg-white/[0.12]"
+            className="text-muted-foreground hover:text-foreground grid size-9 flex-none cursor-pointer place-items-center rounded-[10px] border border-white/10 bg-white/[0.06] hover:bg-white/[0.12]"
           >
-            ✕
+            <CloseIcon />
           </button>
         </div>
 

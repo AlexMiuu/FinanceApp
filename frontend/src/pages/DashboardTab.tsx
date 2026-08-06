@@ -85,18 +85,6 @@ export default function DashboardTab({
     return [...keep.map((s, i) => ({ ...s, color: DONUT[i] })), { category: "Other", amount: other, color: DONUT[DONUT.length - 1] }]
   }, [data])
 
-  // Daily spend, last 7 days of the month, for the hero trend bars.
-  const bars = useMemo(() => {
-    if (!data) return []
-    const days = data.byDay.slice(-7)
-    const max = Math.max(1, ...days.map((d) => d.amount))
-    return days.map((d, i) => ({
-      label: new Date(d.date + "T00:00:00").toLocaleDateString("en-GB", { weekday: "short" }).slice(0, 3),
-      h: Math.max(6, Math.round((d.amount / max) * 120)),
-      on: i === days.length - 1,
-    }))
-  }, [data])
-
   const greenDays = calendar?.days.filter((d) => d.status === "MET").length ?? 0
   const activeQuests = quests.filter((q) => q.status === "ACTIVE").slice(0, 3)
 
@@ -118,73 +106,56 @@ export default function DashboardTab({
     <div className="flex flex-wrap items-start gap-[22px]">
       {/* Left */}
       <div className="flex min-w-[min(100%,440px)] flex-1 basis-[62%] flex-col gap-[22px]">
-        <div className="ledger-label flex h-6 items-center">OVERVIEW · {monthLabel(month)}</div>
-
-        {/* Balance hero */}
-        <section
-          className="relative overflow-hidden rounded-3xl border border-white/[0.09] p-6"
-          style={{ background: "linear-gradient(155deg,#3A2A1E 0%,#2A1E16 45%,#191210 100%)" }}
-        >
-          <div className="pointer-events-none absolute -right-12 -bottom-16 size-[270px] opacity-10">
+        {/* Carried-forward balance — the account book's opening line, on ruled paper */}
+        <section className="ledger-paper relative overflow-hidden p-7">
+          <div className="pointer-events-none absolute -right-10 -bottom-14 size-[240px] opacity-[0.06]">
             <HornGlyphFull />
           </div>
-          <div className="relative flex flex-wrap items-start justify-between gap-3.5">
+          <div className="relative flex flex-wrap items-end justify-between gap-x-10 gap-y-6">
             <div>
-              <div className="ledger-label">Net worth</div>
-              <div className="mt-3 flex items-baseline gap-2">
-                <span className="font-heading tnum text-[48px] leading-none font-semibold tracking-[-0.03em] sm:text-[56px]">
+              <div className="text-muted-foreground text-[13.5px]">
+                Balance carried forward · {monthLabel(month)}
+              </div>
+              <div className="ink-underline mt-3 inline-flex items-baseline gap-2">
+                <span className="figure text-[52px] leading-none font-semibold sm:text-[60px]">
                   {netWorth ? Math.floor(netWorth.total / 100).toLocaleString("en-US") : "—"}
                 </span>
-                <span className="font-heading tnum text-[22px] font-medium text-[#D2C5B4]">
+                <span className="figure text-[24px] font-medium text-[#D2C5B4]">
                   {netWorth ? "." + String(netWorth.total % 100).padStart(2, "0") : ""}
                 </span>
-                <span className="text-muted-foreground font-mono text-[14px]">RON</span>
+                <span className="text-muted-foreground mb-1 font-mono text-[14px]">RON</span>
               </div>
-              <div
-                className="mt-4 inline-flex items-center gap-2 rounded-full border px-3.5 py-2 font-mono text-[13px]"
-                style={
-                  delta <= 0
-                    ? { borderColor: "rgba(156,179,122,0.35)", background: "rgba(156,179,122,0.1)", color: "#B2C58F" }
-                    : { borderColor: "rgba(201,106,78,0.35)", background: "rgba(201,106,78,0.1)", color: "#E0A08C" }
-                }
-              >
-                {delta <= 0 ? "↓" : "↑"} {formatRon(Math.abs(delta)).replace(/\s?RON$/, "")}{" "}
-                {delta <= 0 ? "less" : "more"} spent than last month
+              <div className="text-muted-foreground mt-4 text-[13.5px]">
+                {delta <= 0 ? "Down" : "Up"}{" "}
+                <span style={{ color: delta <= 0 ? "#9cb37a" : "#c96a4e" }}>
+                  {formatRon(Math.abs(delta)).replace(/\s?RON$/, "")} RON
+                </span>{" "}
+                on spend against last month
               </div>
             </div>
-            <div className="text-right">
-              <div className="ledger-label">Spent · {monthLabel(month).split(" ")[0]}</div>
-              <div className="tnum mt-2 font-mono text-[18px] font-semibold">−{formatRon(totalSpent)}</div>
+            <div className="ruled min-w-[210px] flex-1 basis-[240px] text-[14px]">
+              <div className="flex items-baseline justify-between py-2.5">
+                <span className="text-muted-foreground">Spent · {monthLabel(month).split(" ")[0]}</span>
+                <span className="tnum font-mono" style={{ color: "#c96a4e" }}>
+                  −{formatRon(totalSpent).replace(/\s?RON$/, "")}
+                </span>
+              </div>
               {data.projectedMonthEnd !== null && (
-                <div className="text-muted-foreground mt-1 text-[11.5px]">
-                  projected {formatRon(data.projectedMonthEnd)}
+                <div className="flex items-baseline justify-between py-2.5">
+                  <span className="text-muted-foreground">Projected month-end</span>
+                  <span className="tnum font-mono">{formatRon(data.projectedMonthEnd).replace(/\s?RON$/, "")}</span>
                 </div>
               )}
+              <div className="flex items-baseline justify-between py-2.5">
+                <span className="text-muted-foreground">Entries logged</span>
+                <span className="tnum font-mono">{data.expenseCount}</span>
+              </div>
             </div>
           </div>
-          {bars.length > 0 && (
-            <div
-              className="relative mt-6.5 grid items-end gap-3.5"
-              style={{ gridTemplateColumns: `repeat(${bars.length},1fr)`, height: 130 }}
-            >
-              {bars.map((b, i) => (
-                <div key={i} className="flex flex-col items-center gap-2.5">
-                  <div
-                    className="w-full max-w-[46px] rounded-full transition-[filter]"
-                    style={{
-                      height: b.h,
-                      background: b.on ? "#C79A5B" : "rgba(255,255,255,0.3)",
-                    }}
-                  />
-                  <span className="text-muted-foreground font-mono text-[11.5px]">{b.label}</span>
-                </div>
-              ))}
-            </div>
-          )}
         </section>
 
         {/* Where your money goes */}
-        <section className="bg-card rounded-3xl border border-white/[0.07] p-6">
+        <section className="ledger-card p-6">
           <div className="mb-5.5 flex items-center gap-2.5">
             <HornGlyph className="text-primary size-5.5" />
             <h2 className="text-[18px] font-semibold">Where your money goes</h2>
@@ -231,7 +202,7 @@ export default function DashboardTab({
                         <div className="font-heading tnum text-[23px] font-semibold tracking-tight">
                           {formatRon(donutTotal).replace(/\s?RON$/, "")}
                         </div>
-                        <div className="ledger-label !text-[9.5px]">
+                        <div className="ledger-label !text-[11px]">
                           {activeSlice ? activeSlice.category : "RON spent"}
                         </div>
                       </div>
@@ -266,7 +237,7 @@ export default function DashboardTab({
                         </div>
                       )
                     })}
-                    <p className="text-muted-foreground mt-0.5 text-[12.5px]">
+                    <p className="text-muted-foreground mt-0.5 text-[13px]">
                       Click a category to open it in Expenses
                     </p>
                   </div>
@@ -338,7 +309,7 @@ export default function DashboardTab({
       {/* Right widgets */}
       <div className="flex min-w-[min(100%,320px)] flex-1 basis-[30%] flex-col gap-[22px]">
         {/* Savings */}
-        <section className="bg-card rounded-3xl border border-white/[0.07] p-6">
+        <section className="ledger-card p-6">
           <div className="flex items-center gap-2.5">
             <HornGlyph className="text-primary size-5" />
             <h2 className="text-[17px] font-semibold">Savings</h2>
@@ -356,7 +327,7 @@ export default function DashboardTab({
         </section>
 
         {/* Streak — a răboj tally: one notch per on-budget day */}
-        <section className="bg-card rounded-3xl border border-white/[0.07] p-6">
+        <section className="ledger-card p-6">
           <h2 className="text-[17px] font-semibold">Streak</h2>
           <div className="mt-3.5 flex items-baseline gap-2.5">
             <span className="figure text-[36px] font-semibold">{greenDays}</span>
@@ -368,7 +339,7 @@ export default function DashboardTab({
         </section>
 
         {/* Active quests */}
-        <section className="bg-card rounded-3xl border border-white/[0.07] p-6">
+        <section className="ledger-card p-6">
           <div className="mb-4.5 flex items-center justify-between">
             <h2 className="text-[17px] font-semibold">Active quests</h2>
             <button onClick={() => onNavigate?.("quests")} className="text-primary cursor-pointer text-[13.5px]">All</button>
@@ -435,7 +406,7 @@ function DashSkeletonNote() {
           <circle cx="32" cy="52" r="4" fill="currentColor" stroke="none" />
         </svg>
       </div>
-      <div className="ledger-label" style={{ color: "#8C7D6C" }}>Loading your money</div>
+      <div className="ledger-label" style={{ color: "#a89473" }}>Loading your money</div>
     </div>
   )
 }

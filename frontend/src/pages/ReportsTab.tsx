@@ -97,7 +97,7 @@ export default function ReportsTab({ categories }: { categories: Category[] }) {
       setFilterCategory(undefined)
       setCreating(false)
       setSelected(created.id)
-      toast("✓", "Report saved")
+      toast("Report saved")
       reload()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Create failed")
@@ -108,13 +108,13 @@ export default function ReportsTab({ categories }: { categories: Category[] }) {
     try {
       const r = await runReport(id)
       setResults((prev) => ({ ...prev, [id]: r }))
-      toast("◔", "Report re-evaluated")
+      toast("Report re-evaluated")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Run failed")
     }
   }
 
-  const card = "bg-card rounded-2xl border border-white/[0.07] p-6"
+  const card = "ledger-card p-6"
 
   return (
     <div className="flex flex-col gap-[22px]">
@@ -131,7 +131,7 @@ export default function ReportsTab({ categories }: { categories: Category[] }) {
             <span className="ledger-label">Saved reports</span>
             <button
               onClick={() => setCreating((v) => !v)}
-              className="text-primary cursor-pointer text-[12.5px]"
+              className="text-primary cursor-pointer text-[13px]"
             >
               {creating ? "Close" : "+ New"}
             </button>
@@ -173,7 +173,7 @@ export default function ReportsTab({ categories }: { categories: Category[] }) {
                   style={sel ? { boxShadow: "inset 3px 0 0 0 #C79A5B" } : undefined}
                 >
                   <p className="text-[13.5px] font-medium">{r.name}</p>
-                  <p className="text-muted-foreground mt-0.5 text-[11.5px]">{describeFilters(r)}</p>
+                  <p className="text-muted-foreground mt-0.5 text-[12.5px]">{describeFilters(r)}</p>
                 </button>
               )
             })}
@@ -209,7 +209,7 @@ export default function ReportsTab({ categories }: { categories: Category[] }) {
                     <button
                       onClick={() =>
                         downloadReportCsv(report.id, report.name)
-                          .then(() => toast("📄", "CSV exported — check your downloads"))
+                          .then(() => toast("CSV exported — check your downloads"))
                           .catch((e) => setError(e instanceof Error ? e.message : "Export failed"))
                       }
                       className="text-foreground/85 cursor-pointer rounded-xl border border-white/15 bg-white/[0.05] px-3.5 py-2 text-[13px] hover:border-white/30"
@@ -241,7 +241,7 @@ export default function ReportsTab({ categories }: { categories: Category[] }) {
                       { label: "Expenses counted", value: String(result.expenseCount), sub: "transactions", tone: "#B2C58F" },
                       { label: "Biggest category", value: biggest?.name ?? "—", sub: biggest ? `${biggest.pct}% of spend` : "", tone: "#C98A3C" },
                     ].map((k) => (
-                      <section key={k.label} className="bg-card min-w-[230px] flex-1 rounded-2xl border border-white/[0.07] p-6">
+                      <section key={k.label} className="ledger-card min-w-[230px] flex-1 p-6">
                         <div className="text-muted-foreground text-[14.5px]">{k.label}</div>
                         <div className="font-heading tnum mt-2.5 text-[32px] font-semibold tracking-tight">{k.value}</div>
                         <div className="mt-2.5 font-mono text-[13px]" style={{ color: k.tone }}>{k.sub}</div>
