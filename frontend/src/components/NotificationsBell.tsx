@@ -13,10 +13,11 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 
-const TYPE_ICON: Record<string, string> = {
-  "quest.completed": "🎉",
-  "quest.failed": "✗",
-  "quest.suggested": "✦",
+// A small status dot stands in for each notification type — one hand, no emoji.
+const TYPE_DOT: Record<string, string> = {
+  "quest.completed": "#9cb37a",
+  "quest.failed": "#c96a4e",
+  "quest.suggested": "#c79a5b",
 }
 
 export function NotificationsBell() {
@@ -82,8 +83,12 @@ export function NotificationsBell() {
               key={n.id}
               className={`border-b p-3 text-sm last:border-b-0 ${n.read ? "opacity-60" : ""}`}
             >
-              <p className="font-medium">
-                {TYPE_ICON[n.type] ?? "•"} {n.title}
+              <p className="flex items-center gap-2 font-medium">
+                <span
+                  className="size-1.5 flex-none rounded-full"
+                  style={{ background: TYPE_DOT[n.type] ?? "#bfae97" }}
+                />
+                {n.title}
               </p>
               <p className="text-muted-foreground">{n.body}</p>
               <p className="text-muted-foreground pt-0.5 text-xs">

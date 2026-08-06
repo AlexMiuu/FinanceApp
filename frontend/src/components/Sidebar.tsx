@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useAuth } from "@/auth/AuthContext"
-import { ArgaliMark, NavIcon, type NavIconName } from "@/components/brand"
+import { ArgaliMark, ChevronIcon, NavIcon, type NavIconName } from "@/components/brand"
 
 export type PageKey = "dashboard" | "expenses" | "reports" | "quests" | "profile"
 
@@ -86,8 +86,8 @@ export function Sidebar({
         aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
         className="text-muted-foreground flex cursor-pointer items-center gap-3.5 rounded-xl border border-white/10 bg-transparent px-3 py-2.5 text-left transition-colors hover:bg-white/5 hover:text-foreground"
       >
-        <span className="grid size-[22px] flex-none place-items-center font-mono text-[15px]">
-          {expanded ? "«" : "»"}
+        <span className="grid size-[22px] flex-none place-items-center">
+          <ChevronIcon size={16} className={expanded ? "rotate-180" : ""} />
         </span>
         {expanded && <span className="text-[13.5px]">Collapse</span>}
       </button>
@@ -116,7 +116,7 @@ export function Sidebar({
         {expanded && (
           <div className="min-w-0">
             <div className="truncate text-[13.5px] font-medium">{user?.displayName}</div>
-            <div className="text-[11.5px]" style={{ color: "#C0B1A0" }}>
+            <div className="text-[12.5px]" style={{ color: "#C0B1A0" }}>
               Level 4 · Saver
             </div>
           </div>
@@ -146,7 +146,7 @@ export function MobileNav({
             onClick={() => onNavigate(item.key)}
             aria-current={active ? "page" : undefined}
             aria-label={item.label}
-            className={`flex flex-1 cursor-pointer flex-col items-center gap-0.5 rounded-lg border-none bg-transparent py-1.5 text-[10px] font-medium ${
+            className={`flex flex-1 cursor-pointer flex-col items-center gap-0.5 rounded-lg border-none bg-transparent py-1.5 text-[11px] font-medium ${
               active ? "text-primary" : "text-sidebar-foreground"
             }`}
           >

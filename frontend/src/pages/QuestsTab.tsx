@@ -16,7 +16,7 @@ import {
 } from "@/lib/api"
 import { useToast } from "@/components/Toast"
 import { CategorySelect } from "@/components/CategorySelect"
-import { HornGlyph } from "@/components/brand"
+import { CloseIcon, HornGlyph } from "@/components/brand"
 import { RabojStreak, Stamp } from "@/components/raboj"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Input } from "@/components/ui/input"
@@ -47,7 +47,7 @@ function QuestRow({ quest }: { quest: Quest }) {
   const hot = quest.kind === "CAP" && pct > 85 && !done
   const color = done ? GOOD : failed ? OUT : hot ? WARN : "#c79a5b"
   const fmt = (v: number) => (quest.kind === "DAYS" ? `${v} days` : formatRon(v).replace(/\s?RON$/, ""))
-  const status = done ? "Done ✓" : failed ? "Over" : quest.status === "ACTIVE" ? daysLeftLabel(quest.periodEnd) : `${fmt(quest.progress)} / ${fmt(quest.target)}`
+  const status = done ? "Done" : failed ? "Over" : quest.status === "ACTIVE" ? daysLeftLabel(quest.periodEnd) : `${fmt(quest.progress)} / ${fmt(quest.target)}`
 
   return (
     <div>
@@ -97,7 +97,7 @@ export default function QuestsTab({ categories }: { categories: Category[] }) {
   async function act(action: (id: string) => Promise<unknown>, id: string, msg?: string) {
     try {
       await action(id)
-      if (msg) toast("🎯", msg)
+      if (msg) toast(msg)
       reload()
     } catch (e) {
       setError(e instanceof Error ? e.message : "Action failed")
@@ -119,7 +119,7 @@ export default function QuestsTab({ categories }: { categories: Category[] }) {
       })
       form.reset()
       setGoalCategory(undefined)
-      toast("✓", "Goal added")
+      toast("Goal added")
       reload()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed")
@@ -148,7 +148,7 @@ export default function QuestsTab({ categories }: { categories: Category[] }) {
     ...(calendar?.yearlyGoals ?? []),
   ]
 
-  const card = "bg-card rounded-3xl border border-white/[0.07] p-6"
+  const card = "ledger-card p-6"
   const field =
     "text-foreground w-full rounded-xl border border-white/10 bg-[#241C17] px-3.5 py-2.5 text-sm outline-none focus-visible:border-primary"
 
@@ -164,7 +164,7 @@ export default function QuestsTab({ categories }: { categories: Category[] }) {
         {/* Left */}
         <div className="flex min-w-[min(100%,300px)] flex-1 basis-[30%] flex-col gap-[22px]">
           <section
-            className="rounded-3xl border border-white/[0.09] p-6"
+            className="rounded-2xl border border-white/[0.09] p-6"
             style={{ background: "linear-gradient(160deg,#33261b 0%,#171009 100%)" }}
           >
             <div className="ledger-label">Days on budget · this month</div>
@@ -186,7 +186,7 @@ export default function QuestsTab({ categories }: { categories: Category[] }) {
             <h2 className="mb-3.5 text-[17px] font-semibold">Suggested for you</h2>
             <div className="flex flex-col gap-2.5">
               {suggested.length === 0 ? (
-                <p className="text-muted-foreground text-[12.5px]">
+                <p className="text-muted-foreground text-[13px]">
                   No more suggestions — new quests arrive as your spending history grows.
                 </p>
               ) : (
@@ -197,19 +197,19 @@ export default function QuestsTab({ categories }: { categories: Category[] }) {
                   >
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[13.5px] font-medium">{q.title}</p>
-                      <p className="text-muted-foreground font-mono text-[11.5px]">
+                      <p className="text-muted-foreground font-mono text-[12.5px]">
                         {q.periodStart} → {q.periodEnd}
                       </p>
                     </div>
                     <button
                       onClick={() => act(acceptQuest, q.id, "Quest accepted — good luck!")}
-                      className="bg-primary text-primary-foreground cursor-pointer rounded-lg border-none px-3 py-1.5 text-[12.5px] font-semibold hover:bg-[#D8B27A]"
+                      className="bg-primary text-primary-foreground cursor-pointer rounded-lg border-none px-3 py-1.5 text-[13px] font-semibold hover:bg-[#D8B27A]"
                     >
                       Accept
                     </button>
                     <button
                       onClick={() => act(declineQuest, q.id)}
-                      className="text-muted-foreground hover:text-foreground cursor-pointer text-[12.5px]"
+                      className="text-muted-foreground hover:text-foreground cursor-pointer text-[13px]"
                     >
                       Skip
                     </button>
@@ -241,7 +241,7 @@ export default function QuestsTab({ categories }: { categories: Category[] }) {
               <>
                 <div className="grid grid-cols-7 gap-2">
                   {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => (
-                    <div key={i} className="text-muted-foreground pb-1 text-center font-mono text-[11.5px]">{d}</div>
+                    <div key={i} className="text-muted-foreground pb-1 text-center font-mono text-[12.5px]">{d}</div>
                   ))}
                   {Array.from({ length: firstDayOffset }).map((_, i) => (
                     <div key={`pad-${i}`} className="aspect-square" />
@@ -263,9 +263,18 @@ export default function QuestsTab({ categories }: { categories: Category[] }) {
                             ? day.goals.map((g) => `${g.name}: ${formatRon(g.actual)} / ${formatRon(g.target)}`).join("\n")
                             : "No daily goals"
                         }
-                        className="grid aspect-square place-items-center rounded-[11px] text-[14.5px] font-semibold"
+                        className="relative grid aspect-square place-items-center rounded-[11px] text-[14.5px] font-semibold"
                         style={{ ...style, outline: inProg ? "2px solid #C79A5B" : undefined, outlineOffset: 1 }}
                       >
+                        {/* Shape marks so status is never colour-only: a notch cut for on-budget, a cross for over. */}
+                        {met && (
+                          <span className="absolute right-1.5 top-1.5 h-2.5 w-[2px] rounded-full" style={{ background: GOOD }} />
+                        )}
+                        {over && (
+                          <span className="absolute right-1 top-1" style={{ color: OUT }}>
+                            <CloseIcon size={9} />
+                          </span>
+                        )}
                         {Number(day.date.slice(8, 10))}
                       </div>
                     )
@@ -360,7 +369,7 @@ export default function QuestsTab({ categories }: { categories: Category[] }) {
                   <li key={goal.id} className="flex items-center justify-between gap-2 text-sm">
                     <span className="flex items-center gap-2">
                       {goal.name}
-                      <span className="text-muted-foreground rounded-md bg-white/[0.06] px-2 py-0.5 font-mono text-[10.5px]">
+                      <span className="text-muted-foreground rounded-md bg-white/[0.06] px-2 py-0.5 font-mono text-[11.5px]">
                         {goal.period.toLowerCase()}
                       </span>
                     </span>
@@ -371,9 +380,9 @@ export default function QuestsTab({ categories }: { categories: Category[] }) {
                       <button
                         onClick={() => deleteGoal(goal.id).then(reload)}
                         aria-label="Delete goal"
-                        className="text-muted-foreground hover:text-foreground cursor-pointer px-1"
+                        className="text-muted-foreground hover:text-foreground grid size-9 flex-none cursor-pointer place-items-center rounded-lg hover:bg-white/[0.06]"
                       >
-                        ✕
+                        <CloseIcon size={15} />
                       </button>
                     </span>
                   </li>

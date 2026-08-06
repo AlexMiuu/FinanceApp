@@ -193,11 +193,11 @@
   /* Ledger column header — the account book's ruled caption, not a mono kicker. */
   .ledger-label {
     font-family: var(--font-sans);
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
-    letter-spacing: 0.09em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: color-mix(in srgb, var(--brass) 72%, var(--muted-foreground));
+    color: color-mix(in srgb, var(--brass) 64%, var(--foreground));
   }
   /* Headline figures & carried-forward totals speak in the book's slab voice. */
   .figure {
@@ -206,7 +206,31 @@
     letter-spacing: -0.01em;
   }
   .tnum { font-variant-numeric: tabular-nums; }
-  /* Kraft account-book surface with a hairline top rule and inked edge. */
+  /* The canonical account-book card: kraft paper, hairline top rule, one radius. */
+  .ledger-card {
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--paper) 65%, var(--card)) 0%, var(--card) 5%),
+      var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-2xl);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--brass) 15%, transparent);
+  }
+  /* Kraft ledger page — the hero surface, set apart by a warmer paper tint and a
+     brass edge (no ruled lines). */
+  .ledger-paper {
+    position: relative;
+    border: 1px solid color-mix(in srgb, var(--brass) 24%, var(--border));
+    border-radius: var(--radius-2xl);
+    background:
+      linear-gradient(158deg, color-mix(in srgb, var(--paper) 88%, var(--card)) 0%, var(--card) 78%);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--brass) 22%, transparent);
+  }
+  /* A double brass rule under a carried-forward total — the account-book's ink underline. */
+  .ink-underline {
+    border-bottom: 2px solid color-mix(in srgb, var(--brass) 70%, transparent);
+    box-shadow: 0 4px 0 -3px color-mix(in srgb, var(--brass) 40%, transparent);
+    padding-bottom: 6px;
+  }
   .paper {
     background:
       linear-gradient(180deg, color-mix(in srgb, var(--paper) 70%, var(--card)) 0%, var(--card) 4%),

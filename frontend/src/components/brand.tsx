@@ -129,6 +129,66 @@ export function SearchIcon({ className, size = 17 }: { className?: string; size?
   )
 }
 
+/** Close / dismiss — replaces the bare X glyph so the icon system stays one hand. */
+export function CloseIcon({ className, size = 16 }: { className?: string; size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.7}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M5.5 5.5l9 9M14.5 5.5l-9 9" />
+    </svg>
+  )
+}
+
+/** Check — confirmations (toasts, done states), in the drawn hand. */
+export function CheckIcon({ className, size = 15 }: { className?: string; size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.9}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M4.5 10.5 8 14l7.5-8" />
+    </svg>
+  )
+}
+
+/** Chevron — carets and the collapse toggle, in the drawn hand. */
+export function ChevronIcon({ className, size = 18 }: { className?: string; size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M7.5 4.5 13 10l-5.5 5.5" />
+    </svg>
+  )
+}
+
 /** Notification bell — same hand as the nav set. */
 export function BellIcon({ className, size = 19 }: { className?: string; size?: number }) {
   return (

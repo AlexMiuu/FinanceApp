@@ -73,8 +73,8 @@ export function BootSplash({ onDone }: { onDone: () => void }) {
           />
         </div>
         <div
-          className="font-mono text-[11.5px]"
-          style={{ letterSpacing: "0.16em", color: "#8C7D6C" }}
+          className="font-mono text-[12.5px]"
+          style={{ letterSpacing: "0.16em", color: "#a89473" }}
         >
           SECURING YOUR ACCOUNT
         </div>

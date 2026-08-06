@@ -17,6 +17,7 @@ import {
   type SavingsAccount,
 } from "@/lib/api"
 import { useToast } from "@/components/Toast"
+import { CloseIcon } from "@/components/brand"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   Select,
@@ -38,7 +39,7 @@ const RECURRENCE_LABEL: Record<IncomeSource["recurrence"], string> = {
   ONE_OFF: "One-off",
 }
 
-const CARD = "bg-card rounded-3xl border border-white/[0.07] p-6"
+const CARD = "ledger-card p-6"
 const FIELD =
   "text-foreground w-full rounded-xl border border-white/10 bg-[#241C17] px-3.5 py-2.5 text-sm outline-none focus-visible:border-primary"
 
@@ -75,7 +76,7 @@ function SalaryCalculatorCard() {
             <button
               key={m}
               onClick={() => setMode(m)}
-              className={`cursor-pointer rounded-md border-none px-3 py-1 font-mono text-[11.5px] font-medium ${
+              className={`cursor-pointer rounded-md border-none px-3 py-1 font-mono text-[12.5px] font-medium ${
                 mode === m ? "bg-primary text-primary-foreground" : "text-muted-foreground bg-transparent"
               }`}
             >
@@ -141,7 +142,7 @@ function SalaryCalculatorCard() {
           </div>
         </div>
       )}
-      <p className="text-muted-foreground mt-4.5 text-[12.5px]">
+      <p className="text-muted-foreground mt-4.5 text-[13px]">
         Rates are versioned config ({result?.rulesValidFrom?.slice(0, 4) ?? "2026"}). Personal
         deduction not applied in this quick view.
       </p>
@@ -186,7 +187,7 @@ export default function ProfileTab() {
         endDate: null,
       })
       form.reset()
-      toast("✓", "Income source added")
+      toast("Income source added")
       reload()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed")
@@ -201,7 +202,7 @@ export default function ProfileTab() {
     try {
       await createSavings(String(data.get("name")), toBani(data.get("balance")))
       form.reset()
-      toast("🐷", "Savings pot added")
+      toast("Savings pot added")
       reload()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed")
@@ -218,7 +219,7 @@ export default function ProfileTab() {
     }
     try {
       await updateSavings(account.id, account.name, balance)
-      toast("✓", "Balance updated")
+      toast("Balance updated")
       reload()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Update failed")
@@ -240,7 +241,7 @@ export default function ProfileTab() {
         <div className="flex min-w-[min(100%,360px)] flex-1 basis-[46%] flex-col gap-[22px]">
           {/* Profile */}
           <section
-            className="flex items-center gap-5 rounded-3xl border border-white/[0.09] p-6"
+            className="flex items-center gap-5 rounded-2xl border border-white/[0.09] p-6"
             style={{ background: "linear-gradient(160deg,#3A2A1E 0%,#191210 100%)" }}
           >
             <div
@@ -315,9 +316,9 @@ export default function ProfileTab() {
                   <button
                     onClick={() => deleteIncomeSource(source.id).then(reload)}
                     aria-label="Remove income source"
-                    className="text-muted-foreground hover:text-foreground cursor-pointer px-1"
+                    className="text-muted-foreground hover:text-foreground grid size-9 flex-none cursor-pointer place-items-center rounded-lg hover:bg-white/[0.06]"
                   >
-                    ✕
+                    <CloseIcon size={15} />
                   </button>
                 </div>
               ))}
@@ -355,11 +356,11 @@ export default function ProfileTab() {
                   </span>
                   <span className="flex items-center gap-1.5">
                     <span className="tnum font-mono font-medium">{formatRon(account.balance)}</span>
-                    <button onClick={() => adjustBalance(account)} className="text-muted-foreground hover:text-foreground cursor-pointer px-1.5 text-[12.5px]">
+                    <button onClick={() => adjustBalance(account)} className="text-muted-foreground hover:text-foreground cursor-pointer px-1.5 text-[13px]">
                       Adjust
                     </button>
-                    <button onClick={() => deleteSavings(account.id).then(reload)} aria-label="Delete pot" className="text-muted-foreground hover:text-foreground cursor-pointer px-1">
-                      ✕
+                    <button onClick={() => deleteSavings(account.id).then(reload)} aria-label="Delete pot" className="text-muted-foreground hover:text-foreground grid size-8 flex-none cursor-pointer place-items-center rounded-lg hover:bg-white/[0.06]">
+                      <CloseIcon size={15} />
                     </button>
                   </span>
                 </li>

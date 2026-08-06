@@ -46,7 +46,7 @@ export default function AuthPage() {
 
   return (
     <main className="bg-background grid min-h-svh place-items-center p-4 [background-image:radial-gradient(800px_500px_at_50%_-10%,color-mix(in_oklab,var(--primary)_16%,transparent),transparent)]">
-      <div className="bg-card w-full max-w-[400px] rounded-2xl border p-9 shadow-2xl">
+      <div className="ledger-card w-full max-w-[400px] p-9 shadow-2xl">
         <div className="flex items-center justify-center gap-3">
           <ArgaliMark className="text-foreground size-9" />
           <span className="text-[17px] font-semibold tracking-[0.22em]">ARGALI</span>
@@ -100,7 +100,7 @@ export default function AuthPage() {
           <>
             <div className="my-3.5 flex items-center gap-3">
               <span className="bg-border h-px flex-1" />
-              <span className="text-muted-foreground text-[11px]">OR</span>
+              <span className="text-muted-foreground text-[12px]">OR</span>
               <span className="bg-border h-px flex-1" />
             </div>
             <Button
@@ -122,7 +122,7 @@ export default function AuthPage() {
           </Alert>
         )}
 
-        <p className="text-muted-foreground mt-5 text-center text-[12.5px]">
+        <p className="text-muted-foreground mt-5 text-center text-[13px]">
           {mode === "login" ? "No account? " : "Have an account? "}
           <button
             type="button"

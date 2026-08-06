@@ -97,7 +97,7 @@ export default function HomePage() {
                 aria-label="Search transactions"
                 className="text-foreground min-w-0 flex-1 border-none bg-transparent text-sm outline-none"
               />
-              <span className="text-muted-foreground rounded-[5px] border border-white/12 px-1.5 py-0.5 font-mono text-[11px]">
+              <span className="text-muted-foreground rounded-[5px] border border-white/12 px-1.5 py-0.5 font-mono text-[12px]">
                 ⌘K
               </span>
             </div>
