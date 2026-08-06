@@ -16,4 +16,6 @@ public interface RecurringExpenseRepository extends JpaRepository<RecurringExpen
     Optional<RecurringExpenseEntity> findByIdAndUserId(UUID id, UUID userId);
 
     List<RecurringExpenseEntity> findByActiveTrueAndNextRunLessThanEqual(LocalDate date);
+
+    long deleteByUserId(UUID userId);
 }

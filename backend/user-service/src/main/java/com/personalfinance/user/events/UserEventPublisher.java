@@ -33,4 +33,15 @@ public class UserEventPublisher {
             log.error("Failed to publish user.registered for {}", event.userId(), e);
         }
     }
+
+    @TransactionalEventListener
+    public void onUserErasureRequested(UserErasureRequestedEvent event) {
+        try {
+            rabbitTemplate.convertAndSend(EventsConfig.EXCHANGE, "user.erasure.requested", event);
+        } catch (Exception e) {
+            // The erasure_requests row stays PENDING, which is the signal that
+            // downstream services were never told; it can be replayed from there.
+            log.error("Failed to publish user.erasure.requested for {}", event.userId(), e);
+        }
+    }
 }

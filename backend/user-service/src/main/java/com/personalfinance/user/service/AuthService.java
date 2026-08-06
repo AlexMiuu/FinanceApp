@@ -22,6 +22,8 @@ import com.personalfinance.user.events.UserRegisteredEvent;
 
 import com.personalfinance.user.entity.AuthIdentityEntity;
 import com.personalfinance.user.repository.AuthIdentityRepository;
+import com.personalfinance.user.entity.ConsentRecordEntity;
+import com.personalfinance.user.repository.ConsentRecordRepository;
 import com.personalfinance.user.entity.RefreshTokenEntity;
 import com.personalfinance.user.repository.RefreshTokenRepository;
 import com.personalfinance.user.entity.UserEntity;
@@ -36,9 +38,16 @@ public class AuthService {
 
     private static final SecureRandom RANDOM = new SecureRandom();
 
+    /**
+     * Version of the terms and privacy policy that registering currently accepts.
+     * Bumping this is what makes an existing consent record stale.
+     */
+    private static final String CURRENT_POLICY_VERSION = "2026-08-06";
+
     private final UserRepository users;
     private final AuthIdentityRepository identities;
     private final RefreshTokenRepository refreshTokens;
+    private final ConsentRecordRepository consents;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final ApplicationEventPublisher eventPublisher;
@@ -51,6 +60,7 @@ public class AuthService {
         }
         UserEntity user = new UserEntity(email, passwordEncoder.encode(password), displayName, null);
         users.save(user);
+        recordSignupConsent(user);
         identities.save(new AuthIdentityEntity(user, AuthIdentityEntity.PROVIDER_PASSWORD, user.getId().toString()));
         eventPublisher.publishEvent(
                 new UserRegisteredEvent(user.getId(), user.getEmail(), user.getDisplayName(), Instant.now()));
@@ -82,6 +92,7 @@ public class AuthService {
         UserEntity user = users.findByEmailIgnoreCase(email).orElseGet(() -> {
             UserEntity created = new UserEntity(email, null, name != null ? name : email, avatarUrl);
             users.save(created);
+            recordSignupConsent(created);
             eventPublisher.publishEvent(new UserRegisteredEvent(
                     created.getId(), created.getEmail(), created.getDisplayName(), Instant.now()));
             return created;
@@ -125,6 +136,18 @@ public class AuthService {
     @Transactional
     public void logout(String rawToken) {
         refreshTokens.findByTokenHash(sha256(rawToken)).ifPresent(RefreshTokenEntity::revoke);
+    }
+
+    /**
+     * Creating an account is the acceptance: this turns that into evidence with a
+     * policy version attached, rather than an assumption nobody can later verify.
+     */
+    private void recordSignupConsent(UserEntity user) {
+        consents.save(new ConsentRecordEntity(
+                user.getId(),
+                ConsentRecordEntity.TYPE_TOS_PRIVACY,
+                CURRENT_POLICY_VERSION,
+                Instant.now()));
     }
 
     private static String newOpaqueToken() {

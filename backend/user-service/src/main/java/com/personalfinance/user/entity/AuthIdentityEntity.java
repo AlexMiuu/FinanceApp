@@ -61,4 +61,8 @@ public class AuthIdentityEntity {
     public String getProviderUid() {
         return providerUid;
     }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
 }

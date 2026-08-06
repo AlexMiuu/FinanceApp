@@ -19,4 +19,9 @@ public interface CategoryRepository extends JpaRepository<CategoryEntity, UUID> 
     boolean existsByParentId(UUID parentId);
 
     boolean existsByUserIdAndParentIdAndNameIgnoreCase(UUID userId, UUID parentId, String name);
+
+    long deleteByUserId(UUID userId);
+
+    /** Subcategories must go before their parents: parent_id is a self-referencing FK with no cascade. */
+    long deleteByUserIdAndParentIdIsNotNull(UUID userId);
 }
