@@ -1,4 +1,4 @@
-package com.personalfinance.report.dashboard;
+package com.personalfinance.report.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -12,8 +12,10 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 
-import com.personalfinance.report.domain.ExpenseProjectionEntity;
-import com.personalfinance.report.domain.ExpenseProjectionRepository;
+import com.personalfinance.report.dto.CategorySliceDto;
+import com.personalfinance.report.dto.DashboardDto;
+import com.personalfinance.report.entity.ExpenseProjectionEntity;
+import com.personalfinance.report.repository.ExpenseProjectionRepository;
 
 class DashboardServiceTest {
 
@@ -36,7 +38,7 @@ class DashboardServiceTest {
                         row("Food > Restaurants", false, 3000, LocalDate.of(2026, 7, 10))));
         when(repo.sumForRange(any(), any(), any())).thenReturn(150000L);
 
-        DashboardService.Dashboard dashboard = service.build(userId, july, LocalDate.of(2026, 7, 15));
+        DashboardDto dashboard = service.build(userId, july, LocalDate.of(2026, 7, 15));
 
         assertThat(dashboard.totalSpent()).isEqualTo(207550);
         assertThat(dashboard.mandatorySpent()).isEqualTo(200000);
@@ -44,8 +46,8 @@ class DashboardServiceTest {
         assertThat(dashboard.previousMonthTotal()).isEqualTo(150000);
         // top-level grouping: Food = 4550 + 3000
         assertThat(dashboard.byCategory()).containsExactly(
-                new DashboardService.CategorySlice("Food", 7550),
-                new DashboardService.CategorySlice("Housing", 200000));
+                new CategorySliceDto("Food", 7550),
+                new CategorySliceDto("Housing", 200000));
         // linear projection: 207550 / 15 * 31
         assertThat(dashboard.projectedMonthEnd()).isEqualTo(Math.round(207550.0 / 15 * 31));
         // every day of the month is present, zero-filled
@@ -59,8 +61,16 @@ class DashboardServiceTest {
         when(repo.findByUserIdAndExpenseDateBetween(any(), any(), any())).thenReturn(List.of());
         when(repo.sumForRange(any(), any(), any())).thenReturn(0L);
 
-        DashboardService.Dashboard dashboard = service.build(userId, june, LocalDate.of(2026, 7, 15));
+        DashboardDto dashboard = service.build(userId, june, LocalDate.of(2026, 7, 15));
 
         assertThat(dashboard.projectedMonthEnd()).isNull();
+    }
+
+    @Test
+    void nullMonthComponentsFailFastOnBuild() {
+        // build() requires a non-null month; passing null surfaces immediately rather than
+        // silently defaulting, since a report with no month is not a valid request.
+        org.junit.jupiter.api.Assertions.assertThrows(NullPointerException.class,
+                () -> service.build(userId, null, LocalDate.of(2026, 7, 15)));
     }
 }

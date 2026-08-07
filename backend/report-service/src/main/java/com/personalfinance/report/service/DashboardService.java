@@ -1,4 +1,4 @@
-package com.personalfinance.report.dashboard;
+package com.personalfinance.report.service;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -12,28 +12,14 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.personalfinance.report.domain.ExpenseProjectionEntity;
-import com.personalfinance.report.domain.ExpenseProjectionRepository;
+import com.personalfinance.report.dto.CategorySliceDto;
+import com.personalfinance.report.dto.DashboardDto;
+import com.personalfinance.report.dto.DayPointDto;
+import com.personalfinance.report.entity.ExpenseProjectionEntity;
+import com.personalfinance.report.repository.ExpenseProjectionRepository;
 
 @Service
 public class DashboardService {
-
-    public record CategorySlice(String category, long amount) {
-    }
-
-    public record DayPoint(LocalDate date, long amount) {
-    }
-
-    public record Dashboard(
-            String month,
-            long totalSpent,
-            long mandatorySpent,
-            int expenseCount,
-            long previousMonthTotal,
-            Long projectedMonthEnd,   // null unless the requested month is the current one
-            List<CategorySlice> byCategory,
-            List<DayPoint> byDay) {
-    }
 
     private final ExpenseProjectionRepository projections;
 
@@ -42,7 +28,7 @@ public class DashboardService {
     }
 
     @Transactional(readOnly = true)
-    public Dashboard build(UUID userId, YearMonth month, LocalDate today) {
+    public DashboardDto build(UUID userId, YearMonth month, LocalDate today) {
         List<ExpenseProjectionEntity> rows = projections.findByUserIdAndExpenseDateBetween(
                 userId, month.atDay(1), month.atEndOfMonth());
 
@@ -52,21 +38,21 @@ public class DashboardService {
                 .mapToLong(ExpenseProjectionEntity::getAmount).sum();
 
         // Pie groups by top-level category so the slice count stays readable.
-        List<CategorySlice> byCategory = rows.stream()
+        List<CategorySliceDto> byCategory = rows.stream()
                 .collect(Collectors.groupingBy(
                         row -> row.getCategoryPath().split(" > ")[0],
                         Collectors.summingLong(ExpenseProjectionEntity::getAmount)))
                 .entrySet().stream()
-                .map(entry -> new CategorySlice(entry.getKey(), entry.getValue()))
-                .sorted(Comparator.comparing(CategorySlice::category))
+                .map(entry -> new CategorySliceDto(entry.getKey(), entry.getValue()))
+                .sorted(Comparator.comparing(CategorySliceDto::category))
                 .toList();
 
         Map<LocalDate, Long> perDay = rows.stream().collect(Collectors.groupingBy(
                 ExpenseProjectionEntity::getExpenseDate,
                 TreeMap::new,
                 Collectors.summingLong(ExpenseProjectionEntity::getAmount)));
-        List<DayPoint> byDay = month.atDay(1).datesUntil(month.atEndOfMonth().plusDays(1))
-                .map(date -> new DayPoint(date, perDay.getOrDefault(date, 0L)))
+        List<DayPointDto> byDay = month.atDay(1).datesUntil(month.atEndOfMonth().plusDays(1))
+                .map(date -> new DayPointDto(date, perDay.getOrDefault(date, 0L)))
                 .toList();
 
         YearMonth previous = month.minusMonths(1);
@@ -78,7 +64,7 @@ public class DashboardService {
             projected = Math.round((double) total / today.getDayOfMonth() * month.lengthOfMonth());
         }
 
-        return new Dashboard(month.toString(), total, mandatory, rows.size(), previousTotal,
+        return new DashboardDto(month.toString(), total, mandatory, rows.size(), previousTotal,
                 projected, byCategory, byDay);
     }
 }

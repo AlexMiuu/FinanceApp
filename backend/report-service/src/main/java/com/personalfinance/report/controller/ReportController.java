@@ -1,7 +1,6 @@
-package com.personalfinance.report.report;
+package com.personalfinance.report.controller;
 
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -22,55 +21,50 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.personalfinance.report.domain.ExpenseProjectionEntity;
-import com.personalfinance.report.domain.ReportEntity;
+import com.personalfinance.report.dto.ReportDto;
+import com.personalfinance.report.dto.SaveReportRequestDto;
+import com.personalfinance.report.entity.ExpenseProjectionEntity;
+import com.personalfinance.report.entity.ReportEntity;
+import com.personalfinance.report.mapper.ReportMapper;
+import com.personalfinance.report.service.PrivacyService;
+import com.personalfinance.report.service.ReportService;
 
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 
 @RestController
 @RequestMapping("/api/v1/reports")
 public class ReportController {
 
-    public record ReportDto(UUID id, String name, Map<String, Object> filters, Instant lastRunAt,
-            Map<String, Object> cachedResult) {
-
-        static ReportDto of(ReportEntity r) {
-            return new ReportDto(r.getId(), r.getName(), r.getFilters(), r.getLastRunAt(), r.getCachedResult());
-        }
-    }
-
-    public record SaveRequest(@NotBlank @Size(max = 100) String name, @NotNull Map<String, Object> filters) {
-    }
-
     private final ReportService service;
+    private final ReportMapper mapper;
+    private final PrivacyService privacyService;
 
-    public ReportController(ReportService service) {
+    public ReportController(ReportService service, ReportMapper mapper, PrivacyService privacyService) {
         this.service = service;
+        this.mapper = mapper;
+        this.privacyService = privacyService;
     }
 
     @GetMapping
     public List<ReportDto> list(@AuthenticationPrincipal Jwt jwt) {
-        return service.list(userId(jwt)).stream().map(ReportDto::of).toList();
+        return mapper.toDtos(service.list(userId(jwt)));
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ReportDto create(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody SaveRequest request) {
-        return ReportDto.of(service.create(userId(jwt), request.name(), request.filters()));
+    public ReportDto create(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody SaveReportRequestDto request) {
+        return mapper.toDto(service.create(userId(jwt), request.name(), request.filters()));
     }
 
     @GetMapping("/{id}")
     public ReportDto get(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
-        return ReportDto.of(service.get(id, userId(jwt)));
+        return mapper.toDto(service.get(id, userId(jwt)));
     }
 
     @PutMapping("/{id}")
     public ReportDto update(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id,
-            @Valid @RequestBody SaveRequest request) {
-        return ReportDto.of(service.update(id, userId(jwt), request.name(), request.filters()));
+            @Valid @RequestBody SaveReportRequestDto request) {
+        return mapper.toDto(service.update(id, userId(jwt), request.name(), request.filters()));
     }
 
     @DeleteMapping("/{id}")
@@ -107,6 +101,12 @@ public class ReportController {
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         "attachment; filename=\"" + (filename.isEmpty() ? "report" : filename) + ".csv\"")
                 .body(csv.toString().getBytes(StandardCharsets.UTF_8));
+    }
+
+    /** GDPR Art. 20 machine-readable export of this service's data classes (M9, per docs/records-of-processing.md). */
+    @GetMapping("/export/me")
+    public ResponseEntity<?> exportMyData(@AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(privacyService.exportUserData(userId(jwt)));
     }
 
     private static String escape(String value) {

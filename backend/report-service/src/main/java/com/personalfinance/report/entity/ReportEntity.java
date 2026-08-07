@@ -1,4 +1,4 @@
-package com.personalfinance.report.domain;
+package com.personalfinance.report.entity;
 
 import java.time.Instant;
 import java.util.Map;

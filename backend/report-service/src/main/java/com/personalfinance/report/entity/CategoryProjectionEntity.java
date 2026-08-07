@@ -1,4 +1,4 @@
-package com.personalfinance.report.domain;
+package com.personalfinance.report.entity;
 
 import java.util.UUID;
 
@@ -36,5 +36,25 @@ public class CategoryProjectionEntity {
         this.name = name;
         this.parentId = parentId;
         this.mandatory = mandatory;
+    }
+
+    public UUID getCategoryId() {
+        return categoryId;
+    }
+
+    public UUID getUserId() {
+        return userId;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public UUID getParentId() {
+        return parentId;
+    }
+
+    public boolean isMandatory() {
+        return mandatory;
     }
 }
