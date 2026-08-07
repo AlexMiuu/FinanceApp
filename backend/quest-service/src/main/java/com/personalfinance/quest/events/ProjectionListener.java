@@ -12,13 +12,13 @@ import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.personalfinance.quest.domain.CategoryProjectionEntity;
-import com.personalfinance.quest.domain.CategoryProjectionRepository;
-import com.personalfinance.quest.domain.ExpenseProjectionEntity;
-import com.personalfinance.quest.domain.ExpenseProjectionRepository;
-import com.personalfinance.quest.quest.QuestService;
-import com.personalfinance.quest.quest.UserIncomeEntity;
-import com.personalfinance.quest.quest.UserIncomeRepository;
+import com.personalfinance.quest.entity.CategoryProjectionEntity;
+import com.personalfinance.quest.entity.ExpenseProjectionEntity;
+import com.personalfinance.quest.entity.UserIncomeEntity;
+import com.personalfinance.quest.repository.CategoryProjectionRepository;
+import com.personalfinance.quest.repository.ExpenseProjectionRepository;
+import com.personalfinance.quest.repository.UserIncomeRepository;
+import com.personalfinance.quest.service.QuestService;
 
 /**
  * Maintains the local read models from expense-service events. Handlers are
