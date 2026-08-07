@@ -18,6 +18,7 @@ import {
   type SalaryBreakdown,
   type SavingsAccount,
 } from "@/lib/api"
+import { clearArgaliStorage } from "@/lib/storage"
 import { useToast } from "@/components/Toast"
 import { CloseIcon } from "@/components/brand"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -269,7 +270,9 @@ export default function ProfileTab() {
     setDeleting(true)
     try {
       await deleteAccount()
-      localStorage.clear()
+      // logout() clears Argali's browser storage too; this call covers the window
+      // between the account going away and the sign-out request coming back.
+      clearArgaliStorage()
       await logout()
     } catch (err) {
       setDeleteError(err instanceof Error ? err.message : "Deletion failed")

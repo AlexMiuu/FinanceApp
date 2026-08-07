@@ -11,22 +11,27 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.personalfinance.user.dto.DataExportDto;
 import com.personalfinance.user.entity.AuthIdentityEntity;
+import com.personalfinance.user.entity.DashboardLayoutEntity;
 import com.personalfinance.user.entity.ConsentRecordEntity;
 import com.personalfinance.user.entity.IncomeSourceEntity;
 import com.personalfinance.user.entity.RefreshTokenEntity;
 import com.personalfinance.user.entity.SavingsAccountEntity;
 import com.personalfinance.user.entity.UserEntity;
+import com.personalfinance.user.mapper.DashboardLayoutMapper;
 import com.personalfinance.user.mapper.DataExportMapper;
 import com.personalfinance.user.mapper.IncomeMapper;
 import com.personalfinance.user.mapper.SavingsMapper;
 import com.personalfinance.user.repository.AuthIdentityRepository;
 import com.personalfinance.user.repository.ConsentRecordRepository;
+import com.personalfinance.user.repository.DashboardLayoutRepository;
 import com.personalfinance.user.repository.IncomeSourceRepository;
 import com.personalfinance.user.repository.RefreshTokenRepository;
 import com.personalfinance.user.repository.SavingsAccountRepository;
 import com.personalfinance.user.repository.UserRepository;
+import com.personalfinance.user.service.DashboardLayoutService;
 import com.personalfinance.user.service.DataExportService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,6 +45,7 @@ class DataExportServiceTest {
     private ConsentRecordRepository consentRecords;
     private AuthIdentityRepository authIdentities;
     private RefreshTokenRepository refreshTokens;
+    private DashboardLayoutRepository dashboardLayouts;
     private DataExportService service;
 
     @BeforeEach
@@ -50,8 +56,11 @@ class DataExportServiceTest {
         consentRecords = mock(ConsentRecordRepository.class);
         authIdentities = mock(AuthIdentityRepository.class);
         refreshTokens = mock(RefreshTokenRepository.class);
+        dashboardLayouts = mock(DashboardLayoutRepository.class);
         service = new DataExportService(users, incomeSources, savingsAccounts, consentRecords,
                 authIdentities, refreshTokens,
+                new DashboardLayoutService(dashboardLayouts,
+                        new DashboardLayoutMapper(new ObjectMapper())),
                 new DataExportMapper(new IncomeMapper(), new SavingsMapper()));
     }
 
@@ -109,6 +118,33 @@ class DataExportServiceTest {
                     assertThat(token.getExpiresAt()).isEqualTo(Instant.parse("2026-09-05T10:00:00Z"));
                     assertThat(token.isRevoked()).isFalse();
                 });
+        assertThat(export.getDashboardLayout()).isNotNull();
+    }
+
+    @Test
+    void exportCarriesTheSavedDashboardArrangement() {
+        UserEntity user = new UserEntity("alex@example.com", "hash", "Alex", null);
+        UUID userId = user.getId();
+        when(users.findById(userId)).thenReturn(Optional.of(user));
+        when(dashboardLayouts.findById(userId)).thenReturn(Optional.of(new DashboardLayoutEntity(
+                userId, "{\"main\":[\"breakdown\",\"balance\"],\"side\":[\"quests\",\"streak\",\"savings\"]}")));
+
+        DataExportDto export = service.exportFor(userId);
+
+        assertThat(export.getDashboardLayout().getMain()).containsExactly("breakdown", "balance");
+        assertThat(export.getDashboardLayout().getSide()).containsExactly("quests", "streak", "savings");
+    }
+
+    @Test
+    void exportFallsBackToTheDefaultArrangementWhenTheUserNeverRearrangedAnything() {
+        UserEntity user = new UserEntity("alex@example.com", "hash", "Alex", null);
+        when(users.findById(user.getId())).thenReturn(Optional.of(user));
+
+        DataExportDto export = service.exportFor(user.getId());
+
+        assertThat(export.getDashboardLayout().getMain()).containsExactly("balance", "breakdown");
+        assertThat(export.getDashboardLayout().getSide()).containsExactly("savings", "streak", "quests");
+        assertThat(export.getDashboardLayout().getUpdatedAt()).isNull();
     }
 
     @Test

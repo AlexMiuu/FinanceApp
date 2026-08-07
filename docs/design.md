@@ -178,7 +178,9 @@ Money and stats use tabular-lining numerals (`.figure` / `.tnum`). Body floor �
 - Themed browser surfaces (scrollbar, selection, caret, date-picker glyph) — nothing left at OS default.
 - Responsive: rail (desktop) folds to a bottom nav + FAB under 768px; layouts stack and reflow 360–1440px.
 
-**Known follow-ups:** raise icon-button hit areas to 44px on touch; add a mobile search affordance; gate the boot splash to once per session. (Independent finish-review disposition on the visual system: **ship**.)
+**Closed in M10:** icon-button hit areas raised to 44×44 at ≤768px (enforced once as a zero-specificity `:where()` floor in `index.css`, so new components inherit it rather than re-specifying it); a mobile search affordance — under 640px the field collapses behind a 44px search control and expands to a full-width row, with `⌘K` and Escape wired to it; and the boot splash gated to once per session via `argali:splash-seen`. (Independent finish-review disposition on the visual system: **ship**.)
+
+The dashboard is also user-arrangeable as of M10: widgets move between the wide and narrow columns by drag or by arrow buttons, and the arrangement persists per user in User Service (D9 — it is a choice nothing can regenerate, so it does not belong in localStorage).
 
 ---
 

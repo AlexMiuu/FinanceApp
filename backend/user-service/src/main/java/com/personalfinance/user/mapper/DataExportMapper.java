@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 
 import com.personalfinance.user.dto.AuthIdentityDto;
 import com.personalfinance.user.dto.ConsentRecordDto;
+import com.personalfinance.user.dto.DashboardLayoutDto;
 import com.personalfinance.user.dto.DataExportDto;
 import com.personalfinance.user.dto.RefreshTokenDto;
 import com.personalfinance.user.entity.AuthIdentityEntity;
@@ -27,6 +28,7 @@ public class DataExportMapper {
     private final SavingsMapper savingsMapper;
 
     public DataExportDto toDto(UserEntity user,
+            DashboardLayoutDto dashboardLayout,
             List<IncomeSourceEntity> incomeSources,
             List<SavingsAccountEntity> savingsAccounts,
             List<ConsentRecordEntity> consentRecords,
@@ -40,6 +42,7 @@ public class DataExportMapper {
                 .baseCurrency(user.getBaseCurrency())
                 .createdAt(user.getCreatedAt())
                 .exportedAt(Instant.now())
+                .dashboardLayout(dashboardLayout)
                 .incomeSources(incomeMapper.toDtos(incomeSources))
                 .savingsAccounts(savingsMapper.toDtos(savingsAccounts))
                 .consentRecords(toConsentDtos(consentRecords))

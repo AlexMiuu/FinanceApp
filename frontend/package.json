@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
+    "bundle-size": "node scripts/bundle-size.mjs",
+    "logic-check": "vite build --config vite.logic-check.config.ts && node scripts/logic-check.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
