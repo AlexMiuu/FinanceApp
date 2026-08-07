@@ -1,69 +1,54 @@
 package com.personalfinance.notification.controller;
 
-import java.time.Instant;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
-import com.personalfinance.notification.domain.NotificationEntity;
-import com.personalfinance.notification.domain.NotificationRepository;
+import com.personalfinance.notification.dto.NotificationDataExportDto;
+import com.personalfinance.notification.dto.NotificationListDto;
+import com.personalfinance.notification.service.NotificationService;
+import com.personalfinance.notification.service.PrivacyService;
 
 @RestController
 @RequestMapping("/api/v1/notifications")
 public class NotificationController {
 
-    public record NotificationDto(UUID id, String type, String title, String body,
-            Instant createdAt, boolean read) {
+    private final NotificationService service;
+    private final PrivacyService privacyService;
 
-        public static NotificationDto of(NotificationEntity n) {
-            return new NotificationDto(n.getId(), n.getType(), n.getTitle(), n.getBody(),
-                    n.getCreatedAt(), n.getReadAt() != null);
-        }
-    }
-
-    public record NotificationList(List<NotificationDto> items, long unread) {
-    }
-
-    private final NotificationRepository notifications;
-
-    public NotificationController(NotificationRepository notifications) {
-        this.notifications = notifications;
+    public NotificationController(NotificationService service, PrivacyService privacyService) {
+        this.service = service;
+        this.privacyService = privacyService;
     }
 
     @GetMapping
-    public NotificationList list(@AuthenticationPrincipal Jwt jwt) {
-        UUID userId = userId(jwt);
-        return new NotificationList(
-                notifications.findTop50ByUserIdOrderByCreatedAtDesc(userId).stream()
-                        .map(NotificationDto::of).toList(),
-                notifications.countByUserIdAndReadAtIsNull(userId));
+    public NotificationListDto list(@AuthenticationPrincipal Jwt jwt) {
+        return service.listFor(userId(jwt));
     }
 
     @PostMapping("/{id}/read")
-    @Transactional
     public Map<String, Boolean> markRead(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
-        NotificationEntity notification = notifications.findByIdAndUserId(id, userId(jwt))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Notification not found"));
-        notification.markRead();
+        service.markRead(id, userId(jwt));
         return Map.of("read", true);
     }
 
     @PostMapping("/read-all")
-    @Transactional
     public Map<String, Boolean> markAllRead(@AuthenticationPrincipal Jwt jwt) {
-        notifications.findByUserIdAndReadAtIsNull(userId(jwt)).forEach(NotificationEntity::markRead);
+        service.markAllRead(userId(jwt));
         return Map.of("read", true);
+    }
+
+    /** GDPR Art. 20 machine-readable export of this service's data classes (M9, per docs/records-of-processing.md). */
+    @GetMapping("/export/me")
+    public NotificationDataExportDto exportMyData(@AuthenticationPrincipal Jwt jwt) {
+        return privacyService.exportUserData(userId(jwt));
     }
 
     private static UUID userId(Jwt jwt) {
