@@ -1,4 +1,4 @@
-package com.personalfinance.notification.domain;
+package com.personalfinance.notification.entity;
 
 import java.time.Instant;
 import java.util.Map;
@@ -71,6 +71,10 @@ public class NotificationEntity {
 
     public String getBody() {
         return body;
+    }
+
+    public Map<String, Object> getData() {
+        return data == null ? Map.of() : Map.copyOf(data);
     }
 
     public Instant getReadAt() {
