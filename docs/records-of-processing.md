@@ -1,9 +1,9 @@
 # Records of Processing
 
-**Status:** M8 deliverable — GDPR Art. 30-style record of the personal data Argali processes,
-why, and for how long. Scope is **User Service and Expense Service only**, the two services
-standardized and erasure/export-covered at this milestone. Report, Quest, and Notification
-Service entries land with M9 (see closing note).
+**Status:** M8 deliverable, extended in M9 — GDPR Art. 30-style record of the personal data
+Argali processes, why, and for how long. User Service and Expense Service were standardized
+and erasure/export-covered at M8; Report Service is added here as part of M9's service
+standardization. Quest and Notification Service entries land as the rest of M9 completes.
 
 Argali is **non-custodial**: it records and reflects money the user enters or later imports
 read-only — it never holds, moves, or has access to actual funds. That constrains what
@@ -32,6 +32,20 @@ or payment credentials.
 | `expenses` | Individual recorded expenses: amount (bani), category, date, note, source (`MANUAL` / future `BANK_IMPORT`) | Contract necessity — this is the core function of the app | Life of the account | Same listener, same event |
 | `recurring_expenses` | Recurring expense templates (amount, category, cadence, next-run) that auto-post monthly occurrences | Contract necessity — an extension of core expense tracking | Life of the account | Same listener, same event |
 
+## `reports_db` (Report Service)
+
+Report Service holds no data authored by the user directly to it — `expense_projection` and
+`category_projection` are event-fed shadow copies of Expense Service's own data (see
+`docs/erasure-event-contract.md` and `expense_projection`'s own comment: "Upserted, never
+authored here"), kept only so dashboard/report queries never call across services. `reports`
+is the one table of genuinely user-authored content in this database.
+
+| Data class | What it is | Lawful basis | Retention period | Erasure mechanism |
+|---|---|---|---|---|
+| `expense_projection` | Event-fed read model mirroring Expense Service's expenses (amount, category, date, note) for dashboard/report queries | Contract necessity — the same basis as the source data in `expenses_db`; this is a performance-motivated local copy, not a separate collection purpose | Life of the account, kept in sync via `expense.*` events | `GET /api/v1/reports/export/me` for export; on `user.erasure.requested`, `PrivacyService` deletes all rows for the user before publishing `user.erasure.completed` with `service=report` |
+| `category_projection` | Event-fed shadow copy of Expense Service's categories, used to denormalize `category_path` onto `expense_projection` | Contract necessity — same basis as source data | Life of the account, kept in sync via `category.*` events | Same listener, same event |
+| `reports` | User-authored saved reports: name, filter definition (date range, category IDs), cached last-run result | Consent — an optional feature beyond the minimum account, created at the user's discretion | Life of the account | Same listener, same event |
+
 ---
 
 ## Notes
@@ -45,6 +59,6 @@ or payment credentials.
   recording and reporting the user's own entries back to them — that's a contractual necessity,
   not a business interest balanced against the user's, so contract necessity is the honest basis
   rather than reaching for legitimate interest as a default.
-- **Report Service, Quest Service, and Notification Service** process derived/projected data
-  from the classes above (event-fed projections, quest progress, notification history); their
-  own records-of-processing entries land with M9's erasure handlers.
+- **Quest Service and Notification Service** process derived/projected data from the classes
+  above (quest progress, notification history); their own records-of-processing entries land
+  as M9's remaining standardization work completes. **Report Service** is documented above.

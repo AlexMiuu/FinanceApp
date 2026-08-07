@@ -1,4 +1,4 @@
-package com.personalfinance.report.dashboard;
+package com.personalfinance.report.controller;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -11,6 +11,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.personalfinance.report.dto.DashboardDto;
+import com.personalfinance.report.service.DashboardService;
+
 @RestController
 @RequestMapping("/api/v1/dashboard")
 public class DashboardController {
@@ -22,7 +25,7 @@ public class DashboardController {
     }
 
     @GetMapping
-    public DashboardService.Dashboard dashboard(@AuthenticationPrincipal Jwt jwt,
+    public DashboardDto dashboard(@AuthenticationPrincipal Jwt jwt,
             @RequestParam(required = false) String month) {
         YearMonth target = month != null ? YearMonth.parse(month) : YearMonth.now();
         return service.build(UUID.fromString(jwt.getSubject()), target, LocalDate.now());

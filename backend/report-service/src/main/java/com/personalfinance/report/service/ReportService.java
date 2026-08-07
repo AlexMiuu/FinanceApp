@@ -1,4 +1,4 @@
-package com.personalfinance.report.report;
+package com.personalfinance.report.service;
 
 import java.time.LocalDate;
 import java.util.Comparator;
@@ -14,11 +14,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.personalfinance.report.domain.ExpenseProjectionEntity;
-import com.personalfinance.report.domain.ExpenseProjectionRepository;
-import com.personalfinance.report.domain.ReportEntity;
-import com.personalfinance.report.domain.ReportRepository;
-import com.personalfinance.report.web.ApiExceptions.NotFoundException;
+import com.personalfinance.report.entity.ExpenseProjectionEntity;
+import com.personalfinance.report.entity.ReportEntity;
+import com.personalfinance.report.exception.NotFoundException;
+import com.personalfinance.report.repository.ExpenseProjectionRepository;
+import com.personalfinance.report.repository.ReportRepository;
 
 @Service
 public class ReportService {

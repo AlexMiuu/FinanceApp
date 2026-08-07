@@ -1,4 +1,4 @@
-package com.personalfinance.report.domain;
+package com.personalfinance.report.repository;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -10,10 +10,14 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import com.personalfinance.report.entity.ExpenseProjectionEntity;
+
 public interface ExpenseProjectionRepository extends JpaRepository<ExpenseProjectionEntity, UUID>,
         JpaSpecificationExecutor<ExpenseProjectionEntity> {
 
     List<ExpenseProjectionEntity> findByUserIdAndExpenseDateBetween(UUID userId, LocalDate from, LocalDate to);
+
+    List<ExpenseProjectionEntity> findByUserIdOrderByExpenseDateDesc(UUID userId);
 
     @Query("select coalesce(sum(e.amount), 0) from ExpenseProjectionEntity e "
             + "where e.userId = :userId and e.expenseDate between :from and :to")
@@ -36,4 +40,6 @@ public interface ExpenseProjectionRepository extends JpaRepository<ExpenseProjec
               AND (c.category_id = :categoryId OR c.parent_id = :categoryId)
             """, nativeQuery = true)
     void refreshCategoryDenormalization(@Param("categoryId") UUID categoryId);
+
+    long deleteByUserId(UUID userId);
 }

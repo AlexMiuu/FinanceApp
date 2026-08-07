@@ -12,10 +12,10 @@ import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.personalfinance.report.domain.CategoryProjectionEntity;
-import com.personalfinance.report.domain.CategoryProjectionRepository;
-import com.personalfinance.report.domain.ExpenseProjectionEntity;
-import com.personalfinance.report.domain.ExpenseProjectionRepository;
+import com.personalfinance.report.entity.CategoryProjectionEntity;
+import com.personalfinance.report.entity.ExpenseProjectionEntity;
+import com.personalfinance.report.repository.CategoryProjectionRepository;
+import com.personalfinance.report.repository.ExpenseProjectionRepository;
 
 /**
  * Maintains the local read models from expense-service events. Handlers are

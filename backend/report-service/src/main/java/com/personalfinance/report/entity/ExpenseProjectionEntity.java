@@ -1,4 +1,4 @@
-package com.personalfinance.report.domain;
+package com.personalfinance.report.entity;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -83,6 +83,10 @@ public class ExpenseProjectionEntity {
 
     public long getAmount() {
         return amount;
+    }
+
+    public String getCurrency() {
+        return currency;
     }
 
     public String getNote() {

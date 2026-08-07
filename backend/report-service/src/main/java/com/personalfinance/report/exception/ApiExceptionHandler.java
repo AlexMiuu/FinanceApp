@@ -1,4 +1,4 @@
-package com.personalfinance.report.web;
+package com.personalfinance.report.exception;
 
 import java.util.Map;
 
@@ -7,8 +7,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-
-import com.personalfinance.report.web.ApiExceptions.NotFoundException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
