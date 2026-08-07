@@ -2,8 +2,8 @@
 
 **Status:** M8 deliverable, extended in M9 — GDPR Art. 30-style record of the personal data
 Argali processes, why, and for how long. User Service and Expense Service were standardized
-and erasure/export-covered at M8; Report Service is added here as part of M9's service
-standardization. Quest and Notification Service entries land as the rest of M9 completes.
+and erasure/export-covered at M8; Report Service and Notification Service are added here as
+part of M9's service standardization. The Quest Service entry lands as the rest of M9 completes.
 
 Argali is **non-custodial**: it records and reflects money the user enters or later imports
 read-only — it never holds, moves, or has access to actual funds. That constrains what
@@ -79,6 +79,12 @@ and is prefix-scoped so it can never delete another application's keys on a shar
   recording and reporting the user's own entries back to them — that's a contractual necessity,
   not a business interest balanced against the user's, so contract necessity is the honest basis
   rather than reaching for legitimate interest as a default.
-- **Quest Service and Notification Service** process derived/projected data from the classes
-  above (quest progress, notification history); their own records-of-processing entries land
-  as M9's remaining standardization work completes. **Report Service** is documented above.
+- **Notification history has no age-based purge.** `notifications` grows for the life of the
+  account and is only ever removed wholesale by erasure. The list endpoint caps its *response*
+  at the 50 most recent, which hides the growth without bounding it — so the stored history is
+  older and larger than anything the UI shows. Called out here rather than quietly fixed: a
+  retention window for generated notifications is a policy decision, and it belongs with the
+  `erasure_requests` 90-day window as a follow-up milestone, not inside a standardization PR.
+- **Quest Service** processes derived data from the classes above (quest progress); its own
+  records-of-processing entry lands as M9's remaining standardization work completes.
+  **Report Service** and **Notification Service** are documented above.

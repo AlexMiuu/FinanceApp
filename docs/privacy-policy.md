@@ -55,10 +55,15 @@ You have the right to access, export, and erase your data. Today, these rights a
 self-service** — there is no manual request process to wait on, because the plumbing described
 below *is* the fulfillment mechanism:
 
-- **Access / export your data:** `GET /api/v1/me/data-export` returns your profile, income
-  sources, savings accounts, and consent records as JSON. `GET /api/v1/expenses/export/me`
-  returns your categories, expenses, and recurring expense templates as JSON. Together these
-  cover every personal data class Argali holds about you.
+- **Access / export your data:** each service exports the data it holds, as JSON:
+  - `GET /api/v1/me/data-export` — profile, income sources, savings accounts, consent records
+  - `GET /api/v1/expenses/export/me` — categories, expenses, recurring expense templates
+  - `GET /api/v1/reports/export/me` — saved reports and the expense/category read models
+  - `GET /api/v1/notifications/export/me` — your notification history
+
+  Together these cover every personal data class Argali holds about you **except Quest
+  Service's**, whose export endpoint is the last piece of M9 still outstanding. See
+  [`records-of-processing.md`](records-of-processing.md) for the per-database inventory.
 - **Erasure ("right to be forgotten"):** deleting your account (`DELETE /api/v1/me`, with
   explicit confirmation) permanently removes your data from every service that holds it. This
   is immediate and irreversible once confirmed — see
