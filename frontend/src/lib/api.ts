@@ -428,6 +428,26 @@ export async function downloadReportCsv(id: string, name: string) {
   URL.revokeObjectURL(url)
 }
 
+// ---- Dashboard widget arrangement (M10) ----
+
+/** Widget ids the server knows; a layout must place every one of them exactly once. */
+export type WidgetId = "balance" | "breakdown" | "savings" | "streak" | "quests"
+
+export type DashboardLayout = {
+  main: WidgetId[]
+  side: WidgetId[]
+  /** Null until the user has rearranged anything — the response is the default layout. */
+  updatedAt: string | null
+}
+
+export const getDashboardLayout = () => api<DashboardLayout>("/api/v1/me/dashboard-layout")
+
+export const saveDashboardLayout = (main: WidgetId[], side: WidgetId[]) =>
+  api<DashboardLayout>("/api/v1/me/dashboard-layout", {
+    method: "PUT",
+    body: JSON.stringify({ main, side }),
+  })
+
 // ---- Privacy / GDPR (M8) ----
 
 export async function deleteAccount(): Promise<void> {

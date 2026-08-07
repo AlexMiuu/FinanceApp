@@ -8,6 +8,7 @@ import {
 } from "react"
 import * as apiClient from "@/lib/api"
 import type { User } from "@/lib/api"
+import { clearArgaliStorage } from "@/lib/storage"
 
 type AuthState = {
   user: User | null
@@ -46,6 +47,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     await apiClient.logout()
+    // D9: sign-out has to leave the browser clean, or the next person to sign in
+    // on this machine inherits the previous user's cached state.
+    clearArgaliStorage()
     setUser(null)
   }, [])
 

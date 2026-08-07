@@ -4,7 +4,6 @@ import {
   markAllNotificationsRead,
   type AppNotification,
 } from "@/lib/api"
-import { connectNotifications } from "@/lib/ws"
 import { BellIcon } from "@/components/brand"
 import { Button } from "@/components/ui/button"
 import {
@@ -32,11 +31,24 @@ export function NotificationsBell() {
       })
       .catch(() => {})
 
-    // Live pushes prepend and bump the badge without any reload.
-    return connectNotifications((notification) => {
-      setItems((prev) => [notification, ...prev].slice(0, 50))
-      setUnread((prev) => prev + 1)
+    // Live pushes prepend and bump the badge without any reload. The STOMP client
+    // is pulled in dynamically so its ~40kB stays off the first paint — nothing is
+    // rendered from it, and a few hundred ms before the socket opens costs nothing.
+    let disconnect: (() => void) | null = null
+    let cancelled = false
+
+    import("@/lib/ws").then(({ connectNotifications }) => {
+      if (cancelled) return
+      disconnect = connectNotifications((notification) => {
+        setItems((prev) => [notification, ...prev].slice(0, 50))
+        setUnread((prev) => prev + 1)
+      })
     })
+
+    return () => {
+      cancelled = true
+      disconnect?.()
+    }
   }, [])
 
   async function readAll() {

@@ -67,8 +67,9 @@ public class AccountDeletionService {
                 new ErasureRequestEntity(userId, expectedServices, Set.of(OWN_SERVICE));
         erasureRequests.save(request);
 
-        // auth_identities, refresh_tokens, income_sources, savings_accounts and
-        // consent_records all cascade from users (id); erasure_requests does not.
+        // auth_identities, refresh_tokens, income_sources, savings_accounts,
+        // consent_records and dashboard_layouts all cascade from users (id);
+        // erasure_requests does not.
         users.delete(user);
 
         eventPublisher.publishEvent(

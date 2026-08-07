@@ -33,6 +33,7 @@ public class DataExportService {
     private final ConsentRecordRepository consentRecords;
     private final AuthIdentityRepository authIdentities;
     private final RefreshTokenRepository refreshTokens;
+    private final DashboardLayoutService dashboardLayouts;
     private final DataExportMapper dataExportMapper;
 
     @Transactional(readOnly = true)
@@ -43,6 +44,7 @@ public class DataExportService {
 
         return dataExportMapper.toDto(
                 user,
+                dashboardLayouts.layoutFor(userId),
                 incomeSources.findByUserIdOrderByCreatedAtAsc(userId),
                 savingsAccounts.findByUserIdOrderByNameAsc(userId),
                 consentRecords.findByUserIdOrderByGrantedAtAsc(userId),

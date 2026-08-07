@@ -21,6 +21,7 @@ or payment credentials.
 | `refresh_tokens` | Hashed rotating session tokens | Contract necessity — required to keep a session alive without re-entering credentials | Short-lived by design: 30-day TTL per token, but a token is revoked (not just expired) immediately on rotation, on logout, or on reuse-detection (reuse of an already-rotated token revokes every session for that user — see `AuthService.refresh`). Revoked/expired rows are not actively purged before account deletion | Cascades via FK from `users` on account deletion |
 | `income_sources` | User-entered income (amount, recurrence, dates) — feeds net worth and the salary calculator | Consent — an optional feature beyond the minimum account, entered at the user's discretion | Life of the account | Cascades via FK from `users` on account deletion |
 | `savings_accounts` | User-entered savings pot balances — figures the user typed in, never a real account balance | Consent — optional, user-entered | Life of the account | Cascades via FK from `users` on account deletion |
+| `dashboard_layouts` | The user's dashboard widget arrangement: which widgets sit in which column, and in what order, as a JSON document | Consent — a cosmetic preference, optional and entered at the user's discretion. Holds no financial figures, only widget ids | Life of the account | `GET /api/v1/me/data-export` returns it under `dashboardLayout`; cascades via FK from `users` on account deletion |
 | `consent_records` | Record of what the user consented to and when (e.g. privacy policy / ToS version acceptance) | Legitimate interest — Argali needs to demonstrate what lawful basis applied and when, per GDPR Art. 5(2) accountability | Life of the account | Cascades via FK from `users` on account deletion |
 | `erasure_requests` | Audit trail of erasure requests: which services acknowledged, when the request completed | Legal obligation / legitimate interest — evidence that an erasure request was honored | **90 days after `completed_at`.** Long enough to investigate a failed or partial erasure across services; short enough that the audit trail doesn't become a second copy of "who deleted their account and when" sitting around indefinitely. *(Proposed retention window — not yet enforced by a purge job; flagged for a follow-up milestone.)* | **Not** covered by the `users` FK cascade — deliberately has no FK to `users`, since it must survive the very deletion it's recording. It is not personal data *about the erased user* in the ordinary sense; it is a record that a request concerning that `user_id` occurred. Purged by age once a retention job exists |
 
@@ -45,6 +46,25 @@ is the one table of genuinely user-authored content in this database.
 | `expense_projection` | Event-fed read model mirroring Expense Service's expenses (amount, category, date, note) for dashboard/report queries | Contract necessity — the same basis as the source data in `expenses_db`; this is a performance-motivated local copy, not a separate collection purpose | Life of the account, kept in sync via `expense.*` events | `GET /api/v1/reports/export/me` for export; on `user.erasure.requested`, `PrivacyService` deletes all rows for the user before publishing `user.erasure.completed` with `service=report` |
 | `category_projection` | Event-fed shadow copy of Expense Service's categories, used to denormalize `category_path` onto `expense_projection` | Contract necessity — same basis as source data | Life of the account, kept in sync via `category.*` events | Same listener, same event |
 | `reports` | User-authored saved reports: name, filter definition (date range, category IDs), cached last-run result | Consent — an optional feature beyond the minimum account, created at the user's discretion | Life of the account | Same listener, same event |
+
+## Browser storage (Argali web client)
+
+Not a database, but it is still personal data held on the user's device, so it is
+inventoried on the same terms. Everything here is a **regenerable cache** — D9 requires
+that losing any of it costs a convenience, never user data — and every key is declared in
+one place, `frontend/src/lib/storage.ts`. That registry is what makes this table
+verifiable: no module calls `localStorage`/`sessionStorage` directly, so the list below
+is exhaustive by construction rather than by memory.
+
+| Key | What it is | Store | Cap & eviction | Cleared when |
+|---|---|---|---|---|
+| `argali:category-usage:<userId>` | Per-category use counts and the last category used, so the add-expense sheet can offer one-tap chips and preselect sensibly | `localStorage` | **40 categories max**; least-used evicted first, the last-used category always kept | Sign-out and account deletion |
+| `argali:splash-seen` | Flag that the boot animation already played this tab session | `sessionStorage` | Scalar flag; the browser drops it when the tab session ends | Sign-out, account deletion, and tab close |
+
+No access token, refresh token, email, or financial figure is written to browser storage:
+the access token is held in memory only and the refresh token is an `HttpOnly` cookie the
+page cannot read. `clearArgaliStorage()` runs on **both** sign-out and account deletion,
+and is prefix-scoped so it can never delete another application's keys on a shared origin.
 
 ---
 

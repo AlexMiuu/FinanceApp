@@ -24,6 +24,7 @@ public class DataExportDto {
     private Instant createdAt;
     private Instant exportedAt;
 
+    private DashboardLayoutDto dashboardLayout;
     private List<IncomeDto> incomeSources;
     private List<SavingsDto> savingsAccounts;
     private List<ConsentRecordDto> consentRecords;

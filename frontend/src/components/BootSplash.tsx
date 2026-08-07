@@ -4,7 +4,9 @@ import { ArgaliMark } from "@/components/brand"
 /**
  * The Ledger v6 boot screen: a ghosted horn sweeps in behind the mark, the
  * wordmark rises, and a progress bar fills before the whole overlay fades out.
- * Shown once per session while the shell settles.
+ *
+ * Gating to once per session is the caller's job — see HomePage, which records
+ * STORAGE_REGISTRY.splashSeen so a reload mid-session goes straight to the app.
  */
 export function BootSplash({ onDone }: { onDone: () => void }) {
   const [gone, setGone] = useState(false)

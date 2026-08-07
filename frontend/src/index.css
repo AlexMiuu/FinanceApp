@@ -187,6 +187,32 @@
     filter: invert(0.78) sepia(0.4) saturate(1.6) hue-rotate(340deg);
     cursor: pointer;
     }
+
+  /* Touch targets (docs/design.md follow-up). At phone/tablet widths every control
+     a finger can hit clears 44x44, enforced once here rather than re-specified on
+     each of the ~90 buttons in the app — a per-component rule is a rule that gets
+     forgotten by the next component. Desktop keeps its denser sizing.
+
+     `:where()` keeps this at zero specificity, so any component that genuinely
+     needs to opt out can do so with a plain utility class and win. */
+  @media (max-width: 768px) {
+    :where(button, [role="button"], summary, select,
+           input[type="button"], input[type="submit"], input[type="reset"]) {
+      min-height: 44px;
+      min-width: 44px;
+      }
+    /* Text inputs need the height but must stay free to be narrow. */
+    :where(input:not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="checkbox"]):not([type="radio"]), textarea) {
+      min-height: 44px;
+      }
+    /* Checkboxes and radios are small by nature; the padding around them is the
+       target, so they get reach without being visually inflated. */
+    :where(input[type="checkbox"], input[type="radio"]) {
+      min-height: 24px;
+      min-width: 24px;
+      outline-offset: 10px;
+      }
+    }
 }
 
 @layer utilities {
