@@ -199,17 +199,19 @@ Completes the `REFACTOR.md` program. **Precedes all feature work** — F2 lands 
 
 ---
 
-### M10 — Hardening & design follow-ups · **Size: M**
+### M10 — Hardening & design follow-ups · **Size: M** · **Complete**
 Descoped from the original `DESIGN.md` M7; load testing moves to M17 (§2).
 
 **Contents:** dashboard widget grid, user-arrangeable, **layout persisted server-side as JSON in User Service** per `DESIGN.md:438` (not localStorage, D9) · route/vendor code-splitting · security pass verifying NFR-4's "no financial data in URLs or logs" across all services · design follow-ups from `docs/design.md:181` — 44px touch targets, mobile search affordance, splash gated once per session · **D9 localStorage cleanup**
 
+Shipped in two slices: the frontend + user-service work landed in PR #9 (`feature/m10-hardening-partial`), which deliberately deferred the cross-service log audit until quest/notification-service were standardized under M9. That gap closed once PR #7/#8 merged; the audit ran against final M9 code and is recorded in `docs/nfr4-log-audit.md`.
+
 **Exit criteria**
-- Widget layout survives reload, is per-user, and appears in the M8 export inventory
-- Dashboard initial JS bundle measurably smaller than the pre-split baseline (record both numbers)
-- Log audit produces a written finding list; every instance fixed or explicitly accepted in writing
-- All interactive controls ≥ 44×44px at ≤ 768px; splash fires once per session
-- **D9 conformance:** every key namespaced under `argali:`, listed in one registry module, capped with eviction, cleared on sign-out
+- [x] Widget layout survives reload, is per-user, and appears in the M8 export inventory
+- [x] Dashboard initial JS bundle measurably smaller than the pre-split baseline (record both numbers) — 445.06 kB → 360.09 kB raw (−19.1%), 132.22 kB → 115.62 kB gzip (−12.6%); signed-out −27.5%/−21.2%
+- [x] Log audit produces a written finding list; every instance fixed or explicitly accepted in writing — `docs/nfr4-log-audit.md`, zero violations across all 5 services + gateway + frontend
+- [x] All interactive controls ≥ 44×44px at ≤ 768px; splash fires once per session
+- [x] **D9 conformance:** every key namespaced under `argali:`, listed in one registry module, capped with eviction, cleared on sign-out
 
 **Excluded:** PDF export, CSV work, k6/1k-concurrent load test.
 
