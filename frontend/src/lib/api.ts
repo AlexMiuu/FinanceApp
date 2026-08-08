@@ -199,6 +199,9 @@ export type Dashboard = {
   projectedMonthEnd: number | null
   byCategory: { category: string; amount: number }[]
   byDay: { date: string; amount: number }[]
+  /** F3 ghost flock — null until three trailing months carry data. */
+  ghostByDay: { date: string; amount: number }[] | null
+  ghostMonthTotal: number | null
 }
 
 export const getDashboard = (month?: string) =>

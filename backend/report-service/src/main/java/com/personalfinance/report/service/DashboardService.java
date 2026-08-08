@@ -5,6 +5,8 @@ import java.time.YearMonth;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -17,6 +19,7 @@ import com.personalfinance.report.dto.DashboardDto;
 import com.personalfinance.report.dto.DayPointDto;
 import com.personalfinance.report.entity.ExpenseProjectionEntity;
 import com.personalfinance.report.repository.ExpenseProjectionRepository;
+import com.personalfinance.report.service.GhostFlockCalculator.GhostSeries;
 
 @Service
 public class DashboardService {
@@ -29,6 +32,10 @@ public class DashboardService {
 
     @Transactional(readOnly = true)
     public DashboardDto build(UUID userId, YearMonth month, LocalDate today) {
+        Objects.requireNonNull(userId, "userId");
+        Objects.requireNonNull(month, "month");
+        Objects.requireNonNull(today, "today");
+
         List<ExpenseProjectionEntity> rows = projections.findByUserIdAndExpenseDateBetween(
                 userId, month.atDay(1), month.atEndOfMonth());
 
@@ -40,7 +47,7 @@ public class DashboardService {
         // Pie groups by top-level category so the slice count stays readable.
         List<CategorySliceDto> byCategory = rows.stream()
                 .collect(Collectors.groupingBy(
-                        row -> row.getCategoryPath().split(" > ")[0],
+                        row -> GhostFlockCalculator.topLevelCategory(row.getCategoryPath()),
                         Collectors.summingLong(ExpenseProjectionEntity::getAmount)))
                 .entrySet().stream()
                 .map(entry -> new CategorySliceDto(entry.getKey(), entry.getValue()))
@@ -64,7 +71,24 @@ public class DashboardService {
             projected = Math.round((double) total / today.getDayOfMonth() * month.lengthOfMonth());
         }
 
+        Optional<GhostSeries> ghost = ghostFor(userId, month, rows);
+
         return new DashboardDto(month.toString(), total, mandatory, rows.size(), previousTotal,
-                projected, byCategory, byDay);
+                projected, byCategory, byDay,
+                ghost.map(GhostSeries::byDay).orElse(null),
+                ghost.map(GhostSeries::monthTotal).orElse(null));
+    }
+
+    /**
+     * One extra indexed range read over the same projection the real figures come from —
+     * the whole cost of F3 (D3), with no second stored projection to fall out of step.
+     */
+    private Optional<GhostSeries> ghostFor(UUID userId, YearMonth month,
+            List<ExpenseProjectionEntity> monthRows) {
+        List<ExpenseProjectionEntity> trailingRows = projections.findByUserIdAndExpenseDateBetween(
+                userId,
+                month.minusMonths(GhostFlockCalculator.TRAILING_MONTHS).atDay(1),
+                month.minusMonths(1).atEndOfMonth());
+        return GhostFlockCalculator.compute(month, trailingRows, monthRows);
     }
 }
