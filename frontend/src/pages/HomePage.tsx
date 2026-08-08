@@ -1,6 +1,6 @@
 import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react"
 import { useAuth } from "@/auth/AuthContext"
-import { getCategories, type Category } from "@/lib/api"
+import { getCategories, getWeather, type Category } from "@/lib/api"
 import { Sidebar, MobileNav, type PageKey } from "@/components/Sidebar"
 import { AddSheet } from "@/components/AddSheet"
 import { BootSplash } from "@/components/BootSplash"
@@ -57,6 +57,34 @@ export default function HomePage() {
   useEffect(() => {
     reloadCategories()
   }, [reloadCategories])
+
+  // Ambient F4 surface: a root-level class, never a prop drilled through the
+  // tree. Defaults to clear (never gates functionality) until the catch-up
+  // read resolves or a live transition arrives. The STOMP client is a
+  // dynamic import, matching NotificationsBell's pattern (M10 code-split) —
+  // a static import here would pull it back into the main chunk.
+  useEffect(() => {
+    const BAND_CLASSES = ["weather-clear", "weather-gathering", "weather-storm"]
+    const applyBand = (band: string) => {
+      document.documentElement.classList.remove(...BAND_CLASSES)
+      document.documentElement.classList.add(`weather-${band}`)
+    }
+    applyBand("clear")
+    getWeather().then((w) => applyBand(w.band)).catch(() => applyBand("clear"))
+
+    let disconnect: (() => void) | null = null
+    let cancelled = false
+    import("@/lib/ws").then(({ connectWeather }) => {
+      if (cancelled) return
+      disconnect = connectWeather(applyBand)
+    })
+
+    return () => {
+      cancelled = true
+      disconnect?.()
+      document.documentElement.classList.remove(...BAND_CLASSES)
+    }
+  }, [])
 
   // ⌘K / Ctrl-K focuses the header search.
   useEffect(() => {

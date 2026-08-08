@@ -91,6 +91,16 @@ public class NotificationService {
         };
     }
 
+    /**
+     * Ambient state, not a user-facing notification — nothing to page through, so
+     * unlike {@link #recordQuestNotification}, no {@link NotificationEntity} row is
+     * persisted. Broadcast-only.
+     */
+    public void broadcastWeather(UUID userId, String band) {
+        requireUserId(userId);
+        messaging.convertAndSendToUser(userId.toString(), "/queue/weather", Map.of("band", band));
+    }
+
     private static void requireUserId(UUID userId) {
         if (userId == null) {
             throw new IllegalArgumentException("userId is required");

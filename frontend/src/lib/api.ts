@@ -204,6 +204,12 @@ export type Dashboard = {
 export const getDashboard = (month?: string) =>
   api<Dashboard>(`/api/v1/dashboard${month ? `?month=${month}` : ""}`)
 
+// ---- Ambient weather (M13) ----
+
+export type Weather = { band: "clear" | "gathering" | "storm" }
+
+export const getWeather = () => api<Weather>("/api/v1/weather")
+
 export type ReportFilters = {
   from: string | null
   to: string | null

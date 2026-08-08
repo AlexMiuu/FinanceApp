@@ -11,7 +11,7 @@ public final class Events {
     private Events() {
     }
 
-    public sealed interface DomainEvent permits ErasureCompleted {
+    public sealed interface DomainEvent permits ErasureCompleted, WeatherUpdated {
         String routingKey();
     }
 
@@ -21,6 +21,15 @@ public final class Events {
         @Override
         public String routingKey() {
             return "user.erasure.completed";
+        }
+    }
+
+    /** F4: a committed band transition, published once a candidate has dwelt out its window. */
+    public record WeatherUpdated(UUID userId, String band, Instant occurredAt) implements DomainEvent {
+
+        @Override
+        public String routingKey() {
+            return "ambient.weather.updated";
         }
     }
 

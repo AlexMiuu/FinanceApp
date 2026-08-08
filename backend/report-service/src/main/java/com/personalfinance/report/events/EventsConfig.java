@@ -19,6 +19,7 @@ public class EventsConfig {
     public static final String EXCHANGE = "pf.events";
     public static final String EXPENSE_QUEUE = "report-service.expense-events";
     public static final String CATEGORY_QUEUE = "report-service.category-events";
+    public static final String INCOME_QUEUE = "report-service.income-events";
     public static final String ERASURE_REQUESTED_QUEUE = "report-service.user-erasure-requested";
 
     @Bean
@@ -44,6 +45,16 @@ public class EventsConfig {
     @Bean
     Binding categoryBinding(Queue categoryQueue, TopicExchange eventsExchange) {
         return BindingBuilder.bind(categoryQueue).to(eventsExchange).with("category.*");
+    }
+
+    @Bean
+    Queue incomeQueue() {
+        return new Queue(INCOME_QUEUE, true);
+    }
+
+    @Bean
+    Binding incomeBinding(Queue incomeQueue, TopicExchange eventsExchange) {
+        return BindingBuilder.bind(incomeQueue).to(eventsExchange).with("income.updated");
     }
 
     @Bean
