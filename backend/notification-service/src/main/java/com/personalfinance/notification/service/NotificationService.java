@@ -19,6 +19,7 @@ import com.personalfinance.notification.repository.NotificationRepository;
 public class NotificationService {
 
     private static final String DEFAULT_QUEST_BODY = "A quest was updated.";
+    private static final String DEFAULT_OATH_BODY = "An oath was settled.";
 
     private final NotificationRepository notifications;
     private final NotificationMapper mapper;
@@ -80,6 +81,36 @@ public class NotificationService {
         NotificationDto dto = mapper.toDto(saved);
         messaging.convertAndSendToUser(userId.toString(), "/queue/notifications", dto);
         return dto;
+    }
+
+    /** Same defaulting contract as {@link #recordQuestNotification}, for the same reason. */
+    @Transactional
+    public NotificationDto recordOathNotification(UUID userId, String routingKey, String oathTitle, UUID oathId) {
+        requireUserId(userId);
+        String type = routingKey == null ? "oath.updated" : routingKey;
+        String body = oathTitle == null || oathTitle.isBlank() ? DEFAULT_OATH_BODY : oathTitle;
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        if (oathId != null) {
+            data.put("oathId", oathId.toString());
+        }
+
+        NotificationEntity saved = notifications.save(
+                new NotificationEntity(userId, type, oathNotificationTitle(type), body, data));
+
+        NotificationDto dto = mapper.toDto(saved);
+        messaging.convertAndSendToUser(userId.toString(), "/queue/notifications", dto);
+        return dto;
+    }
+
+    /** FORGONE is an achievement, not a failure: the user chose not to spend. */
+    private static String oathNotificationTitle(String routingKey) {
+        return switch (routingKey) {
+            case "oath.kept" -> "Oath kept";
+            case "oath.slipped" -> "Oath slipped";
+            case "oath.forgone" -> "Oath forgone, you held off";
+            default -> "Oath update";
+        };
     }
 
     private static String questNotificationTitle(String routingKey) {

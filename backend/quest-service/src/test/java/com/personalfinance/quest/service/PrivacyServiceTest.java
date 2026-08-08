@@ -11,6 +11,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,13 +31,16 @@ import com.personalfinance.quest.entity.GoalEvaluationEntity;
 import com.personalfinance.quest.entity.QuestEntity;
 import com.personalfinance.quest.entity.UserIncomeEntity;
 import com.personalfinance.quest.events.Events;
+import com.personalfinance.quest.entity.OathEntity;
 import com.personalfinance.quest.mapper.GoalMapper;
+import com.personalfinance.quest.mapper.OathMapper;
 import com.personalfinance.quest.mapper.ProjectionExportMapper;
 import com.personalfinance.quest.mapper.QuestMapper;
 import com.personalfinance.quest.repository.CategoryProjectionRepository;
 import com.personalfinance.quest.repository.ExpenseProjectionRepository;
 import com.personalfinance.quest.repository.GoalEvaluationRepository;
 import com.personalfinance.quest.repository.GoalRepository;
+import com.personalfinance.quest.repository.OathRepository;
 import com.personalfinance.quest.repository.QuestRepository;
 import com.personalfinance.quest.repository.UserIncomeRepository;
 
@@ -47,6 +51,7 @@ class PrivacyServiceTest {
     private GoalRepository goals;
     private GoalEvaluationRepository goalEvaluations;
     private QuestRepository quests;
+    private OathRepository oaths;
     private UserIncomeRepository incomes;
     private ExpenseProjectionRepository expenseProjections;
     private CategoryProjectionRepository categoryProjections;
@@ -58,17 +63,19 @@ class PrivacyServiceTest {
         goals = mock(GoalRepository.class);
         goalEvaluations = mock(GoalEvaluationRepository.class);
         quests = mock(QuestRepository.class);
+        oaths = mock(OathRepository.class);
         incomes = mock(UserIncomeRepository.class);
         expenseProjections = mock(ExpenseProjectionRepository.class);
         categoryProjections = mock(CategoryProjectionRepository.class);
         published = new ArrayList<>();
 
-        service = new PrivacyService(goals, goalEvaluations, quests, incomes, expenseProjections,
-                categoryProjections, new GoalMapper(), new QuestMapper(), new ProjectionExportMapper(),
-                published::add);
+        service = new PrivacyService(goals, goalEvaluations, quests, oaths, incomes, expenseProjections,
+                categoryProjections, new GoalMapper(), new QuestMapper(), new OathMapper(),
+                new ProjectionExportMapper(), published::add);
 
         when(goals.findByUserIdOrderByCreatedAtAsc(userId)).thenReturn(List.of());
         when(quests.findByUserIdOrderByCreatedAtDesc(userId)).thenReturn(List.of());
+        when(oaths.findByUserIdOrderByCreatedAtAsc(userId)).thenReturn(List.of());
         when(incomes.findById(userId)).thenReturn(Optional.empty());
         when(expenseProjections.findByUserIdOrderByExpenseDateDesc(userId)).thenReturn(List.of());
         when(categoryProjections.findByUserIdOrderByNameAsc(userId)).thenReturn(List.of());
@@ -92,6 +99,7 @@ class PrivacyServiceTest {
         verify(goalEvaluations).deleteByGoalIdIn(List.of(goal.getId()));
         verify(goals).deleteByUserId(userId);
         verify(quests).deleteByUserId(userId);
+        verify(oaths).deleteByUserId(userId);
         verify(incomes).deleteByUserId(userId);
         verify(expenseProjections).deleteByUserId(userId);
         verify(categoryProjections).deleteByUserId(userId);
@@ -181,6 +189,9 @@ class PrivacyServiceTest {
         when(goalEvaluations.findByGoalIdInOrderByPeriodStartAsc(List.of(goal.getId())))
                 .thenReturn(List.of(evaluation));
         when(quests.findByUserIdOrderByCreatedAtDesc(userId)).thenReturn(List.of(quest));
+        when(oaths.findByUserIdOrderByCreatedAtAsc(userId)).thenReturn(List.of(
+                new OathEntity(userId, category.getCategoryId(), "Housing", 4500,
+                        Instant.parse("2026-07-01T10:00:00Z"), Instant.parse("2026-07-01T18:00:00Z"))));
         when(incomes.findById(userId)).thenReturn(Optional.of(new UserIncomeEntity(userId, 600000)));
         when(categoryProjections.findByUserIdOrderByNameAsc(userId)).thenReturn(List.of(category));
         when(expenseProjections.findByUserIdOrderByExpenseDateDesc(userId)).thenReturn(List.of(expense));
@@ -193,6 +204,8 @@ class PrivacyServiceTest {
                 .satisfies(dto -> assertThat(dto.actualAmount()).isEqualTo(12345));
         assertThat(export.quests()).singleElement()
                 .satisfies(dto -> assertThat(dto.templateCode()).isEqualTo("WEEKLY_CAP"));
+        assertThat(export.oaths()).singleElement()
+                .satisfies(dto -> assertThat(dto.pledgedAmount()).isEqualTo(4500));
         assertThat(export.categoryProjections()).singleElement()
                 .satisfies(dto -> assertThat(dto.categoryId()).isEqualTo(category.getCategoryId()));
         assertThat(export.expenseProjections()).singleElement()
@@ -208,6 +221,7 @@ class PrivacyServiceTest {
         assertThat(export.goals()).isEmpty();
         assertThat(export.goalEvaluations()).isEmpty();
         assertThat(export.quests()).isEmpty();
+        assertThat(export.oaths()).isEmpty();
         assertThat(export.categoryProjections()).isEmpty();
         assertThat(export.expenseProjections()).isEmpty();
         assertThat(export.monthlyIncome()).isNull();

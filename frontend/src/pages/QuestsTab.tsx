@@ -1,21 +1,26 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react"
 import {
   acceptQuest,
+  cancelOath,
   createGoal,
   declineQuest,
   deleteGoal,
   formatRon,
   getCalendar,
   listGoals,
+  listOaths,
   listQuests,
   type Category,
   type Goal,
   type GoalCalendar,
+  type Oath,
+  type OathStatus,
   type PeriodSummary,
   type Quest,
 } from "@/lib/api"
 import { useToast } from "@/components/Toast"
 import { CategorySelect } from "@/components/CategorySelect"
+import { PledgeSheet } from "@/components/PledgeSheet"
 import { CloseIcon, HornGlyph } from "@/components/brand"
 import { RabojStreak, Stamp } from "@/components/raboj"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -38,6 +43,15 @@ const thisMonth = () => new Date().toISOString().slice(0, 7)
 function daysLeftLabel(periodEnd: string): string {
   const diff = Math.ceil((new Date(periodEnd + "T23:59:59").getTime() - Date.now()) / 86400000)
   return diff <= 0 ? "ends today" : diff === 1 ? "1 day left" : `${diff} days left`
+}
+
+// KEPT and FORGONE are deliberately different tones — they are different acts
+// (a match within tolerance vs. a window closing with no match at all).
+const OATH_STAMP_TONE: Record<OathStatus, "brass" | "good" | "over" | "muted"> = {
+  OPEN: "brass",
+  KEPT: "good",
+  SLIPPED: "over",
+  FORGONE: "muted",
 }
 
 function QuestRow({ quest }: { quest: Quest }) {
@@ -73,18 +87,21 @@ export default function QuestsTab({ categories }: { categories: Category[] }) {
   const toast = useToast()
   const [quests, setQuests] = useState<Quest[]>([])
   const [goals, setGoals] = useState<Goal[]>([])
+  const [oaths, setOaths] = useState<Oath[]>([])
   const [calendar, setCalendar] = useState<GoalCalendar | null>(null)
   const [month, setMonth] = useState(thisMonth())
   const [error, setError] = useState<string | null>(null)
   const [period, setPeriod] = useState<Goal["period"]>("MONTHLY")
   const [goalCategory, setGoalCategory] = useState<string>()
+  const [pledgeOpen, setPledgeOpen] = useState(false)
 
   const reload = useCallback(() => {
-    Promise.all([listQuests(), listGoals(), getCalendar(month)])
-      .then(([q, g, c]) => {
+    Promise.all([listQuests(), listGoals(), getCalendar(month), listOaths()])
+      .then(([q, g, c, o]) => {
         setQuests(q)
         setGoals(g)
         setCalendar(c)
+        setOaths(o)
         setError(null)
       })
       .catch((e) => setError(e instanceof Error ? e.message : "Failed to load"))
@@ -331,6 +348,62 @@ export default function QuestsTab({ categories }: { categories: Category[] }) {
             )}
           </section>
 
+          {/* Oaths */}
+          <section className={card}>
+            <div className="mb-5 flex flex-wrap items-start justify-between gap-3.5">
+              <div>
+                <h2 className="text-[18px] font-semibold">Oaths</h2>
+                <p className="text-muted-foreground mt-1.5 text-[13.5px]">
+                  Pledges sworn before you spend, not records after
+                </p>
+              </div>
+              <button
+                onClick={() => setPledgeOpen(true)}
+                className="bg-primary text-primary-foreground cursor-pointer rounded-xl border-none px-4 py-2.5 text-[13.5px] font-semibold hover:bg-[#D8B27A]"
+              >
+                Take an oath
+              </button>
+            </div>
+            {oaths.length === 0 ? (
+              <p className="text-muted-foreground text-sm">
+                No oaths sworn yet — pledge a category limit for the week or month.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {oaths.map((oath) => (
+                  <li
+                    key={oath.id}
+                    className="flex items-center justify-between gap-2.5 rounded-xl border border-white/[0.07] bg-[#241C17] px-4 py-3"
+                  >
+                    <span className="flex min-w-0 items-center gap-2.5">
+                      <span className="truncate text-[13.5px] font-medium">{oath.categoryName}</span>
+                      <Stamp tone={OATH_STAMP_TONE[oath.status]}>{oath.status.toLowerCase()}</Stamp>
+                      {oath.status === "OPEN" && (
+                        <span className="text-muted-foreground font-mono text-[11.5px]">
+                          until {oath.expiresAt.slice(0, 10)}
+                        </span>
+                      )}
+                    </span>
+                    <span className="flex flex-none items-center gap-2">
+                      <span className="tnum text-muted-foreground font-mono text-xs">
+                        {formatRon(oath.pledgedAmount)}
+                      </span>
+                      {oath.status === "OPEN" && (
+                        <button
+                          onClick={() => act(cancelOath, oath.id, "Oath cancelled")}
+                          aria-label="Cancel oath"
+                          className="text-muted-foreground hover:text-foreground grid size-9 flex-none cursor-pointer place-items-center rounded-lg hover:bg-white/[0.06]"
+                        >
+                          <CloseIcon size={15} />
+                        </button>
+                      )}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
           {/* Your goals */}
           <section className={card}>
             <h2 className="text-[18px] font-semibold">Your goals</h2>
@@ -392,6 +465,13 @@ export default function QuestsTab({ categories }: { categories: Category[] }) {
           </section>
         </div>
       </div>
+
+      <PledgeSheet
+        open={pledgeOpen}
+        onClose={() => setPledgeOpen(false)}
+        categories={categories}
+        onSaved={reload}
+      />
     </div>
   )
 }

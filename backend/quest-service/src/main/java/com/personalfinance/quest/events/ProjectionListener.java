@@ -18,6 +18,7 @@ import com.personalfinance.quest.entity.UserIncomeEntity;
 import com.personalfinance.quest.repository.CategoryProjectionRepository;
 import com.personalfinance.quest.repository.ExpenseProjectionRepository;
 import com.personalfinance.quest.repository.UserIncomeRepository;
+import com.personalfinance.quest.service.OathService;
 import com.personalfinance.quest.service.QuestService;
 
 /**
@@ -46,13 +47,15 @@ public class ProjectionListener {
     private final CategoryProjectionRepository categories;
     private final UserIncomeRepository incomes;
     private final QuestService questService;
+    private final OathService oathService;
 
     public ProjectionListener(ExpenseProjectionRepository expenses, CategoryProjectionRepository categories,
-            UserIncomeRepository incomes, QuestService questService) {
+            UserIncomeRepository incomes, QuestService questService, OathService oathService) {
         this.expenses = expenses;
         this.categories = categories;
         this.incomes = incomes;
         this.questService = questService;
+        this.oathService = oathService;
     }
 
     @Transactional
@@ -68,6 +71,12 @@ public class ProjectionListener {
         }
         // Every spend can complete or fail an active quest right away (FR-11).
         questService.refreshActiveQuests(event.userId(), LocalDate.now());
+        // Only a new spend can settle an oath: an edit or delete must not
+        // retroactively close a pledge the user never fulfilled.
+        if ("expense.created".equals(routingKey)) {
+            oathService.reconcile(event.userId(), event.expenseId(), event.categoryId(),
+                    event.amount() == null ? 0L : event.amount(), event.expenseDate(), Instant.now());
+        }
         log.debug("Projected {} for user {}", routingKey, event.userId());
     }
 

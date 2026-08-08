@@ -31,4 +31,8 @@ public final class Events {
     /** Loose mirror of quest-service's quest.* payload; unknown JSON fields are ignored. */
     public record QuestEvent(UUID questId, UUID userId, String title, String status, Instant occurredAt) {
     }
+
+    /** Loose mirror of quest-service's oath.* payload; unknown JSON fields are ignored. */
+    public record OathEvent(UUID oathId, UUID userId, String title, String status, Instant occurredAt) {
+    }
 }

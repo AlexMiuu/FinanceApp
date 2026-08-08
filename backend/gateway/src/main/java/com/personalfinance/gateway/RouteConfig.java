@@ -38,7 +38,8 @@ public class RouteConfig {
                         .path("/api/v1/reports/**", "/api/v1/dashboard/**")
                         .uri(reportUrl))
                 .route("quest-service", r -> r
-                        .path("/api/v1/quests/**", "/api/v1/goals/**", "/api/v1/calendar/**")
+                        .path("/api/v1/quests/**", "/api/v1/goals/**", "/api/v1/calendar/**",
+                                "/api/v1/oaths/**")
                         .uri(questUrl))
                 .route("notification-service", r -> r
                         .path("/api/v1/notifications/**", "/ws/**")

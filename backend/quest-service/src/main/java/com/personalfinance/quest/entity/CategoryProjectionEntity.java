@@ -42,6 +42,10 @@ public class CategoryProjectionEntity {
         return categoryId;
     }
 
+    public UUID getUserId() {
+        return userId;
+    }
+
     public String getName() {
         return name;
     }
