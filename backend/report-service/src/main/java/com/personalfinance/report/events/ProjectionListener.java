@@ -14,8 +14,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.personalfinance.report.entity.CategoryProjectionEntity;
 import com.personalfinance.report.entity.ExpenseProjectionEntity;
+import com.personalfinance.report.entity.UserIncomeEntity;
 import com.personalfinance.report.repository.CategoryProjectionRepository;
 import com.personalfinance.report.repository.ExpenseProjectionRepository;
+import com.personalfinance.report.repository.UserIncomeRepository;
 
 /**
  * Maintains the local read models from expense-service events. Handlers are
@@ -36,12 +38,24 @@ public class ProjectionListener {
             Boolean mandatory, Instant occurredAt) {
     }
 
+    public record IncomeEvent(UUID userId, Long monthlyIncome, Instant occurredAt) {
+    }
+
     private final ExpenseProjectionRepository expenses;
     private final CategoryProjectionRepository categories;
+    private final UserIncomeRepository incomes;
 
-    public ProjectionListener(ExpenseProjectionRepository expenses, CategoryProjectionRepository categories) {
+    public ProjectionListener(ExpenseProjectionRepository expenses, CategoryProjectionRepository categories,
+            UserIncomeRepository incomes) {
         this.expenses = expenses;
         this.categories = categories;
+        this.incomes = incomes;
+    }
+
+    @Transactional
+    @RabbitListener(queues = EventsConfig.INCOME_QUEUE)
+    public void onIncomeEvent(IncomeEvent event) {
+        incomes.save(new UserIncomeEntity(event.userId(), event.monthlyIncome() == null ? 0 : event.monthlyIncome()));
     }
 
     @Transactional

@@ -17,12 +17,19 @@ import com.personalfinance.report.dto.ReportDataExportDto;
 import com.personalfinance.report.entity.CategoryProjectionEntity;
 import com.personalfinance.report.entity.ExpenseProjectionEntity;
 import com.personalfinance.report.entity.ReportEntity;
+import com.personalfinance.report.entity.UserIncomeEntity;
+import com.personalfinance.report.entity.WeatherBand;
+import com.personalfinance.report.entity.WeatherStateEntity;
 import com.personalfinance.report.events.Events;
 import com.personalfinance.report.mapper.ProjectionExportMapper;
 import com.personalfinance.report.mapper.ReportMapper;
+import com.personalfinance.report.mapper.UserIncomeMapper;
+import com.personalfinance.report.mapper.WeatherMapper;
 import com.personalfinance.report.repository.CategoryProjectionRepository;
 import com.personalfinance.report.repository.ExpenseProjectionRepository;
 import com.personalfinance.report.repository.ReportRepository;
+import com.personalfinance.report.repository.UserIncomeRepository;
+import com.personalfinance.report.repository.WeatherStateRepository;
 
 class PrivacyServiceTest {
 
@@ -31,6 +38,8 @@ class PrivacyServiceTest {
     private ExpenseProjectionRepository expenseProjections;
     private CategoryProjectionRepository categoryProjections;
     private ReportRepository reports;
+    private UserIncomeRepository incomes;
+    private WeatherStateRepository weatherStates;
     private List<Object> published;
     private PrivacyService service;
 
@@ -39,14 +48,17 @@ class PrivacyServiceTest {
         expenseProjections = mock(ExpenseProjectionRepository.class);
         categoryProjections = mock(CategoryProjectionRepository.class);
         reports = mock(ReportRepository.class);
+        incomes = mock(UserIncomeRepository.class);
+        weatherStates = mock(WeatherStateRepository.class);
         published = new ArrayList<>();
 
-        service = new PrivacyService(expenseProjections, categoryProjections, reports,
-                new ProjectionExportMapper(), new ReportMapper(), published::add);
+        service = new PrivacyService(expenseProjections, categoryProjections, reports, incomes, weatherStates,
+                new ProjectionExportMapper(), new ReportMapper(), new UserIncomeMapper(), new WeatherMapper(),
+                published::add);
     }
 
     @Test
-    void eraseUserDataDeletesFromAllThreeTablesAndPublishesCompletion() {
+    void eraseUserDataDeletesFromAllFiveTablesAndPublishesCompletion() {
         UUID erasureRequestId = UUID.randomUUID();
 
         service.eraseUserData(erasureRequestId, userId);
@@ -54,6 +66,8 @@ class PrivacyServiceTest {
         verify(expenseProjections).deleteByUserId(userId);
         verify(categoryProjections).deleteByUserId(userId);
         verify(reports).deleteByUserId(userId);
+        verify(incomes).deleteByUserId(userId);
+        verify(weatherStates).deleteByUserId(userId);
 
         assertThat(published).singleElement().isInstanceOfSatisfying(Events.ErasureCompleted.class, event -> {
             assertThat(event.erasureRequestId()).isEqualTo(erasureRequestId);
@@ -61,6 +75,30 @@ class PrivacyServiceTest {
             assertThat(event.service()).isEqualTo("report");
             assertThat(event.routingKey()).isEqualTo("user.erasure.completed");
         });
+    }
+
+    @Test
+    void exportUserDataIncludesIncomeAndWeatherWhenPresent() {
+        when(incomes.findById(userId)).thenReturn(java.util.Optional.of(new UserIncomeEntity(userId, 500000)));
+        WeatherStateEntity weather = new WeatherStateEntity(userId);
+        weather.commit(WeatherBand.GATHERING, java.time.Instant.parse("2026-08-01T00:00:00Z"));
+        when(weatherStates.findById(userId)).thenReturn(java.util.Optional.of(weather));
+
+        ReportDataExportDto export = service.exportUserData(userId);
+
+        assertThat(export.userIncome().monthlyIncome()).isEqualTo(500000);
+        assertThat(export.weatherState().currentBand()).isEqualTo("gathering");
+    }
+
+    @Test
+    void exportUserDataNullsIncomeAndWeatherWhenAbsent() {
+        when(incomes.findById(userId)).thenReturn(java.util.Optional.empty());
+        when(weatherStates.findById(userId)).thenReturn(java.util.Optional.empty());
+
+        ReportDataExportDto export = service.exportUserData(userId);
+
+        assertThat(export.userIncome()).isNull();
+        assertThat(export.weatherState()).isNull();
     }
 
     @Test

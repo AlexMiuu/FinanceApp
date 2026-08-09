@@ -278,4 +278,22 @@ class NotificationServiceTest {
 
         verifyNoInteractions(messaging);
     }
+
+    @Test
+    void broadcastWeatherPushesTheBandWithoutPersistingANotificationRow() {
+        service.broadcastWeather(userId, "storm");
+
+        verify(messaging).convertAndSendToUser(eq(userId.toString()), eq("/queue/weather"),
+                eq(Map.of("band", "storm")));
+        verifyNoInteractions(notifications);
+    }
+
+    @Test
+    void broadcastWeatherRejectsANullUserId() {
+        assertThatThrownBy(() -> service.broadcastWeather(null, "clear"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("userId is required");
+
+        verifyNoInteractions(messaging);
+    }
 }

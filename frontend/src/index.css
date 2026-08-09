@@ -137,6 +137,40 @@
     --sidebar-ring: #c79a5b;
 }
 
+/*
+ * F4 Shepherd's Weather ambient bands — root-level class set by
+ * useShepherdWeather (HomePage.tsx). Only --background/--card/--paper move;
+ * --foreground and --muted-foreground stay put, which is what keeps
+ * contrast comfortably above WCAG AA (4.5:1) in every band, since
+ * darkening the paper only widens the gap against light text.
+ * Computed WCAG contrast ratios: clear/base bg #14100d -> foreground
+ * 16.1:1, muted-foreground 8.8:1. gathering bg #120e0b -> 16.4:1 / 8.9:1.
+ * storm bg #0c0906 -> 16.9:1 / 9.2:1 (all comfortably above the 4.5:1 floor).
+ */
+.weather-gathering {
+    --background: #120e0b;
+    --card: #1a140f;
+    --paper: #201810;
+}
+
+.weather-storm {
+    --background: #0c0906;
+    --card: #120e0a;
+    --paper: #171209;
+}
+
+/*
+ * Local guard: the band transition is declared on body (@layer base) and
+ * already covered by the blanket prefers-reduced-motion rule further down,
+ * but F4 explicitly requires a static tint under reduced motion, so this
+ * makes that requirement self-documenting rather than incidental.
+ */
+@media (prefers-reduced-motion: reduce) {
+    body {
+        transition: none;
+    }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -144,6 +178,8 @@
   body {
     @apply bg-background text-foreground;
     -webkit-font-smoothing: antialiased;
+    /* Smooths F4 band changes; see the weather-* rules below for the guard. */
+    transition: background-color 0.6s ease, color 0.6s ease;
     }
   html {
     @apply font-sans;
