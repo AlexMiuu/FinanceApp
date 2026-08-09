@@ -2,6 +2,7 @@ package com.personalfinance.report.service;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -18,16 +19,30 @@ import com.personalfinance.report.dto.CategorySliceDto;
 import com.personalfinance.report.dto.DashboardDto;
 import com.personalfinance.report.dto.DayPointDto;
 import com.personalfinance.report.entity.ExpenseProjectionEntity;
+import com.personalfinance.report.macro.entity.MacroSeasonStateEntity;
+import com.personalfinance.report.macro.entity.PastoralSeason;
+import com.personalfinance.report.macro.repository.MacroSeasonStateRepository;
 import com.personalfinance.report.repository.ExpenseProjectionRepository;
 import com.personalfinance.report.service.GhostFlockCalculator.GhostSeries;
 
 @Service
 public class DashboardService {
 
-    private final ExpenseProjectionRepository projections;
+    private static final String MACRO_SEASON_SOURCE = "internal-calendar";
 
-    public DashboardService(ExpenseProjectionRepository projections) {
+    /**
+     * Shorter than the shortest pastoral window (coborâtul, ~42 days) so a stalled
+     * season-ingestion job is flagged before it could miss an entire transition.
+     */
+    private static final int MACRO_SEASON_STALENESS_BUDGET_DAYS = 35;
+
+    private final ExpenseProjectionRepository projections;
+    private final MacroSeasonStateRepository macroSeasonStates;
+
+    public DashboardService(ExpenseProjectionRepository projections,
+            MacroSeasonStateRepository macroSeasonStates) {
         this.projections = projections;
+        this.macroSeasonStates = macroSeasonStates;
     }
 
     @Transactional(readOnly = true)
@@ -67,16 +82,37 @@ public class DashboardService {
 
         // FR-6 projection: simple linear extrapolation of the running month.
         Long projected = null;
+        Long projectedSeasonal = null;
         if (YearMonth.from(today).equals(month) && today.getDayOfMonth() > 0) {
             projected = Math.round((double) total / today.getDayOfMonth() * month.lengthOfMonth());
+            // The season the projected month-end falls in, not today's — a month can straddle two.
+            PastoralSeason projectedMonthEndSeason = PastoralSeason.forDate(month.atEndOfMonth());
+            projectedSeasonal = Math.round(projected * projectedMonthEndSeason.costFactor().doubleValue());
         }
 
         Optional<GhostSeries> ghost = ghostFor(userId, month, rows);
+        MacroProvenance provenance = macroProvenance(today);
 
         return new DashboardDto(month.toString(), total, mandatory, rows.size(), previousTotal,
-                projected, byCategory, byDay,
+                projected, projectedSeasonal, byCategory, byDay,
                 ghost.map(GhostSeries::byDay).orElse(null),
-                ghost.map(GhostSeries::monthTotal).orElse(null));
+                ghost.map(GhostSeries::monthTotal).orElse(null),
+                provenance.season(), provenance.source(), provenance.asOfDate(), provenance.stale());
+    }
+
+    private MacroProvenance macroProvenance(LocalDate today) {
+        return macroSeasonStates.findById(MacroSeasonStateEntity.SINGLETON_ID)
+                .map(state -> new MacroProvenance(state.getSeason(), MACRO_SEASON_SOURCE,
+                        state.getAsOfDate(), isMacroSeasonStale(state.getAsOfDate(), today)))
+                .orElse(MacroProvenance.EMPTY);
+    }
+
+    private boolean isMacroSeasonStale(LocalDate asOfDate, LocalDate today) {
+        return ChronoUnit.DAYS.between(asOfDate, today) > MACRO_SEASON_STALENESS_BUDGET_DAYS;
+    }
+
+    private record MacroProvenance(String season, String source, LocalDate asOfDate, boolean stale) {
+        static final MacroProvenance EMPTY = new MacroProvenance(null, null, null, false);
     }
 
     /**

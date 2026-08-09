@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
@@ -16,13 +17,17 @@ import org.junit.jupiter.api.Test;
 import com.personalfinance.report.dto.CategorySliceDto;
 import com.personalfinance.report.dto.DashboardDto;
 import com.personalfinance.report.entity.ExpenseProjectionEntity;
+import com.personalfinance.report.macro.entity.MacroSeasonStateEntity;
+import com.personalfinance.report.macro.entity.PastoralSeason;
+import com.personalfinance.report.macro.repository.MacroSeasonStateRepository;
 import com.personalfinance.report.repository.ExpenseProjectionRepository;
 
 class DashboardServiceTest {
 
     private final UUID userId = UUID.randomUUID();
     private final ExpenseProjectionRepository repo = mock(ExpenseProjectionRepository.class);
-    private final DashboardService service = new DashboardService(repo);
+    private final MacroSeasonStateRepository macroSeasonStates = mock(MacroSeasonStateRepository.class);
+    private final DashboardService service = new DashboardService(repo, macroSeasonStates);
 
     private ExpenseProjectionEntity row(String path, boolean mandatory, long amount, LocalDate date) {
         return new ExpenseProjectionEntity(UUID.randomUUID(), userId, UUID.randomUUID(), path,
@@ -61,6 +66,9 @@ class DashboardServiceTest {
                 new CategorySliceDto("Housing", 200000));
         // linear projection: 207550 / 15 * 31
         assertThat(dashboard.projectedMonthEnd()).isEqualTo(Math.round(207550.0 / 15 * 31));
+        // July 31 falls in MUNTE (costFactor 0.95)
+        assertThat(dashboard.projectedMonthEndSeasonal())
+                .isEqualTo(Math.round(dashboard.projectedMonthEnd() * 0.95));
         // every day of the month is present, zero-filled
         assertThat(dashboard.byDay()).hasSize(31);
         assertThat(dashboard.byDay().get(9).amount()).isEqualTo(7550);
@@ -75,6 +83,7 @@ class DashboardServiceTest {
         DashboardDto dashboard = service.build(userId, june, LocalDate.of(2026, 7, 15));
 
         assertThat(dashboard.projectedMonthEnd()).isNull();
+        assertThat(dashboard.projectedMonthEndSeasonal()).isNull();
     }
 
     @Test
@@ -140,5 +149,68 @@ class DashboardServiceTest {
                 .isEqualTo(295000);
         // The real month is far cheaper than the baseline, which is the point of the ghost.
         assertThat(dashboard.totalSpent()).isEqualTo(205000);
+    }
+
+    @Test
+    void seasonalProjectionDiffersMeasurablyFromFlatInANonNeutralSeason() {
+        YearMonth january = YearMonth.of(2026, 1);
+        stubMonth(january, List.of(row("Housing > Rent", true, 100000, LocalDate.of(2026, 1, 1))));
+        when(repo.sumForRange(any(), any(), any())).thenReturn(0L);
+
+        DashboardDto dashboard = service.build(userId, january, LocalDate.of(2026, 1, 15));
+
+        long flat = Math.round(100000.0 / 15 * 31);
+        // January 31 falls in IERNAT (costFactor 1.12) — winter carries a heating surcharge.
+        long seasonal = Math.round(flat * 1.12);
+        assertThat(dashboard.projectedMonthEnd()).isEqualTo(flat);
+        assertThat(dashboard.projectedMonthEndSeasonal()).isEqualTo(seasonal);
+        assertThat(dashboard.projectedMonthEndSeasonal()).isNotEqualTo(dashboard.projectedMonthEnd());
+    }
+
+    @Test
+    void macroProvenanceStaysNullWhenNoSeasonStateRowExists() {
+        YearMonth july = YearMonth.of(2026, 7);
+        stubMonth(july, List.of());
+        when(repo.sumForRange(any(), any(), any())).thenReturn(0L);
+
+        DashboardDto dashboard = service.build(userId, july, LocalDate.of(2026, 7, 15));
+
+        assertThat(dashboard.macroSeason()).isNull();
+        assertThat(dashboard.macroSource()).isNull();
+        assertThat(dashboard.macroAsOfDate()).isNull();
+        assertThat(dashboard.macroStale()).isFalse();
+    }
+
+    @Test
+    void macroProvenancePopulatesFromAFreshSeasonStateRow() {
+        YearMonth july = YearMonth.of(2026, 7);
+        stubMonth(july, List.of());
+        when(repo.sumForRange(any(), any(), any())).thenReturn(0L);
+        LocalDate today = LocalDate.of(2026, 7, 15);
+        LocalDate asOfDate = today.minusDays(5);
+        when(macroSeasonStates.findById(MacroSeasonStateEntity.SINGLETON_ID))
+                .thenReturn(Optional.of(new MacroSeasonStateEntity(PastoralSeason.MUNTE.wireName(), asOfDate)));
+
+        DashboardDto dashboard = service.build(userId, july, today);
+
+        assertThat(dashboard.macroSeason()).isEqualTo("munte");
+        assertThat(dashboard.macroSource()).isEqualTo("internal-calendar");
+        assertThat(dashboard.macroAsOfDate()).isEqualTo(asOfDate);
+        assertThat(dashboard.macroStale()).isFalse();
+    }
+
+    @Test
+    void macroProvenanceIsMarkedStaleWhenAsOfDateExceedsTheBudget() {
+        YearMonth july = YearMonth.of(2026, 7);
+        stubMonth(july, List.of());
+        when(repo.sumForRange(any(), any(), any())).thenReturn(0L);
+        LocalDate today = LocalDate.of(2026, 7, 15);
+        LocalDate longOverdueAsOfDate = today.minusDays(40);
+        when(macroSeasonStates.findById(MacroSeasonStateEntity.SINGLETON_ID))
+                .thenReturn(Optional.of(new MacroSeasonStateEntity(PastoralSeason.MUNTE.wireName(), longOverdueAsOfDate)));
+
+        DashboardDto dashboard = service.build(userId, july, today);
+
+        assertThat(dashboard.macroStale()).isTrue();
     }
 }

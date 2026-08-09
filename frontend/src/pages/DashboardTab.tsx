@@ -18,6 +18,7 @@ import {
 } from "@/lib/api"
 import { ChevronIcon, HornGlyph } from "@/components/brand"
 import { RabojStreak } from "@/components/raboj"
+import { Badge } from "@/components/ui/badge"
 import {
   COLUMN_NAMES,
   DEFAULT_LAYOUT,
@@ -336,6 +337,11 @@ function ColumnEndDropZone({
   )
 }
 
+/** "munte" -> "Munte". Pastoral calendar terms arrive lower-case. */
+function seasonLabel(season: string): string {
+  return season.charAt(0).toUpperCase() + season.slice(1).toLowerCase()
+}
+
 function BalanceWidget({
   month,
   data,
@@ -346,6 +352,12 @@ function BalanceWidget({
   netWorth: NetWorth | null
 }) {
   const delta = data.totalSpent - data.previousMonthTotal
+
+  // The seasonal figure is only explainable relative to the flat projection it sits beside.
+  const seasonalDiffPct =
+    data.projectedMonthEndSeasonal !== null && data.projectedMonthEnd
+      ? Math.round(((data.projectedMonthEndSeasonal - data.projectedMonthEnd) / data.projectedMonthEnd) * 100)
+      : null
 
   return (
     <section className="ledger-paper relative overflow-hidden p-7">
@@ -387,12 +399,36 @@ function BalanceWidget({
               <span className="tnum font-mono">{formatRon(data.projectedMonthEnd).replace(/\s?RON$/, "")}</span>
             </div>
           )}
+          {data.projectedMonthEndSeasonal !== null && (
+            <div className="flex items-baseline justify-between py-2.5">
+              <span className="text-muted-foreground flex items-center gap-2">
+                Seasonally adjusted
+                {data.macroStale && (
+                  <Badge variant="outline" className="text-muted-foreground border-white/15 px-1.5 text-[10px]">
+                    stale
+                  </Badge>
+                )}
+              </span>
+              <span className="tnum font-mono">
+                {formatRon(data.projectedMonthEndSeasonal).replace(/\s?RON$/, "")}
+              </span>
+            </div>
+          )}
           <div className="flex items-baseline justify-between py-2.5">
             <span className="text-muted-foreground">Entries logged</span>
             <span className="tnum font-mono">{data.expenseCount}</span>
           </div>
         </div>
       </div>
+      {data.projectedMonthEndSeasonal !== null && data.macroSeason && (
+        <p className="text-muted-foreground mt-4 text-[12.5px] leading-relaxed">
+          Seasonally adjusted {seasonalDiffPct !== null && (seasonalDiffPct >= 0 ? `+${seasonalDiffPct}` : seasonalDiffPct)}
+          {seasonalDiffPct !== null && "% "}for {seasonLabel(data.macroSeason)}
+          {data.macroSource && ` — via ${data.macroSource}`}
+          {data.macroAsOfDate && `, as of ${data.macroAsOfDate}`}
+          {data.macroStale && " (last known good — not refreshed recently)"}
+        </p>
+      )}
       <SpendTrajectory data={data} month={month} />
     </section>
   )

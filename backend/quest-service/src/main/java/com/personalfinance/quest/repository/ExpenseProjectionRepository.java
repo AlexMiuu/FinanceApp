@@ -23,6 +23,10 @@ public interface ExpenseProjectionRepository extends JpaRepository<ExpenseProjec
             + "where e.userId = :userId and e.expenseDate between :from and :to")
     long sumForRange(@Param("userId") UUID userId, @Param("from") LocalDate from, @Param("to") LocalDate to);
 
+    /** A season change is not addressed to anyone, so re-templating has to fan out over known users. */
+    @Query("select distinct e.userId from ExpenseProjectionEntity e")
+    List<UUID> findDistinctUserIds();
+
     /**
      * Re-denormalizes path + effective mandatory flag after a category rename,
      * for expenses in the renamed category and in its direct children.

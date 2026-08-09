@@ -1,6 +1,7 @@
 package com.personalfinance.quest.events;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Locale;
 import java.util.UUID;
 
@@ -55,5 +56,14 @@ public final class Events {
 
     /** Mirror of user-service's user.erasure.requested payload (consumed here). */
     public record UserErasureRequested(UUID erasureRequestId, UUID userId, Instant occurredAt) {
+    }
+
+    /**
+     * Loose mirror of report-service's macro.* payloads (consumed here). One
+     * record covers both routing keys because a single queue bound to macro.*
+     * can only deserialize into one type; unknown JSON fields are ignored and
+     * fields belonging to the other event simply arrive null.
+     */
+    public record MacroEvent(String season, String source, LocalDate asOfDate, Instant occurredAt) {
     }
 }

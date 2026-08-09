@@ -202,6 +202,12 @@ export type Dashboard = {
   /** F3 ghost flock — null until three trailing months carry data. */
   ghostByDay: { date: string; amount: number }[] | null
   ghostMonthTotal: number | null
+  /** F1 seasonal adjustment — null outside a season with an active macro adjustment. */
+  projectedMonthEndSeasonal: number | null
+  macroSeason: string | null
+  macroSource: string | null
+  macroAsOfDate: string | null
+  macroStale: boolean
 }
 
 export const getDashboard = (month?: string) =>

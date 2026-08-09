@@ -21,6 +21,7 @@ public class EventsConfig {
     public static final String CATEGORY_QUEUE = "quest-service.category-events";
     public static final String INCOME_QUEUE = "quest-service.income-events";
     public static final String ERASURE_REQUESTED_QUEUE = "quest-service.user-erasure-requested";
+    public static final String MACRO_QUEUE = "quest-service.macro-events";
 
     @Bean
     TopicExchange eventsExchange() {
@@ -65,6 +66,16 @@ public class EventsConfig {
     @Bean
     Binding erasureRequestedBinding(Queue erasureRequestedQueue, TopicExchange eventsExchange) {
         return BindingBuilder.bind(erasureRequestedQueue).to(eventsExchange).with("user.erasure.requested");
+    }
+
+    @Bean
+    Queue macroQueue() {
+        return new Queue(MACRO_QUEUE, true);
+    }
+
+    @Bean
+    Binding macroBinding(Queue macroQueue, TopicExchange eventsExchange) {
+        return BindingBuilder.bind(macroQueue).to(eventsExchange).with("macro.*");
     }
 
     @Bean
