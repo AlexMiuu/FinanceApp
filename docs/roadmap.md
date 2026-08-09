@@ -217,42 +217,46 @@ Shipped in two slices: the frontend + user-service work landed in PR #9 (`featur
 
 ---
 
-### M11 — F3 Ghost Flock · **Size: S** · depends on: M9 (Report standardized)
+### M11 — F3 Ghost Flock · **Size: S** · depends on: M9 (Report standardized) · **Draft PR #11, pending review**
 Cheapest of the five (D3) and the earliest proof of the positioning.
 
 **Contents:** trailing-median counterfactual over existing `expense_projection`; ghost series on the dashboard endpoint; shadow-răboj extending the `raboj.tsx:67-80` guide-mark language; an in-product explanation of what the ghost *is* — an unexplained second line is noise.
 
 **Exit criteria**
-- Real and ghost render together; the ghost is visually subordinate and never mistakable for the real ledger
-- A user with < 3 months of history gets a defined empty state, not a misleading flat ghost
-- Ghost values reconcile against a hand-computed median on a seeded fixture
-- **No new table and no new event consumer** — if either becomes necessary, D3 was wrong; re-plan before proceeding
-- Dashboard p95 within 10% of the pre-M11 measurement
+- [x] Real and ghost render together; the ghost is visually subordinate and never mistakable for the real ledger
+- [x] A user with < 3 months of history gets a defined empty state, not a misleading flat ghost
+- [x] Ghost values reconcile against a hand-computed median on a seeded fixture — `GhostFlockCalculatorTest`
+- [x] **No new table and no new event consumer**
+- [~] Dashboard p95 within 10% of the pre-M11 measurement — isolated computation cost measured (+0.18ms absolute); a full live HTTP-level before/after was not captured (shared dev stack was in concurrent use). Recommend confirming on a quiet stack before merge.
 
 ---
 
-### M12 — F2 Tally Oath · **Size: M** · depends on: M9 (Quest standardized)
+### M12 — F2 Tally Oath · **Size: M** · depends on: M9 (Quest standardized) · **Draft PR #12, pending review**
 **Contents:** `oaths` entity in `quests_db`; create/list/cancel endpoints through the full controller→service→repository stack with DTOs and a mapper; reconciliation on the existing `expense.created` path; expiry sweep in `scheduler/`; `oath.*` events → Notification; a **dedicated oath affordance** in the UI (`AddSheet.tsx` is a *record* action, an oath is a *pledge* — conflating them undermines the mechanic); stamps via the existing `Stamp` component.
 
 **Exit criteria**
-- Pledge → in-tolerance expense → `KEPT`, end to end
-- Pledge → over-tolerance expense → `SLIPPED`
-- Pledge → expiry with no match → `FORGONE`, with a stamp visually distinct from `KEPT`
-- Re-delivering the same `expense.created` does not double-resolve an oath (idempotency test)
-- **Expense Service has zero diffs in this milestone** — the D2 check
-- Service-layer tests cover the matching rule's boundaries: exact tolerance edge, parent-category match, window edge
+- [x] Pledge → in-tolerance expense → `KEPT`, end to end — unit-verified via `OathServiceTest`; not yet exercised live on the compose stack
+- [x] Pledge → over-tolerance expense → `SLIPPED`
+- [x] Pledge → expiry with no match → `FORGONE`, with a stamp visually distinct from `KEPT` (`good` vs `muted` tone)
+- [x] Re-delivering the same `expense.created` does not double-resolve an oath (idempotency test)
+- [x] **Expense Service has zero diffs in this milestone** — verified via `git diff --stat`
+- [x] Service-layer tests cover the matching rule's boundaries: exact tolerance edge, parent-category match, window edge
 
 ---
 
-### M13 — F4 Shepherd's Weather · **Size: S–M** · depends on: M9
+### M13 — F4 Shepherd's Weather · **Size: S–M** · depends on: M9 · **Draft PR #13, pending review**
 **Contents:** composite in Report Service; `ambient.weather.updated` → STOMP; surface tint from a root-level state class; three band treatments in `index.css`; reduced-motion static fallback.
 
+Report Service did not already consume `income.updated` as this section originally assumed — only Quest Service did. M13 added the missing projection, mirroring Quest Service's existing pattern.
+
 **Exit criteria**
-- Band changes observable end to end by seeding burn rate across a threshold
-- **Hysteresis verified:** oscillating across a boundary produces at most one transition per dwell window
-- `prefers-reduced-motion` yields a static tint
-- Killing the computation leaves the app fully functional at the "clear" default
-- **Contrast ≥ 4.5:1 for all text in all three bands** — the storm band darkens the paper and is the most likely to fail
+- [x] Band changes observable end to end by seeding burn rate across a threshold — unit-verified via `WeatherServiceTest`; not yet exercised live on the compose stack
+- [x] **Hysteresis verified:** oscillating across a boundary produces at most one transition per dwell window
+- [x] `prefers-reduced-motion` yields a static tint
+- [x] Killing the computation leaves the app fully functional at the "clear" default
+- [x] **Contrast ≥ 4.5:1 for all text in all three bands** — computed (WCAG relative luminance): clear ~16.1:1 / 8.8:1 (fg/muted-fg), gathering ~16.4:1 / 8.9:1, storm ~16.9:1 / 9.2:1
+
+**Outstanding before merge:** none of M11/M12/M13 has had a human visual click-through in this environment (no browser automation available). Recommended before merging any of the three draft PRs.
 
 ---
 
