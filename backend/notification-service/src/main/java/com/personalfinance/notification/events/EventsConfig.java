@@ -18,6 +18,7 @@ public class EventsConfig {
 
     public static final String EXCHANGE = "pf.events";
     public static final String QUEST_QUEUE = "notification-service.quest-events";
+    public static final String OATH_QUEUE = "notification-service.oath-events";
     public static final String ERASURE_REQUESTED_QUEUE = "notification-service.user-erasure-requested";
 
     @Bean
@@ -33,6 +34,16 @@ public class EventsConfig {
     @Bean
     Binding questBinding(Queue questQueue, TopicExchange eventsExchange) {
         return BindingBuilder.bind(questQueue).to(eventsExchange).with("quest.*");
+    }
+
+    @Bean
+    Queue oathQueue() {
+        return new Queue(OATH_QUEUE, true);
+    }
+
+    @Bean
+    Binding oathBinding(Queue oathQueue, TopicExchange eventsExchange) {
+        return BindingBuilder.bind(oathQueue).to(eventsExchange).with("oath.*");
     }
 
     @Bean

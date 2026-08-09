@@ -12,7 +12,7 @@ public final class Events {
     private Events() {
     }
 
-    public sealed interface DomainEvent permits ErasureCompleted, QuestChanged {
+    public sealed interface DomainEvent permits ErasureCompleted, OathResolved, QuestChanged {
         String routingKey();
     }
 
@@ -36,6 +36,20 @@ public final class Events {
         @Override
         public String routingKey() {
             return "quest." + status.toLowerCase(Locale.ROOT);
+        }
+    }
+
+    /**
+     * oath.kept / oath.slipped / oath.forgone — mirrors {@link QuestChanged}'s
+     * shape so notification-service renders both from the routing key. Only
+     * terminal statuses are published; an open oath is not news.
+     */
+    public record OathResolved(UUID oathId, UUID userId, String title, String status, Instant occurredAt)
+            implements DomainEvent {
+
+        @Override
+        public String routingKey() {
+            return "oath." + status.toLowerCase(Locale.ROOT);
         }
     }
 

@@ -399,6 +399,33 @@ export const acceptQuest = (id: string) =>
 export const declineQuest = (id: string) =>
   api<{ status: string }>(`/api/v1/quests/${id}/decline`, { method: "POST" })
 
+// ---- Oaths (M12) ----
+
+export type OathStatus = "OPEN" | "KEPT" | "SLIPPED" | "FORGONE"
+
+export type Oath = {
+  id: string
+  categoryId: string
+  categoryName: string
+  pledgedAmount: number // bani
+  createdAt: string
+  expiresAt: string
+  status: OathStatus
+  resolvedAt: string | null
+  matchedExpenseId: string | null
+}
+
+export type OathInput = {
+  categoryId: string
+  pledgedAmount: number // bani
+  expiresAt: string // ISO datetime
+}
+
+export const listOaths = () => api<Oath[]>("/api/v1/oaths")
+export const createOath = (body: OathInput) =>
+  api<Oath>("/api/v1/oaths", { method: "POST", body: JSON.stringify(body) })
+export const cancelOath = (id: string) => api<void>(`/api/v1/oaths/${id}`, { method: "DELETE" })
+
 export type AppNotification = {
   id: string
   type: string

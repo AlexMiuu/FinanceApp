@@ -47,6 +47,16 @@ is the one table of genuinely user-authored content in this database.
 | `category_projection` | Event-fed shadow copy of Expense Service's categories, used to denormalize `category_path` onto `expense_projection` | Contract necessity — same basis as source data | Life of the account, kept in sync via `category.*` events | Same listener, same event |
 | `reports` | User-authored saved reports: name, filter definition (date range, category IDs), cached last-run result | Consent — an optional feature beyond the minimum account, created at the user's discretion | Life of the account | Same listener, same event |
 
+## `quests_db` (Quest Service)
+
+| Data class | What it is | Lawful basis | Retention period | Erasure mechanism |
+|---|---|---|---|---|
+| `oaths` | User-authored spending pledges (F2 Tally Oath): the category pledged against, the amount in bani, the deadline, and the outcome (`KEPT` / `SLIPPED` / `FORGONE`) plus the expense that settled it | Consent — an optional self-commitment feature beyond the minimum account, created at the user's discretion | Life of the account | `GET /api/v1/quests/export/me` for export; on `user.erasure.requested`, `PrivacyService` deletes all rows for the user before publishing `user.erasure.completed` with `service=quest` |
+
+An oath records an *intention* rather than a transaction, and is deliberately never written to
+`expenses_db`: no money changed hands when it was made. `matched_expense_id` points at a row in
+this service's local `expense_projection`, so erasing the user clears both sides together.
+
 ## Browser storage (Argali web client)
 
 Not a database, but it is still personal data held on the user's device, so it is
@@ -85,6 +95,7 @@ and is prefix-scoped so it can never delete another application's keys on a shar
   older and larger than anything the UI shows. Called out here rather than quietly fixed: a
   retention window for generated notifications is a policy decision, and it belongs with the
   `erasure_requests` 90-day window as a follow-up milestone, not inside a standardization PR.
-- **Quest Service** processes derived data from the classes above (quest progress); its own
-  records-of-processing entry lands as M9's remaining standardization work completes.
+- **Quest Service** mostly processes derived data from the classes above (quest progress,
+  and the `expense_projection` / `category_projection` copies described for `reports_db`);
+  those need no separate lawful basis. `oaths` is the exception and is documented below.
   **Report Service** and **Notification Service** are documented above.
