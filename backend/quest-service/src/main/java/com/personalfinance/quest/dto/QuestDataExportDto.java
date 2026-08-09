@@ -13,5 +13,6 @@ public record QuestDataExportDto(
         List<GoalExportDto> goals,
         List<GoalEvaluationDto> goalEvaluations,
         List<QuestExportDto> quests,
+        List<OathExportDto> oaths,
         UserIncomeDto monthlyIncome) {
 }

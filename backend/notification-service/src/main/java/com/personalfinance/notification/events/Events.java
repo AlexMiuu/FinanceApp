@@ -35,4 +35,7 @@ public final class Events {
     /** Mirror of report-service's ambient.weather.updated payload (consumed here). */
     public record WeatherEvent(UUID userId, String band, Instant occurredAt) {
     }
+    /** Loose mirror of quest-service's oath.* payload; unknown JSON fields are ignored. */
+    public record OathEvent(UUID oathId, UUID userId, String title, String status, Instant occurredAt) {
+    }
 }

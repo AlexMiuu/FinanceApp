@@ -19,6 +19,7 @@ public class EventsConfig {
     public static final String EXCHANGE = "pf.events";
     public static final String QUEST_QUEUE = "notification-service.quest-events";
     public static final String WEATHER_QUEUE = "notification-service.weather-events";
+    public static final String OATH_QUEUE = "notification-service.oath-events";
     public static final String ERASURE_REQUESTED_QUEUE = "notification-service.user-erasure-requested";
 
     @Bean
@@ -44,6 +45,13 @@ public class EventsConfig {
     @Bean
     Binding weatherBinding(Queue weatherQueue, TopicExchange eventsExchange) {
         return BindingBuilder.bind(weatherQueue).to(eventsExchange).with("ambient.weather.updated");
+    Queue oathQueue() {
+        return new Queue(OATH_QUEUE, true);
+    }
+
+    @Bean
+    Binding oathBinding(Queue oathQueue, TopicExchange eventsExchange) {
+        return BindingBuilder.bind(oathQueue).to(eventsExchange).with("oath.*");
     }
 
     @Bean

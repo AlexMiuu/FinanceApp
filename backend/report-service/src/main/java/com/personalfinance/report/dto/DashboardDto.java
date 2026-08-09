@@ -10,5 +10,7 @@ public record DashboardDto(
         long previousMonthTotal,
         Long projectedMonthEnd,   // null unless the requested month is the current one
         List<CategorySliceDto> byCategory,
-        List<DayPointDto> byDay) {
+        List<DayPointDto> byDay,
+        List<DayPointDto> ghostByDay,   // null until three trailing months carry data (F3)
+        Long ghostMonthTotal) {
 }

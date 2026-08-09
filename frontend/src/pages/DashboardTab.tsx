@@ -393,7 +393,157 @@ function BalanceWidget({
           </div>
         </div>
       </div>
+      <SpendTrajectory data={data} month={month} />
     </section>
+  )
+}
+
+const GHOST_LINE = "rgba(199,154,91,0.30)"
+const GHOST_GUIDE = "rgba(199,154,91,0.11)"
+
+const runningTotals = (series: { amount: number }[]) => {
+  let sum = 0
+  return series.map((point) => (sum += point.amount))
+}
+
+/**
+ * Cumulative spend for the month against the F3 ghost flock — the same month with
+ * non-mandatory spend held at its trailing 3-month median. The ghost borrows the
+ * răboj's faint guide-mark language so it reads as a reference the eye can dismiss,
+ * never as a second ledger competing with what was actually recorded.
+ */
+function SpendTrajectory({ data, month }: { data: Dashboard; month: string }) {
+  const days = data.byDay.length
+  if (days === 0) return null
+
+  const real = runningTotals(data.byDay)
+  const ghost = data.ghostByDay ? runningTotals(data.ghostByDay) : null
+
+  // The recorded line stops at today: a flat run to month-end is missing data, not restraint.
+  const now = new Date()
+  const realThrough =
+    month === now.toISOString().slice(0, 7) ? Math.min(now.getDate(), days) : days
+  const peak = Math.max(...real.slice(0, realThrough), ...(ghost ?? [0]), 1)
+
+  const VW = 340
+  const H = 104
+  const padX = 10
+  const padTop = 10
+  const padBottom = 18
+
+  const x = (day: number) => padX + ((day - 1) / Math.max(days - 1, 1)) * (VW - padX * 2)
+  const y = (value: number) => H - padBottom - (value / peak) * (H - padTop - padBottom)
+  const path = (values: number[], through: number) =>
+    values
+      .slice(0, through)
+      .map((value, i) => `${x(i + 1).toFixed(1)},${y(value).toFixed(1)}`)
+      .join(" ")
+
+  const spent = formatRon(real[realThrough - 1] ?? 0).replace(/\s?RON$/, "")
+  const baseline = formatRon(data.ghostMonthTotal ?? 0).replace(/\s?RON$/, "")
+
+  return (
+    <div className="relative mt-7">
+      <div className="ledger-label mb-3">The month so far</div>
+      <svg
+        viewBox={`0 0 ${VW} ${H}`}
+        style={{ width: "100%", height: "auto", display: "block" }}
+        role="img"
+        aria-label={
+          ghost
+            ? `Recorded spend of ${spent} RON so far this month, against a ghost flock baseline of ${baseline} RON by month end`
+            : `Recorded spend of ${spent} RON so far this month`
+        }
+      >
+        <line
+          x1={padX}
+          y1={H - padBottom}
+          x2={VW - padX}
+          y2={H - padBottom}
+          stroke="rgba(199,154,91,0.22)"
+          strokeWidth="1"
+        />
+
+        {ghost && (
+          <>
+            {/* Guide marks every fifth day — the răboj bundles its notches in fives. */}
+            {ghost.map((value, i) =>
+              (i + 1) % 5 === 0 ? (
+                <line
+                  key={`guide-${i}`}
+                  x1={x(i + 1)}
+                  y1={y(value)}
+                  x2={x(i + 1)}
+                  y2={H - padBottom}
+                  stroke={GHOST_GUIDE}
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+              ) : null
+            )}
+            <polyline
+              points={path(ghost, days)}
+              fill="none"
+              stroke={GHOST_LINE}
+              strokeWidth="1.25"
+              strokeDasharray="3 3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </>
+        )}
+
+        {/* The recorded ledger: a dark cut with a brass-lit edge, as the notches are carved. */}
+        <polyline
+          points={path(real, realThrough)}
+          fill="none"
+          stroke="#0e0a06"
+          strokeWidth="3.4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <polyline
+          points={path(real, realThrough)}
+          fill="none"
+          stroke="#c79a5b"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+
+      <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5">
+        <span className="text-muted-foreground inline-flex items-center gap-2 text-[12.5px]">
+          <svg width="18" height="6" aria-hidden="true">
+            <line x1="0" y1="3" x2="18" y2="3" stroke="#c79a5b" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+          Recorded
+        </span>
+        {ghost && (
+          <span className="text-muted-foreground inline-flex items-center gap-2 text-[12.5px]">
+            <svg width="18" height="6" aria-hidden="true">
+              <line
+                x1="0"
+                y1="3"
+                x2="18"
+                y2="3"
+                stroke={GHOST_LINE}
+                strokeWidth="1.25"
+                strokeDasharray="3 3"
+                strokeLinecap="round"
+              />
+            </svg>
+            Ghost flock
+          </span>
+        )}
+      </div>
+
+      <p className="text-muted-foreground mt-2 text-[12.5px] leading-relaxed">
+        {ghost
+          ? `The ghost flock is this same month with your non-mandatory spending held at its trailing 3-month median — ${baseline} RON by month end. The carved line is what you actually recorded.`
+          : "The ghost flock — this month with your non-mandatory spending held at its 3-month median — unlocks once you have three months of history."}
+      </p>
+    </div>
   )
 }
 
