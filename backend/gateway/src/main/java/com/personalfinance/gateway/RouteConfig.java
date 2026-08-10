@@ -26,7 +26,8 @@ public class RouteConfig {
             @Value("${services.expense.url:http://localhost:8082}") String expenseUrl,
             @Value("${services.report.url:http://localhost:8083}") String reportUrl,
             @Value("${services.quest.url:http://localhost:8084}") String questUrl,
-            @Value("${services.notification.url:http://localhost:8085}") String notificationUrl) {
+            @Value("${services.notification.url:http://localhost:8085}") String notificationUrl,
+            PublicApiRateLimiterFilter publicApiRateLimiterFilter) {
         return builder.routes()
                 .route("user-service", r -> r
                         .path("/api/v1/auth/**", "/api/v1/me/**", "/api/v1/salary-calculator/**")
@@ -44,6 +45,25 @@ public class RouteConfig {
                 .route("notification-service", r -> r
                         .path("/api/v1/notifications/**", "/ws/**")
                         .uri(notificationUrl))
+                // M14/D6: the read-only, personal-access-token-scoped API. Each
+                // public path is routed to the same service that owns the
+                // equivalent internal endpoint, rate-limited per caller.
+                .route("public-expenses", r -> r
+                        .path("/api/v1/public/expenses")
+                        .filters(f -> f.filter(publicApiRateLimiterFilter))
+                        .uri(expenseUrl))
+                .route("public-dashboard", r -> r
+                        .path("/api/v1/public/dashboard")
+                        .filters(f -> f.filter(publicApiRateLimiterFilter))
+                        .uri(reportUrl))
+                .route("public-weather", r -> r
+                        .path("/api/v1/public/weather")
+                        .filters(f -> f.filter(publicApiRateLimiterFilter))
+                        .uri(reportUrl))
+                .route("public-oaths", r -> r
+                        .path("/api/v1/public/oaths")
+                        .filters(f -> f.filter(publicApiRateLimiterFilter))
+                        .uri(questUrl))
                 .build();
     }
 

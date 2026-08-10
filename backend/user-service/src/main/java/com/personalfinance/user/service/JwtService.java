@@ -46,6 +46,9 @@ public class JwtService {
 
     public static final String ISSUER = "personal-finance/user-service";
 
+    /** Long enough for one gateway-to-service hop, short enough that a copy is stale on arrival. */
+    private static final Duration TOKEN_EXCHANGE_TTL = Duration.ofSeconds(60);
+
     private static final Logger log = LoggerFactory.getLogger(JwtService.class);
 
     private final RSAPrivateKey privateKey;
@@ -91,6 +94,43 @@ public class JwtService {
             return jwt.serialize();
         } catch (Exception e) {
             throw new IllegalStateException("Failed to sign access token", e);
+        }
+    }
+
+    /**
+     * Mints the short-lived JWT the gateway forwards downstream after it has
+     * validated a personal access token (M14).
+     *
+     * Same issuer, signing key, and {@code sub} claim as
+     * {@link #issueAccessToken(UserEntity)}, so report/quest/expense services
+     * validate it with the machinery they already have and need no PAT
+     * awareness. The added {@code scope} claim records what the token was
+     * allowed to do.
+     *
+     * The TTL is deliberately far shorter than a session token: it is minted
+     * per request and only has to survive one hop to a downstream service, so a
+     * leaked copy is worthless almost immediately.
+     */
+    public String issueTokenExchangeToken(UUID userId, String scope) {
+        if (userId == null) {
+            throw new IllegalArgumentException("userId is required to issue a token-exchange token");
+        }
+        try {
+            Instant now = Instant.now();
+            JWTClaimsSet claims = new JWTClaimsSet.Builder()
+                    .subject(userId.toString())
+                    .issuer(ISSUER)
+                    .issueTime(Date.from(now))
+                    .expirationTime(Date.from(now.plus(TOKEN_EXCHANGE_TTL)))
+                    .claim("scope", scope)
+                    .build();
+            SignedJWT jwt = new SignedJWT(
+                    new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(keyId).type(JOSEObjectType.JWT).build(),
+                    claims);
+            jwt.sign(new RSASSASigner(privateKey));
+            return jwt.serialize();
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to sign token-exchange token", e);
         }
     }
 
