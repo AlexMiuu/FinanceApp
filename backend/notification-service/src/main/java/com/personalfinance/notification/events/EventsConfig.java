@@ -45,6 +45,9 @@ public class EventsConfig {
     @Bean
     Binding weatherBinding(Queue weatherQueue, TopicExchange eventsExchange) {
         return BindingBuilder.bind(weatherQueue).to(eventsExchange).with("ambient.weather.updated");
+    }
+
+    @Bean
     Queue oathQueue() {
         return new Queue(OATH_QUEUE, true);
     }
