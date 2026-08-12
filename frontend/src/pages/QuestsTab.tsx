@@ -33,9 +33,9 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-const OUT = "#c96a4e"
-const GOOD = "#9cb37a"
-const WARN = "#c98a3c"
+const OUT = "#E09880"
+const GOOD = "#8FC7A6"
+const WARN = "#E09880"
 
 const today = () => new Date().toISOString().slice(0, 10)
 const thisMonth = () => new Date().toISOString().slice(0, 7)
@@ -59,7 +59,7 @@ function QuestRow({ quest }: { quest: Quest }) {
   const done = quest.status === "COMPLETED"
   const failed = quest.status === "FAILED"
   const hot = quest.kind === "CAP" && pct > 85 && !done
-  const color = done ? GOOD : failed ? OUT : hot ? WARN : "#c79a5b"
+  const color = done ? GOOD : failed ? OUT : hot ? WARN : "#9AD4E3"
   const fmt = (v: number) => (quest.kind === "DAYS" ? `${v} days` : formatRon(v).replace(/\s?RON$/, ""))
   const status = done ? "Done" : failed ? "Over" : quest.status === "ACTIVE" ? daysLeftLabel(quest.periodEnd) : `${fmt(quest.progress)} / ${fmt(quest.target)}`
 
@@ -72,14 +72,14 @@ function QuestRow({ quest }: { quest: Quest }) {
         <span className="text-[15px] font-medium" style={{ color: hot || failed ? color : undefined }}>
           {quest.title}
         </span>
-        <span className="tnum font-mono text-[13px]" style={{ color: hot || failed || done ? color : "#C3B4A2" }}>
+        <span className="status-tag" style={{ color: hot || failed || done ? color : "#9AA3A8" }}>
           {status}
         </span>
       </div>
-      <div className="mt-2.5 h-2 overflow-hidden rounded-full bg-white/[0.09]">
-        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
+      <div className="bg-border relative mt-3 h-px">
+        <div className="absolute inset-y-0 left-0 h-px" style={{ width: `${pct}%`, background: color }} />
       </div>
-      <div className="mt-2.5 text-[13px]" style={{ color: hot || failed ? color : "#C3B4A2" }}>
+      <div className="mt-2.5 text-[13px]" style={{ color: hot || failed ? color : "#9AA3A8" }}>
         {fmt(quest.progress)} of {fmt(quest.target)}
       </div>
       {typeof macroSource === "string" && typeof macroAsOfDate === "string" && (
@@ -175,7 +175,7 @@ export default function QuestsTab({ categories }: { categories: Category[] }) {
 
   const card = "ledger-card p-6"
   const field =
-    "text-foreground w-full rounded-xl border border-white/10 bg-[#241C17] px-3.5 py-2.5 text-sm outline-none focus-visible:border-primary"
+    "text-foreground w-full border border-border bg-transparent px-3.5 py-2.5 text-sm outline-none focus-visible:border-[#4C93A6]"
 
   return (
     <div className="flex flex-col gap-[22px]">
@@ -188,10 +188,7 @@ export default function QuestsTab({ categories }: { categories: Category[] }) {
       <div className="flex flex-wrap items-start gap-[22px]">
         {/* Left */}
         <div className="flex min-w-[min(100%,300px)] flex-1 basis-[30%] flex-col gap-[22px]">
-          <section
-            className="rounded-2xl border border-white/[0.09] p-6"
-            style={{ background: "linear-gradient(160deg,#33261b 0%,#171009 100%)" }}
-          >
+          <section className={card}>
             <div className="ledger-label">Days on budget · this month</div>
             <div className="mt-3 flex items-baseline gap-2.5">
               <div className="figure text-[54px] leading-none font-semibold">{greenDays}</div>
@@ -202,23 +199,23 @@ export default function QuestsTab({ categories }: { categories: Category[] }) {
             </div>
             <p className="text-muted-foreground mt-4 text-[14px]">
               {streak > 0
-                ? `${streak}-day run going — keep cutting notches`
-                : "No run yet — a notch is cut each on-budget day"}
+                ? `${streak}-day run going — keep it up`
+                : "No run yet — a square fills each on-budget day"}
             </p>
           </section>
 
           <section className={card}>
-            <h2 className="mb-3.5 text-[17px] font-semibold">Suggested for you</h2>
-            <div className="flex flex-col gap-2.5">
+            <h2 className="mb-1 text-[17px] font-semibold">Suggested for you</h2>
+            <div className="flex flex-col">
               {suggested.length === 0 ? (
-                <p className="text-muted-foreground text-[13px]">
+                <p className="text-muted-foreground py-3 text-[13px]">
                   No more suggestions — new quests arrive as your spending history grows.
                 </p>
               ) : (
                 suggested.map((q) => (
                   <div
                     key={q.id}
-                    className="flex items-center gap-3.5 rounded-2xl border border-dashed border-white/15 bg-[#241C17] px-4 py-3.5"
+                    className="edge-mark-accent flex items-center gap-3.5 border-b border-[#2A3033] py-3.5 pl-2.5 last:border-b-0"
                   >
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[13.5px] font-medium">{q.title}</p>
@@ -228,7 +225,7 @@ export default function QuestsTab({ categories }: { categories: Category[] }) {
                     </div>
                     <button
                       onClick={() => act(acceptQuest, q.id, "Quest accepted — good luck!")}
-                      className="bg-primary text-primary-foreground cursor-pointer rounded-lg border-none px-3 py-1.5 text-[13px] font-semibold hover:bg-[#D8B27A]"
+                      className="cursor-pointer border border-[#4C93A6] bg-[#123945] px-3 py-1.5 text-[13px] font-semibold text-[#C4E7F0] hover:bg-[#174756]"
                     >
                       Accept
                     </button>
@@ -276,10 +273,10 @@ export default function QuestsTab({ categories }: { categories: Category[] }) {
                     const over = day.status === "MISSED"
                     const inProg = day.status === "IN_PROGRESS"
                     const style = met
-                      ? { background: "rgba(156,179,122,0.2)", border: "1px solid rgba(156,179,122,0.42)", color: "#D8E2C0" }
+                      ? { background: "color-mix(in srgb, #8FC7A6 18%, transparent)", border: "1px solid color-mix(in srgb, #8FC7A6 45%, transparent)", color: "#8FC7A6" }
                       : over
-                        ? { background: "rgba(201,106,78,0.2)", border: "1px solid rgba(201,106,78,0.42)", color: "#E8C0B0" }
-                        : { background: "rgba(255,255,255,0.035)", border: "1px solid rgba(255,255,255,0.08)", color: "#B8A997" }
+                        ? { background: "color-mix(in srgb, #E09880 18%, transparent)", border: "1px solid color-mix(in srgb, #E09880 45%, transparent)", color: "#E09880" }
+                        : { background: "transparent", border: "1px solid #2A3033", color: "#9AA3A8" }
                     return (
                       <div
                         key={day.date}
@@ -288,12 +285,12 @@ export default function QuestsTab({ categories }: { categories: Category[] }) {
                             ? day.goals.map((g) => `${g.name}: ${formatRon(g.actual)} / ${formatRon(g.target)}`).join("\n")
                             : "No daily goals"
                         }
-                        className="relative grid aspect-square place-items-center rounded-[11px] text-[14.5px] font-semibold"
-                        style={{ ...style, outline: inProg ? "2px solid #C79A5B" : undefined, outlineOffset: 1 }}
+                        className="relative grid aspect-square place-items-center text-[14.5px] font-semibold"
+                        style={{ ...style, outline: inProg ? "1px solid #9AD4E3" : undefined, outlineOffset: 1 }}
                       >
                         {/* Shape marks so status is never colour-only: a notch cut for on-budget, a cross for over. */}
                         {met && (
-                          <span className="absolute right-1.5 top-1.5 h-2.5 w-[2px] rounded-full" style={{ background: GOOD }} />
+                          <span className="absolute right-1.5 top-1.5 h-2.5 w-[2px]" style={{ background: GOOD }} />
                         )}
                         {over && (
                           <span className="absolute right-1 top-1" style={{ color: OUT }}>
@@ -307,20 +304,20 @@ export default function QuestsTab({ categories }: { categories: Category[] }) {
                 </div>
                 <div className="text-muted-foreground mt-5 flex flex-wrap justify-center gap-5 text-[13px]">
                   <span className="flex items-center gap-2">
-                    <span className="size-4 rounded-[5px]" style={{ background: "rgba(156,179,122,0.22)", border: "1px solid rgba(156,179,122,0.45)" }} />
+                    <span className="size-3" style={{ background: "color-mix(in srgb, #8FC7A6 22%, transparent)", border: "1px solid color-mix(in srgb, #8FC7A6 45%, transparent)" }} />
                     On budget
                   </span>
                   <span className="flex items-center gap-2">
-                    <span className="size-4 rounded-[5px]" style={{ background: "rgba(201,106,78,0.22)", border: "1px solid rgba(201,106,78,0.45)" }} />
+                    <span className="size-3" style={{ background: "color-mix(in srgb, #E09880 22%, transparent)", border: "1px solid color-mix(in srgb, #E09880 45%, transparent)" }} />
                     Over
                   </span>
                   <span className="flex items-center gap-2">
-                    <span className="size-4 rounded-[5px]" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.09)" }} />
+                    <span className="size-3" style={{ background: "transparent", border: "1px solid #2A3033" }} />
                     Upcoming
                   </span>
                 </div>
                 {periodSummaries.length > 0 && (
-                  <div className="mt-5 space-y-2 border-t border-white/[0.07] pt-4">
+                  <div className="border-border mt-5 space-y-2 border-t pt-4">
                     {periodSummaries.map((s) => (
                       <div key={s.goalId} className="flex items-center justify-between text-sm">
                         <span className="flex items-center gap-2.5">
@@ -329,7 +326,7 @@ export default function QuestsTab({ categories }: { categories: Category[] }) {
                             {s.inProgress ? "open" : s.met ? "met" : "over"}
                           </Stamp>
                         </span>
-                        <span className="tnum font-mono text-xs" style={{ color: s.actual > s.target ? OUT : "#C3B4A2" }}>
+                        <span className="figure text-xs" style={{ color: s.actual > s.target ? OUT : "#9AA3A8" }}>
                           {formatRon(s.actual)} / {formatRon(s.target)}
                         </span>
                       </div>
@@ -367,7 +364,7 @@ export default function QuestsTab({ categories }: { categories: Category[] }) {
               </div>
               <button
                 onClick={() => setPledgeOpen(true)}
-                className="bg-primary text-primary-foreground cursor-pointer rounded-xl border-none px-4 py-2.5 text-[13.5px] font-semibold hover:bg-[#D8B27A]"
+                className="bg-[#123945] border-[#4C93A6] text-[#C4E7F0] hover:bg-[#174756] cursor-pointer border px-4 py-2.5 text-[13.5px] font-semibold"
               >
                 Take an oath
               </button>
@@ -381,7 +378,7 @@ export default function QuestsTab({ categories }: { categories: Category[] }) {
                 {oaths.map((oath) => (
                   <li
                     key={oath.id}
-                    className="flex items-center justify-between gap-2.5 rounded-xl border border-white/[0.07] bg-[#241C17] px-4 py-3"
+                    className="border-border bg-card flex items-center justify-between gap-2.5 border px-4 py-3"
                   >
                     <span className="flex min-w-0 items-center gap-2.5">
                       <span className="truncate text-[13.5px] font-medium">{oath.categoryName}</span>
@@ -439,29 +436,27 @@ export default function QuestsTab({ categories }: { categories: Category[] }) {
               </div>
               <button
                 type="submit"
-                className="bg-primary text-primary-foreground cursor-pointer rounded-xl border-none px-4 py-2.5 text-[13.5px] font-semibold hover:bg-[#D8B27A]"
+                className="cursor-pointer border border-[#4C93A6] bg-[#123945] px-4 py-2.5 text-[13.5px] font-semibold text-[#C4E7F0] hover:bg-[#174756]"
               >
                 Add goal
               </button>
             </form>
             {goals.length > 0 && (
-              <ul className="mt-4 space-y-2 border-t border-white/[0.07] pt-4">
+              <ul className="border-border mt-4 space-y-2 border-t pt-4">
                 {goals.map((goal) => (
                   <li key={goal.id} className="flex items-center justify-between gap-2 text-sm">
                     <span className="flex items-center gap-2">
                       {goal.name}
-                      <span className="text-muted-foreground rounded-md bg-white/[0.06] px-2 py-0.5 font-mono text-[11.5px]">
-                        {goal.period.toLowerCase()}
-                      </span>
+                      <span className="status-tag text-muted-foreground">{goal.period.toLowerCase()}</span>
                     </span>
                     <span className="flex items-center gap-2">
-                      <span className="tnum font-mono text-xs" style={{ color: goal.currentActual > goal.targetAmount ? OUT : "#C3B4A2" }}>
+                      <span className="figure text-xs" style={{ color: goal.currentActual > goal.targetAmount ? OUT : "#9AA3A8" }}>
                         {formatRon(goal.currentActual)} / {formatRon(goal.targetAmount)}
                       </span>
                       <button
                         onClick={() => deleteGoal(goal.id).then(reload)}
                         aria-label="Delete goal"
-                        className="text-muted-foreground hover:text-foreground grid size-9 flex-none cursor-pointer place-items-center rounded-lg hover:bg-white/[0.06]"
+                        className="text-muted-foreground hover:text-foreground grid size-9 flex-none cursor-pointer place-items-center hover:bg-white/[0.06]"
                       >
                         <CloseIcon size={15} />
                       </button>

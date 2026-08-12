@@ -18,7 +18,6 @@ import {
 } from "@/lib/api"
 import { ChevronIcon, HornGlyph } from "@/components/brand"
 import { RabojStreak } from "@/components/raboj"
-import { Badge } from "@/components/ui/badge"
 import {
   COLUMN_NAMES,
   DEFAULT_LAYOUT,
@@ -31,7 +30,7 @@ import {
   type Layout,
 } from "@/lib/dashboardLayout"
 
-const DONUT = ["#c79a5b", "#e8d3b4", "#b07e52", "#8a6440", "#9cb37a", "#c98a3c"]
+const SLICE_COLORS = ["#9AD4E3", "#4C93A6", "#8FC7A6", "#E09880", "#8A9399", "#6FA8B8"]
 
 const thisMonth = () => new Date().toISOString().slice(0, 7)
 const monthLabel = (m: string) =>
@@ -107,14 +106,17 @@ export default function DashboardTab({
     )
   }, [])
 
-  // Spend-by-category, largest first, capped to the donut palette.
+  // Spend-by-category, largest first, capped to the palette.
   const slices = useMemo(() => {
     if (!data) return []
     const sorted = [...data.byCategory].sort((a, b) => b.amount - a.amount)
-    if (sorted.length <= DONUT.length) return sorted.map((s, i) => ({ ...s, color: DONUT[i] }))
-    const keep = sorted.slice(0, DONUT.length - 1)
-    const other = sorted.slice(DONUT.length - 1).reduce((s, x) => s + x.amount, 0)
-    return [...keep.map((s, i) => ({ ...s, color: DONUT[i] })), { category: "Other", amount: other, color: DONUT[DONUT.length - 1] }]
+    if (sorted.length <= SLICE_COLORS.length) return sorted.map((s, i) => ({ ...s, color: SLICE_COLORS[i] }))
+    const keep = sorted.slice(0, SLICE_COLORS.length - 1)
+    const other = sorted.slice(SLICE_COLORS.length - 1).reduce((s, x) => s + x.amount, 0)
+    return [
+      ...keep.map((s, i) => ({ ...s, color: SLICE_COLORS[i] })),
+      { category: "Other", amount: other, color: SLICE_COLORS[SLICE_COLORS.length - 1] },
+    ]
   }, [data])
 
   const greenDays = calendar?.days.filter((d) => d.status === "MET").length ?? 0
@@ -183,10 +185,10 @@ export default function DashboardTab({
         <button
           onClick={() => setArranging((v) => !v)}
           aria-pressed={arranging}
-          className={`inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border px-4 text-[13.5px] font-medium transition-colors ${
+          className={`inline-flex min-h-11 cursor-pointer items-center gap-2 border px-4 text-[13.5px] font-medium transition-colors ${
             arranging
               ? "border-primary/60 bg-primary/15 text-primary"
-              : "text-muted-foreground border-white/10 hover:bg-white/[0.06]"
+              : "text-muted-foreground border-border hover:bg-popover"
           }`}
         >
           {arranging ? "Done arranging" : "Arrange widgets"}
@@ -254,7 +256,7 @@ function ArrangeableWidget({
         e.preventDefault()
         onDrop()
       }}
-      className="border-primary/40 rounded-2xl border border-dashed p-2 transition-opacity"
+      className="border-primary/40 border border-dashed p-2 transition-opacity"
       style={{ opacity: isDragging ? 0.4 : 1, cursor: "grab" }}
     >
       <div className="mb-2 flex items-center justify-between gap-2 px-1">
@@ -304,7 +306,7 @@ function ArrangeButton({
       disabled={disabled}
       aria-label={label}
       title={label}
-      className="text-muted-foreground hover:text-foreground grid size-11 flex-none cursor-pointer place-items-center rounded-lg border border-white/10 transition-colors hover:bg-white/[0.07] disabled:cursor-not-allowed disabled:opacity-30"
+      className="text-muted-foreground hover:text-foreground grid size-11 flex-none cursor-pointer place-items-center border border-border transition-colors hover:bg-popover disabled:cursor-not-allowed disabled:opacity-30"
     >
       <ChevronIcon size={16} className={rotation} />
     </button>
@@ -329,7 +331,7 @@ function ColumnEndDropZone({
         onDrop()
       }}
       aria-hidden="true"
-      className="text-muted-foreground grid min-h-16 place-items-center rounded-2xl border border-dashed border-white/12 text-[12.5px] transition-colors"
+      className="text-muted-foreground border-border grid min-h-16 place-items-center border border-dashed text-[12.5px] transition-colors"
       style={{ opacity: active ? 1 : 0.45 }}
     >
       Drop here to put a widget at the end of {COLUMN_NAMES[column]}
@@ -353,6 +355,16 @@ function BalanceWidget({
 }) {
   const delta = data.totalSpent - data.previousMonthTotal
 
+  // Ghost balance — a hypothetical: what this month would look like if spend had
+  // continued at last month's daily rate. Real numbers (data.previousMonthTotal),
+  // prorated to today's day-of-month; not fabricated.
+  const dayOfMonth = new Date().getDate()
+  const daysInPrevMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 0).getDate()
+  const ghostSpendToDate =
+    data.previousMonthTotal > 0 ? Math.round((data.previousMonthTotal / daysInPrevMonth) * dayOfMonth) : null
+  const paceDelta = ghostSpendToDate === null ? null : data.totalSpent - ghostSpendToDate
+  const ghostBalance = netWorth && ghostSpendToDate !== null ? netWorth.total - paceDelta! : null
+
   // The seasonal figure is only explainable relative to the flat projection it sits beside.
   const seasonalDiffPct =
     data.projectedMonthEndSeasonal !== null && data.projectedMonthEnd
@@ -370,17 +382,17 @@ function BalanceWidget({
             Balance carried forward · {monthLabel(month)}
           </div>
           <div className="ink-underline mt-3 inline-flex items-baseline gap-2">
-            <span className="figure text-[52px] leading-none font-semibold sm:text-[60px]">
+            <span className="figure text-[52px] leading-none sm:text-[60px]">
               {netWorth ? Math.floor(netWorth.total / 100).toLocaleString("en-US") : "—"}
             </span>
-            <span className="figure text-[24px] font-medium text-[#D2C5B4]">
+            <span className="figure text-[24px] text-[#C7CDD0]">
               {netWorth ? "." + String(netWorth.total % 100).padStart(2, "0") : ""}
             </span>
             <span className="text-muted-foreground mb-1 font-mono text-[14px]">RON</span>
           </div>
           <div className="text-muted-foreground mt-4 text-[13.5px]">
             {delta <= 0 ? "Down" : "Up"}{" "}
-            <span style={{ color: delta <= 0 ? "#9cb37a" : "#c96a4e" }}>
+            <span className={delta <= 0 ? "text-good" : "text-destructive"}>
               {formatRon(Math.abs(delta)).replace(/\s?RON$/, "")} RON
             </span>{" "}
             on spend against last month
@@ -389,7 +401,7 @@ function BalanceWidget({
         <div className="ruled min-w-[210px] flex-1 basis-[240px] text-[14px]">
           <div className="flex items-baseline justify-between py-2.5">
             <span className="text-muted-foreground">Spent · {monthLabel(month).split(" ")[0]}</span>
-            <span className="tnum font-mono" style={{ color: "#c96a4e" }}>
+            <span className="tnum text-destructive font-mono">
               −{formatRon(data.totalSpent).replace(/\s?RON$/, "")}
             </span>
           </div>
@@ -403,11 +415,7 @@ function BalanceWidget({
             <div className="flex items-baseline justify-between py-2.5">
               <span className="text-muted-foreground flex items-center gap-2">
                 Seasonally adjusted
-                {data.macroStale && (
-                  <Badge variant="outline" className="text-muted-foreground border-white/15 px-1.5 text-[10px]">
-                    stale
-                  </Badge>
-                )}
+                {data.macroStale && <span className="status-tag edge-mark-accent text-primary py-0.5 pl-2">stale</span>}
               </span>
               <span className="tnum font-mono">
                 {formatRon(data.projectedMonthEndSeasonal).replace(/\s?RON$/, "")}
@@ -419,6 +427,33 @@ function BalanceWidget({
             <span className="tnum font-mono">{data.expenseCount}</span>
           </div>
         </div>
+
+        {ghostBalance !== null && paceDelta !== null && (
+          <>
+            <div className="hidden self-stretch sm:block" style={{ width: 1, background: "var(--border)" }} />
+            <div className="max-w-[360px] min-w-[220px] flex-1 basis-[260px] self-start">
+              <div className="flex items-center gap-2">
+                <span className="bg-primary size-1.5 flex-none" />
+                <span className="ledger-label !text-primary">Ghost balance</span>
+              </div>
+              <div className="figure mt-3 text-[28px] text-[#C7CDD0]">
+                {formatRon(ghostBalance).replace(/\s?RON$/, "")}{" "}
+                <span className="text-muted-foreground font-mono text-[13px]">RON</span>
+              </div>
+              <p className="text-muted-foreground mt-3 max-w-[320px] text-[13px] text-pretty">
+                Where you'd stand if this month had kept last month's pace.
+              </p>
+              <div className="mt-3.5 flex items-center gap-2.5">
+                <span className={`font-mono text-[13.5px] ${paceDelta <= 0 ? "text-good" : "text-destructive"}`}>
+                  {formatRon(Math.abs(paceDelta)).replace(/\s?RON$/, "")} RON
+                </span>
+                <span className="text-muted-foreground text-[13px]">
+                  {paceDelta <= 0 ? "under last month's pace" : "above last month's pace"}
+                </span>
+              </div>
+            </div>
+          </>
+        )}
       </div>
       {data.projectedMonthEndSeasonal !== null && data.macroSeason && (
         <p className="text-muted-foreground mt-4 text-[12.5px] leading-relaxed">
@@ -434,8 +469,8 @@ function BalanceWidget({
   )
 }
 
-const GHOST_LINE = "rgba(199,154,91,0.30)"
-const GHOST_GUIDE = "rgba(199,154,91,0.11)"
+const GHOST_LINE = "rgba(154,212,227,0.35)"
+const GHOST_GUIDE = "rgba(154,212,227,0.14)"
 
 const runningTotals = (series: { amount: number }[]) => {
   let sum = 0
@@ -445,7 +480,7 @@ const runningTotals = (series: { amount: number }[]) => {
 /**
  * Cumulative spend for the month against the F3 ghost flock — the same month with
  * non-mandatory spend held at its trailing 3-month median. The ghost borrows the
- * răboj's faint guide-mark language so it reads as a reference the eye can dismiss,
+ * ledger's faint guide-mark language so it reads as a reference the eye can dismiss,
  * never as a second ledger competing with what was actually recorded.
  */
 function SpendTrajectory({ data, month }: { data: Dashboard; month: string }) {
@@ -491,18 +526,11 @@ function SpendTrajectory({ data, month }: { data: Dashboard; month: string }) {
             : `Recorded spend of ${spent} RON so far this month`
         }
       >
-        <line
-          x1={padX}
-          y1={H - padBottom}
-          x2={VW - padX}
-          y2={H - padBottom}
-          stroke="rgba(199,154,91,0.22)"
-          strokeWidth="1"
-        />
+        <line x1={padX} y1={H - padBottom} x2={VW - padX} y2={H - padBottom} stroke="var(--border)" strokeWidth="1" />
 
         {ghost && (
           <>
-            {/* Guide marks every fifth day — the răboj bundles its notches in fives. */}
+            {/* Guide marks every fifth day — the ledger bundles its notches in fives. */}
             {ghost.map((value, i) =>
               (i + 1) % 5 === 0 ? (
                 <line
@@ -529,11 +557,11 @@ function SpendTrajectory({ data, month }: { data: Dashboard; month: string }) {
           </>
         )}
 
-        {/* The recorded ledger: a dark cut with a brass-lit edge, as the notches are carved. */}
+        {/* The recorded ledger: a dark cut with a lit edge, as the notches are carved. */}
         <polyline
           points={path(real, realThrough)}
           fill="none"
-          stroke="#0e0a06"
+          stroke="#0E1113"
           strokeWidth="3.4"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -541,7 +569,7 @@ function SpendTrajectory({ data, month }: { data: Dashboard; month: string }) {
         <polyline
           points={path(real, realThrough)}
           fill="none"
-          stroke="#c79a5b"
+          stroke="#9AD4E3"
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -551,7 +579,7 @@ function SpendTrajectory({ data, month }: { data: Dashboard; month: string }) {
       <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5">
         <span className="text-muted-foreground inline-flex items-center gap-2 text-[12.5px]">
           <svg width="18" height="6" aria-hidden="true">
-            <line x1="0" y1="3" x2="18" y2="3" stroke="#c79a5b" strokeWidth="2" strokeLinecap="round" />
+            <line x1="0" y1="3" x2="18" y2="3" stroke="#9AD4E3" strokeWidth="2" strokeLinecap="round" />
           </svg>
           Recorded
         </span>
@@ -604,12 +632,7 @@ function BreakdownWidget({
   const totalSpent = data.totalSpent
   const active = hover ?? slice
   const activeSlice = slices.find((s) => s.category === active)
-  const donutTotal = activeSlice ? activeSlice.amount : totalSpent
-
-  // SVG donut geometry.
-  const R = 62
-  const C = 2 * Math.PI * R
-  let offset = 0
+  const maxSlice = Math.max(1, ...slices.map((s) => s.amount))
 
   return (
     <section className="ledger-card p-6">
@@ -618,99 +641,68 @@ function BreakdownWidget({
         <h2 className="text-[18px] font-semibold">Where your money goes</h2>
       </div>
       <div className="grid gap-14 [grid-template-columns:repeat(auto-fit,minmax(300px,1fr))]">
-        {/* Donut + legend */}
+        {/* Category share bars */}
         <div className="min-w-0">
           <div className="ledger-label mb-4.5">Spend by category</div>
           {slices.length === 0 ? (
             <p className="text-muted-foreground py-8 text-sm">No spending recorded this month.</p>
           ) : (
-            <div className="flex items-center gap-5.5">
-              <div className="relative size-[158px] flex-none">
-                <svg viewBox="0 0 158 158" className="size-full -rotate-90">
-                  {slices.map((s) => {
-                    const frac = totalSpent > 0 ? s.amount / totalSpent : 0
-                    const len = C * frac
-                    const on = active === s.category
-                    const dim = active && !on
-                    const el = (
-                      <circle
-                        key={s.category}
-                        cx={79}
-                        cy={79}
-                        r={R}
-                        fill="none"
-                        stroke={s.color}
-                        strokeWidth={on ? 30 : 24}
-                        strokeDasharray={`${Math.max(0, len - 3)} ${C - len + 3}`}
-                        strokeDashoffset={-offset}
-                        opacity={dim ? 0.32 : 1}
-                        style={{ cursor: "pointer", transition: "stroke-width .15s ease, opacity .15s ease" }}
-                        onMouseEnter={() => setHover(s.category)}
-                        onMouseLeave={() => setHover(null)}
-                        onClick={() => setSlice(slice === s.category ? null : s.category)}
-                      />
-                    )
-                    offset += len
-                    return el
-                  })}
-                </svg>
-                <div className="pointer-events-none absolute inset-0 grid place-items-center text-center">
-                  <div>
-                    <div className="font-heading tnum text-[23px] font-semibold tracking-tight">
-                      {formatRon(donutTotal).replace(/\s?RON$/, "")}
+            <div className="flex flex-col gap-4">
+              {slices.map((s) => {
+                const pct = totalSpent > 0 ? Math.round((s.amount / totalSpent) * 100) : 0
+                const sel = slice === s.category
+                return (
+                  <div
+                    key={s.category}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setSlice(sel ? null : s.category)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault()
+                        setSlice(sel ? null : s.category)
+                      }
+                    }}
+                    onMouseEnter={() => setHover(s.category)}
+                    onMouseLeave={() => setHover(null)}
+                    className="cursor-pointer"
+                  >
+                    <div className="flex items-center justify-between text-[14.5px]">
+                      <span className={`flex items-center gap-2 font-medium ${sel ? "text-primary" : ""}`}>
+                        <span className="size-1.5 flex-none" style={{ background: s.color }} />
+                        {s.category}
+                      </span>
+                      <span className="flex items-baseline gap-2">
+                        <span className="figure">{formatRon(s.amount).replace(/\s?RON$/, "")}</span>
+                        <span className="tnum text-muted-foreground w-8 text-right font-mono text-[12px]">{pct}%</span>
+                      </span>
                     </div>
-                    <div className="ledger-label !text-[11px]">
-                      {activeSlice ? activeSlice.category : "RON spent"}
+                    <div className="border-border mt-2 h-1.5 border">
+                      <div
+                        className="h-full transition-[width]"
+                        style={{
+                          width: `${Math.max(4, Math.round((s.amount / maxSlice) * 100))}%`,
+                          background: s.color,
+                          opacity: active && !sel ? 0.5 : 1,
+                        }}
+                      />
                     </div>
                   </div>
-                </div>
-              </div>
-              <div className="flex min-w-0 flex-1 flex-col gap-3">
-                {slices.map((s) => {
-                  const pct = totalSpent > 0 ? Math.round((s.amount / totalSpent) * 100) : 0
-                  const sel = slice === s.category
-                  return (
-                    <div
-                      key={s.category}
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => setSlice(sel ? null : s.category)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault()
-                          setSlice(sel ? null : s.category)
-                        }
-                      }}
-                      onMouseEnter={() => setHover(s.category)}
-                      onMouseLeave={() => setHover(null)}
-                      className={`-mx-2 flex min-h-11 cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 text-[14.5px] transition-colors ${
-                        sel ? "bg-white/[0.07]" : "hover:bg-white/[0.06]"
-                      }`}
-                    >
-                      <span className="size-2.5 flex-none rounded-[3px]" style={{ background: s.color }} />
-                      <span className="flex-1 truncate font-medium">{s.category}</span>
-                      <span className="tnum font-mono">{formatRon(s.amount).replace(/\s?RON$/, "")}</span>
-                      <span className="tnum text-muted-foreground w-9 text-right font-mono">{pct}%</span>
-                    </div>
-                  )
-                })}
-                <p className="text-muted-foreground mt-0.5 text-[13px]">
-                  Click a category to open it in Expenses
-                </p>
-              </div>
+                )
+              })}
+              <p className="text-muted-foreground mt-0.5 text-[13px]">
+                Click a category to open it in Expenses
+              </p>
             </div>
           )}
           {slice && activeSlice && (
-            <div
-              className="mt-4 rounded-2xl border border-white/[0.09] bg-[#241C17] p-5"
-              style={{ animation: "riseIn .16s ease" }}
-            >
+            <div className="ledger-card mt-4 p-5" style={{ animation: "riseIn .16s ease" }}>
               <div className="flex items-center justify-between">
                 <div className="text-[15.5px] font-semibold">{activeSlice.category}</div>
                 <button
                   onClick={() => setSlice(null)}
                   aria-label={`Close ${activeSlice.category} details`}
-                  className="text-muted-foreground grid size-11 cursor-pointer place-items-center rounded-lg text-lg leading-none hover:bg-white/[0.06]"
+                  className="text-muted-foreground grid size-11 cursor-pointer place-items-center text-lg leading-none hover:bg-popover"
                 >
                   ×
                 </button>
@@ -721,7 +713,7 @@ function BreakdownWidget({
               </div>
               <button
                 onClick={() => onNavigate?.("expenses", activeSlice.category)}
-                className="text-primary mt-4 min-h-11 w-full cursor-pointer rounded-xl border border-primary/50 bg-primary/15 py-2.5 text-[13.5px] font-semibold hover:bg-primary/25"
+                className="mt-4 min-h-11 w-full cursor-pointer border border-[#4C93A6] bg-[#123945] py-2.5 text-[13.5px] font-medium text-[#C4E7F0] hover:bg-[#174756]"
               >
                 See all {activeSlice.category} transactions →
               </button>
@@ -750,9 +742,9 @@ function BreakdownWidget({
                   <button
                     key={t.id}
                     onClick={() => onNavigate?.("expenses")}
-                    className="-mx-3 flex min-h-11 items-center gap-3.5 rounded-xl px-3 py-2.75 text-left transition-colors hover:bg-white/[0.055]"
+                    className="-mx-3 flex min-h-11 items-center gap-3.5 px-3 py-2.75 text-left transition-colors hover:bg-popover"
                   >
-                    <div className="grid size-[38px] flex-none place-items-center rounded-xl bg-[#241C17] font-mono text-[14px] text-[#CFC1AE]">
+                    <div className="text-muted-foreground bg-popover grid size-[38px] flex-none place-items-center font-mono text-[14px]">
                       {monogram(label)}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -761,7 +753,7 @@ function BreakdownWidget({
                         {categoryLabel(categories, t.categoryId)} · {shortDate(t.expenseDate)}
                       </div>
                     </div>
-                    <span className="tnum font-mono text-[14px] text-[#EFE9DC]">−{formatRon(t.amount).replace(/\s?RON$/, "")}</span>
+                    <span className="figure text-foreground text-[14px]">−{formatRon(t.amount).replace(/\s?RON$/, "")}</span>
                   </button>
                 )
               })
@@ -781,7 +773,7 @@ function SavingsWidget({ netWorth }: { netWorth: NetWorth | null }) {
         <h2 className="text-[17px] font-semibold">Savings</h2>
       </div>
       <div className="mt-4 flex items-baseline gap-2.5">
-        <span className="font-heading tnum text-[36px] font-semibold tracking-tight">
+        <span className="figure text-[36px]">
           {netWorth ? formatRon(netWorth.total).replace(/\s?RON$/, "") : "—"}
         </span>
         <span className="text-muted-foreground text-[14.5px]">RON saved</span>
@@ -794,7 +786,7 @@ function SavingsWidget({ netWorth }: { netWorth: NetWorth | null }) {
   )
 }
 
-/** A răboj tally: one notch per on-budget day. */
+/** A tally: one notch per on-budget day. */
 function StreakWidget({ greenDays }: { greenDays: number }) {
   return (
     <section className="ledger-card p-6">
@@ -835,21 +827,22 @@ function QuestsWidget({
           activeQuests.map((q) => {
             const pct = q.target > 0 ? Math.min(100, (q.progress / q.target) * 100) : 0
             const hot = q.kind === "CAP" && pct > 85
-            const color = hot ? "#C98A3C" : "#C79A5B"
+            const colorClass = hot ? "text-destructive" : "text-primary"
             return (
               <div key={q.id}>
                 <div className="flex items-baseline justify-between gap-2.5">
-                  <span className="text-[14.5px] font-medium" style={{ color: hot ? "#C98A3C" : undefined }}>
-                    {q.title}
-                  </span>
-                  <span className="tnum font-mono text-[13px]" style={{ color: hot ? "#C98A3C" : undefined }}>
+                  <span className={`text-[14.5px] font-medium ${hot ? colorClass : ""}`}>{q.title}</span>
+                  <span className={`tnum font-mono text-[13px] ${hot ? colorClass : ""}`}>
                     {q.kind === "DAYS"
                       ? `${q.progress}/${q.target}`
                       : `${Math.round(q.progress / 100)} / ${Math.round(q.target / 100)}`}
                   </span>
                 </div>
-                <div className="mt-2.5 h-2 overflow-hidden rounded-full bg-white/[0.09]">
-                  <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
+                <div className="border-border mt-2.5 h-1.5 border">
+                  <div
+                    className={`h-full transition-[width] ${hot ? "bg-destructive" : "bg-primary"}`}
+                    style={{ width: `${pct}%` }}
+                  />
                 </div>
               </div>
             )
@@ -866,7 +859,7 @@ function HornGlyphFull() {
     <svg
       viewBox="-8 -13 116 116"
       fill="none"
-      stroke="#C79A5B"
+      stroke="#9AD4E3"
       strokeWidth={7}
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -874,7 +867,7 @@ function HornGlyphFull() {
       aria-hidden="true"
     >
       <path d="M86 78H38L10 60V50L48 12A24 24 0 1 1 65 53A14 14 0 0 1 65 25A7 7 0 0 1 65 39" />
-      <circle cx="32" cy="52" r="4" fill="#C79A5B" stroke="none" />
+      <circle cx="32" cy="52" r="4" fill="#9AD4E3" stroke="none" />
     </svg>
   )
 }
@@ -882,13 +875,13 @@ function HornGlyphFull() {
 function DashSkeletonNote() {
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-24">
-      <div className="text-foreground size-14">
+      <div className="text-primary size-14" style={{ animation: "shimmer 1.6s ease-in-out infinite" }}>
         <svg viewBox="-8 -13 116 116" fill="none" stroke="currentColor" strokeWidth={7} strokeLinecap="round" strokeLinejoin="round" className="size-full" aria-hidden="true">
-          <path d="M86 78H38L10 60V50L48 12A24 24 0 1 1 65 53A14 14 0 0 1 65 25A7 7 0 0 1 65 39" stroke="#C79A5B" style={{ strokeDasharray: 370, animation: "coilUnroll 2.1s cubic-bezier(.5,0,.5,1) infinite" }} />
+          <path d="M86 78H38L10 60V50L48 12A24 24 0 1 1 65 53A14 14 0 0 1 65 25A7 7 0 0 1 65 39" />
           <circle cx="32" cy="52" r="4" fill="currentColor" stroke="none" />
         </svg>
       </div>
-      <div className="ledger-label" style={{ color: "#a89473" }}>Loading your money</div>
+      <div className="ledger-label">Loading your money</div>
     </div>
   )
 }

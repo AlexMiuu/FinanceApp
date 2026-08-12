@@ -16,7 +16,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
-const CATEGORY_BAR = ["#c79a5b", "#e8d3b4", "#b07e52", "#8a6440", "#9cb37a", "#c98a3c"]
+const CATEGORY_BAR = ["#9AD4E3", "#8FC7A6", "#4C93A6", "#E09880", "#8A9399", "#62696D"]
 
 export default function ReportsTab({ categories }: { categories: Category[] }) {
   const toast = useToast()
@@ -138,7 +138,7 @@ export default function ReportsTab({ categories }: { categories: Category[] }) {
           </div>
 
           {creating && (
-            <form className="mb-3 space-y-2.5 rounded-xl border border-white/10 bg-[#241C17] p-4" onSubmit={submit}>
+            <form className="border-border bg-secondary mb-3 space-y-2.5 border p-4" onSubmit={submit}>
               <div className="space-y-1">
                 <Label htmlFor="rname">Name</Label>
                 <Input id="rname" name="name" required maxLength={100} placeholder="July food spending" />
@@ -150,7 +150,7 @@ export default function ReportsTab({ categories }: { categories: Category[] }) {
               <CategorySelect categories={categories} value={filterCategory} onChange={setFilterCategory} allowAll />
               <button
                 type="submit"
-                className="bg-primary text-primary-foreground w-full cursor-pointer rounded-xl border-none py-2.5 text-[13.5px] font-semibold hover:bg-[#D8B27A]"
+                className="w-full cursor-pointer border border-[#4C93A6] bg-[#123945] py-2.5 text-[13.5px] font-semibold text-[#C4E7F0] hover:bg-[#174756]"
               >
                 Save report
               </button>
@@ -167,10 +167,9 @@ export default function ReportsTab({ categories }: { categories: Category[] }) {
                 <button
                   key={r.id}
                   onClick={() => setSelected(r.id)}
-                  className={`cursor-pointer rounded-xl p-3.5 text-left transition-colors ${
-                    sel ? "bg-white/[0.06]" : "hover:bg-white/[0.03]"
+                  className={`cursor-pointer p-3.5 text-left transition-colors ${
+                    sel ? "bg-white/[0.05] edge-mark-accent" : "hover:bg-white/[0.03]"
                   }`}
-                  style={sel ? { boxShadow: "inset 3px 0 0 0 #C79A5B" } : undefined}
                 >
                   <p className="text-[13.5px] font-medium">{r.name}</p>
                   <p className="text-muted-foreground mt-0.5 text-[12.5px]">{describeFilters(r)}</p>
@@ -202,7 +201,7 @@ export default function ReportsTab({ categories }: { categories: Category[] }) {
                   <div className="flex gap-2">
                     <button
                       onClick={() => run(report.id)}
-                      className="text-foreground/85 cursor-pointer rounded-xl border border-white/15 bg-white/[0.05] px-3.5 py-2 text-[13px] hover:border-white/30"
+                      className="border-border text-foreground/85 hover:text-foreground cursor-pointer border bg-transparent px-3.5 py-2 text-[13px] hover:border-[#4C93A6]"
                     >
                       Run
                     </button>
@@ -212,13 +211,13 @@ export default function ReportsTab({ categories }: { categories: Category[] }) {
                           .then(() => toast("CSV exported — check your downloads"))
                           .catch((e) => setError(e instanceof Error ? e.message : "Export failed"))
                       }
-                      className="text-foreground/85 cursor-pointer rounded-xl border border-white/15 bg-white/[0.05] px-3.5 py-2 text-[13px] hover:border-white/30"
+                      className="border-border text-foreground/85 hover:text-foreground cursor-pointer border bg-transparent px-3.5 py-2 text-[13px] hover:border-[#4C93A6]"
                     >
                       Export CSV
                     </button>
                     <button
                       onClick={() => deleteReport(report.id).then(() => { setSelected(null); reload() })}
-                      className="text-destructive cursor-pointer rounded-xl border border-[#c96a4e]/40 bg-[#c96a4e]/10 px-3.5 py-2 text-[13px] hover:bg-[#c96a4e]/20"
+                      className="text-destructive border-destructive/40 hover:border-destructive hover:bg-destructive/10 cursor-pointer border bg-transparent px-3.5 py-2 text-[13px]"
                     >
                       Delete
                     </button>
@@ -237,13 +236,13 @@ export default function ReportsTab({ categories }: { categories: Category[] }) {
                   {/* KPI tiles */}
                   <div className="flex flex-wrap gap-[22px]">
                     {[
-                      { label: "Total spent", value: formatRon(result.totalSpent).replace(/\s?RON$/, ""), sub: "RON", tone: "#C3B4A2" },
-                      { label: "Expenses counted", value: String(result.expenseCount), sub: "transactions", tone: "#B2C58F" },
-                      { label: "Biggest category", value: biggest?.name ?? "—", sub: biggest ? `${biggest.pct}% of spend` : "", tone: "#C98A3C" },
+                      { label: "Total spent", value: formatRon(result.totalSpent).replace(/\s?RON$/, ""), sub: "RON", tone: "#9AA3A8" },
+                      { label: "Expenses counted", value: String(result.expenseCount), sub: "transactions", tone: "#8FC7A6" },
+                      { label: "Biggest category", value: biggest?.name ?? "—", sub: biggest ? `${biggest.pct}% of spend` : "", tone: "#9AD4E3" },
                     ].map((k) => (
                       <section key={k.label} className="ledger-card min-w-[230px] flex-1 p-6">
-                        <div className="text-muted-foreground text-[14.5px]">{k.label}</div>
-                        <div className="font-heading tnum mt-2.5 text-[32px] font-semibold tracking-tight">{k.value}</div>
+                        <div className="ledger-label">{k.label}</div>
+                        <div className="figure mt-2.5 text-[32px]">{k.value}</div>
                         <div className="mt-2.5 font-mono text-[13px]" style={{ color: k.tone }}>{k.sub}</div>
                       </section>
                     ))}
@@ -264,18 +263,21 @@ export default function ReportsTab({ categories }: { categories: Category[] }) {
                     <div className="flex flex-col gap-4.5">
                       {categoryRows.map((row) => (
                         <div key={row.name}>
-                          <div className="flex justify-between text-[14.5px]">
-                            <span className="font-medium">{row.name}</span>
-                            <span className="tnum font-mono">{formatRon(row.amount).replace(/\s?RON$/, "")}</span>
+                          <div className="flex items-center justify-between text-[14.5px]">
+                            <span className="flex items-center gap-2.5 font-medium">
+                              <span className="inline-block size-2.5 flex-none" style={{ background: row.color }} />
+                              {row.name}
+                            </span>
+                            <span className="figure">{formatRon(row.amount).replace(/\s?RON$/, "")}</span>
                           </div>
-                          <div className="mt-2.5 h-2 overflow-hidden rounded-full bg-white/[0.09]">
-                            <div className="h-full rounded-full" style={{ width: `${row.pct}%`, background: row.color }} />
+                          <div className="bg-border mt-2.5 h-px w-full">
+                            <div className="h-px" style={{ width: `${row.pct}%`, background: row.color }} />
                           </div>
                         </div>
                       ))}
-                      <div className="mt-1 flex justify-between border-t border-white/[0.07] pt-4 text-[14px] font-semibold">
+                      <div className="border-border mt-1 flex justify-between border-t pt-4 text-[14px] font-semibold">
                         <span>Total · {result.expenseCount} expenses</span>
-                        <span className="tnum font-mono">{formatRon(result.totalSpent)}</span>
+                        <span className="figure">{formatRon(result.totalSpent)}</span>
                       </div>
                     </div>
                   </section>
@@ -289,7 +291,7 @@ export default function ReportsTab({ categories }: { categories: Category[] }) {
   )
 }
 
-/** Espresso line chart — area fill, tan line, hoverable points with tooltip. */
+/** Ledger trend chart — teal line, area fill, hoverable points with tooltip. */
 function TrendChart({
   points,
   hover,
@@ -321,8 +323,8 @@ function TrendChart({
           const y = H - 24 - ((g - lo) / (hi - lo || 1)) * (H - 60)
           return (
             <g key={i}>
-              <line x1={pad} x2={W - pad} y1={y} y2={y} stroke="rgba(255,255,255,0.07)" strokeWidth={1} />
-              <text x={8} y={y + 4} fill="#C0B1A0" fontSize={13} fontFamily="var(--font-mono)">
+              <line x1={pad} x2={W - pad} y1={y} y2={y} stroke="#2A3033" strokeWidth={1} />
+              <text x={8} y={y + 4} fill="#9AA3A8" fontSize={13} fontFamily="var(--font-mono)">
                 {(g / 1000).toFixed(1)}k
               </text>
             </g>
@@ -330,13 +332,13 @@ function TrendChart({
         })}
         <polygon
           points={`${pad},${H - 24} ${xy.map((p) => p.join(",")).join(" ")} ${W - pad},${H - 24}`}
-          fill="rgba(217,169,122,0.16)"
+          fill="rgba(154,212,227,0.14)"
         />
         <polyline
           points={xy.map((p) => p.join(",")).join(" ")}
           fill="none"
-          stroke="#C79A5B"
-          strokeWidth={2.6}
+          stroke="#9AD4E3"
+          strokeWidth={1.6}
           strokeLinejoin="round"
           strokeLinecap="round"
         />
@@ -345,26 +347,26 @@ function TrendChart({
             <circle
               cx={p[0]}
               cy={p[1]}
-              r={hover === i ? 8 : 5.5}
-              fill={hover === i ? "#fff" : "#C79A5B"}
-              stroke="#C79A5B"
-              strokeWidth={2.4}
+              r={hover === i ? 6 : 3.5}
+              fill={hover === i ? "#F2F5F6" : "#9AD4E3"}
+              stroke="#9AD4E3"
+              strokeWidth={1.6}
               style={{ cursor: "pointer" }}
               onMouseEnter={() => onHover(i)}
               onMouseLeave={() => onHover(null)}
             />
-            <text x={p[0]} y={H + 14} fill="#C3B4A2" fontSize={14} textAnchor="middle" fontFamily="var(--font-mono)">
+            <text x={p[0]} y={H + 14} fill="#9AA3A8" fontSize={14} textAnchor="middle" fontFamily="var(--font-mono)">
               {points[i].month}
             </text>
           </g>
         ))}
         {hover !== null && (
           <g pointerEvents="none">
-            <rect x={xy[hover][0] - 66} y={xy[hover][1] - 62} width={132} height={44} rx={9} fill="#2A211B" stroke="rgba(255,255,255,0.14)" />
-            <text x={xy[hover][0]} y={xy[hover][1] - 42} fill="#fff" fontSize={17} fontWeight={700} textAnchor="middle" fontFamily="var(--font-mono)">
+            <rect x={xy[hover][0] - 66} y={xy[hover][1] - 62} width={132} height={44} fill="#14181B" stroke="#62696D" />
+            <text x={xy[hover][0]} y={xy[hover][1] - 42} fill="#F2F5F6" fontSize={17} fontWeight={500} textAnchor="middle" fontFamily="var(--font-mono)">
               {Math.round(points[hover].amount).toLocaleString()} RON
             </text>
-            <text x={xy[hover][0]} y={xy[hover][1] - 26} fill="#C3B4A2" fontSize={13} textAnchor="middle" fontFamily="var(--font-sans)">
+            <text x={xy[hover][0]} y={xy[hover][1] - 26} fill="#9AA3A8" fontSize={13} textAnchor="middle" fontFamily="var(--font-sans)">
               {points[hover].month}
             </text>
           </g>

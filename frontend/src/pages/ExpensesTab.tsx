@@ -55,7 +55,7 @@ const formatDate = (iso: string) => {
   return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" })
 }
 
-const CATEGORY_BAR = ["#c79a5b", "#e8d3b4", "#b07e52", "#8a6440", "#9cb37a"]
+const CATEGORY_BAR = ["#9AD4E3", "#4C93A6", "#8FC7A6", "#E09880", "#8A9399"]
 
 export default function ExpensesTab({
   categories,
@@ -259,14 +259,14 @@ export default function ExpensesTab({
       }`
 
   const rowField =
-    "text-foreground w-full rounded-xl border border-white/10 bg-[#241C17] px-3.5 py-2.5 text-sm outline-none focus-visible:border-primary"
+    "text-foreground border-border w-full border bg-transparent px-3.5 py-2.5 text-sm outline-none focus-visible:border-primary"
 
   return (
     <div className="flex flex-wrap items-start gap-[22px]">
       {/* Main column */}
       <div className="flex min-w-[min(100%,440px)] flex-1 basis-[62%] flex-col gap-4">
         {/* Search */}
-        <div className="bg-card flex items-center gap-3 rounded-2xl border border-white/[0.09] px-4">
+        <div className="bg-card border-border flex items-center gap-3 border px-4">
           <SearchGlyph />
           <input
             value={query}
@@ -277,7 +277,7 @@ export default function ExpensesTab({
           {localQuery && (
             <button
               onClick={() => onQueryChange?.("")}
-              className="text-muted-foreground cursor-pointer rounded-full border border-white/15 bg-white/[0.07] px-2.5 py-1 text-xs hover:border-white/30"
+              className="ledger-label border-border text-muted-foreground hover:border-primary cursor-pointer border px-2.5 py-1"
             >
               Clear
             </button>
@@ -285,17 +285,17 @@ export default function ExpensesTab({
         </div>
 
         {/* Filter chips */}
-        <div className="flex flex-wrap gap-2.5">
+        <div className="flex flex-wrap gap-2">
           {filterChips.map((label) => {
             const active = chip === label
             return (
               <button
                 key={label}
                 onClick={() => setChip(label)}
-                className={`cursor-pointer rounded-full border px-4 py-2 text-[13.5px] transition-all ${
+                className={`status-tag cursor-pointer border px-3 py-1.5 transition-colors ${
                   active
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "text-foreground/85 border-white/12 bg-white/[0.04] hover:border-white/30"
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border text-muted-foreground hover:border-[#4C93A6]"
                 }`}
               >
                 {label}
@@ -310,7 +310,7 @@ export default function ExpensesTab({
         <section className="ledger-card px-6 py-3">
           {loading ? (
             <div className="flex flex-col items-center justify-center gap-4 py-[70px]">
-              <div className="text-foreground size-16">
+              <div className="text-primary size-16" style={{ animation: "shimmer 1.6s ease-in-out infinite" }}>
                 <svg
                   viewBox="-8 -13 116 116"
                   fill="none"
@@ -321,26 +321,19 @@ export default function ExpensesTab({
                   className="size-full"
                   aria-hidden="true"
                 >
-                  <path
-                    d="M86 78H38L10 60V50L48 12A24 24 0 1 1 65 53A14 14 0 0 1 65 25A7 7 0 0 1 65 39"
-                    stroke="#C79A5B"
-                    style={{ strokeDasharray: 370, animation: "coilUnroll 2.1s cubic-bezier(.5,0,.5,1) infinite" }}
-                  />
+                  <path d="M86 78H38L10 60V50L48 12A24 24 0 1 1 65 53A14 14 0 0 1 65 25A7 7 0 0 1 65 39" />
                   <circle cx="32" cy="52" r="4" fill="currentColor" stroke="none" />
                 </svg>
               </div>
-              <div className="ledger-label" style={{ color: "#a89473" }}>
+              <div className="ledger-label">
                 Loading transactions
               </div>
             </div>
           ) : shown.length === 0 ? (
             <div className="flex flex-col items-center gap-2.5 px-6 py-16 text-center">
-              {/* Ram brand-iron stamped on a blank page — an intentional empty ledger. */}
-              <div
-                className="grid size-[72px] place-items-center rounded-full border"
-                style={{ borderColor: "rgba(199,154,91,0.25)", background: "rgba(199,154,91,0.06)" }}
-              >
-                <div className="size-10" style={{ color: "#8a725a" }}>
+              {/* Ram brand-iron on a blank page — an intentional empty ledger. */}
+              <div className="border-border grid size-[72px] place-items-center border bg-white/[0.03]">
+                <div className="text-muted-foreground size-10">
                   <svg
                     viewBox="-8 -13 116 116"
                     fill="none"
@@ -370,7 +363,7 @@ export default function ExpensesTab({
                     onQueryChange?.("")
                     setChip("All")
                   }}
-                  className="bg-primary text-primary-foreground mt-3.5 cursor-pointer rounded-xl border-none px-5 py-2.5 text-sm font-semibold hover:bg-[#D8B27A]"
+                  className="mt-3.5 cursor-pointer border border-[#4C93A6] bg-[#123945] px-5 py-2.5 text-sm font-medium text-[#C4E7F0] hover:bg-[#174756]"
                 >
                   Clear filters
                 </button>
@@ -384,11 +377,12 @@ export default function ExpensesTab({
               <span className="w-[132px] text-right">Amount · date</span>
               <span className="w-[13px]" aria-hidden />
             </div>
+            <div className="ruled">
             {shown.map((expense, i) => {
               const isOpen = open === expense.id
               const label = expense.note || categoryLabel(categories, expense.categoryId)
               return (
-                <div key={expense.id} className="border-b border-white/[0.06] last:border-b-0">
+                <div key={expense.id}>
                   <div
                     role="button"
                     tabIndex={0}
@@ -400,7 +394,7 @@ export default function ExpensesTab({
                         setOpen(isOpen ? null : expense.id)
                       }
                     }}
-                    className="-mx-3.5 flex cursor-pointer items-center gap-4 rounded-lg px-3.5 py-3.5 transition-colors hover:bg-[#c79a5b]/[0.07]"
+                    className="-mx-3.5 flex cursor-pointer items-center gap-4 px-3.5 py-3.5 transition-colors hover:bg-white/[0.05]"
                   >
                     <div className="text-muted-foreground/70 tnum w-9 flex-none text-right font-mono text-[12px]">
                       {String(i + 1).padStart(3, "0")}
@@ -413,7 +407,7 @@ export default function ExpensesTab({
                     </div>
                     <div className="flex items-center gap-3.5">
                       <div className="w-[132px] text-right">
-                        <div className="tnum text-foreground font-mono text-[15px]">
+                        <div className="figure text-foreground text-[15px]">
                           −{formatRon(expense.amount)}
                         </div>
                         <div className="tnum text-muted-foreground mt-0.5 font-mono text-[12px]">
@@ -421,8 +415,8 @@ export default function ExpensesTab({
                         </div>
                       </div>
                       <span
-                        className="grid size-[18px] place-items-center transition-transform"
-                        style={{ color: "#B0A18F", transform: `rotate(${isOpen ? 90 : 0}deg)` }}
+                        className="text-muted-foreground grid size-[18px] place-items-center transition-transform"
+                        style={{ transform: `rotate(${isOpen ? 90 : 0}deg)` }}
                       >
                         <ChevronIcon size={18} />
                       </span>
@@ -430,7 +424,7 @@ export default function ExpensesTab({
                   </div>
                   {isOpen && (
                     <div
-                      className="-mx-3.5 mb-3.5 flex flex-wrap gap-6 rounded-2xl border border-white/[0.07] bg-[#241C17] p-4.5"
+                      className="ledger-card -mx-3.5 mb-3.5 flex flex-wrap gap-6 p-4.5"
                       style={{ animation: "riseIn .16s ease" }}
                     >
                       {[
@@ -447,19 +441,19 @@ export default function ExpensesTab({
                       <div className="flex flex-1 items-end justify-end gap-2.5">
                         <button
                           onClick={() => duplicate(expense)}
-                          className="text-foreground/85 cursor-pointer rounded-[11px] border border-white/15 bg-white/[0.05] px-3.5 py-2 text-[13px] hover:border-white/30"
+                          className="text-foreground/85 border-border cursor-pointer border bg-white/[0.05] px-3.5 py-2 text-[13px] hover:border-white/30"
                         >
                           Add again
                         </button>
                         <button
                           onClick={() => startEdit(expense)}
-                          className="text-foreground/85 cursor-pointer rounded-[11px] border border-white/15 bg-white/[0.05] px-3.5 py-2 text-[13px] hover:border-white/30"
+                          className="text-foreground/85 border-border cursor-pointer border bg-white/[0.05] px-3.5 py-2 text-[13px] hover:border-white/30"
                         >
                           Edit
                         </button>
                         <button
                           onClick={() => remove(expense.id)}
-                          className="text-destructive cursor-pointer rounded-[11px] border border-[#c96a4e]/40 bg-[#c96a4e]/10 px-3.5 py-2 text-[13px] hover:bg-[#c96a4e]/20"
+                          className="text-destructive border-destructive/40 bg-destructive/10 hover:bg-destructive/20 cursor-pointer border px-3.5 py-2 text-[13px]"
                         >
                           Delete
                         </button>
@@ -469,12 +463,13 @@ export default function ExpensesTab({
                 </div>
               )
             })}
+            </div>
             <div className="-mx-3.5 mt-1 flex items-center gap-4 border-t border-white/10 px-3.5 pt-3 text-[13.5px] font-semibold">
               <span className="w-9" aria-hidden />
               <span className="flex-1">
                 Total shown · {shown.length} entr{shown.length === 1 ? "y" : "ies"}
               </span>
-              <span className="tnum w-[132px] text-right font-mono">
+              <span className="figure w-[132px] text-right">
                 −{formatRon(shownTotal).replace(/\s?RON$/, "")}
               </span>
               <span className="w-[13px]" aria-hidden />
@@ -521,13 +516,13 @@ export default function ExpensesTab({
           <div className="mt-5 flex gap-5">
             <div className="flex-1">
               <div className="text-muted-foreground text-[13.5px]">Spent</div>
-              <div className="font-heading tnum mt-1.5 text-[28px] font-semibold tracking-tight">
+              <div className="figure mt-1.5 text-[28px]">
                 {formatRon(monthTotal).replace(/\s?RON$/, "")}
               </div>
             </div>
             <div className="flex-1 text-right">
               <div className="text-muted-foreground text-[13.5px]">Largest</div>
-              <div className="font-heading tnum mt-1.5 text-[28px] font-semibold tracking-tight">
+              <div className="figure mt-1.5 text-[28px]">
                 {formatRon(monthMax).replace(/\s?RON$/, "")}
               </div>
             </div>
@@ -545,7 +540,7 @@ export default function ExpensesTab({
                 <div key={cat.name}>
                   <div className="flex justify-between text-[14.5px]">
                     <span className="font-medium">{cat.name}</span>
-                    <span className="tnum font-mono">{formatRon(cat.amount)}</span>
+                    <span className="figure">{formatRon(cat.amount)}</span>
                   </div>
                   <div className="mt-2.5 h-2 overflow-hidden rounded-full bg-white/[0.09]">
                     <div
@@ -580,10 +575,10 @@ export default function ExpensesTab({
                       key={c.id}
                       type="button"
                       onClick={() => setCategoryId(c.id)}
-                      className={`cursor-pointer rounded-full border px-3 py-1.5 text-[13px] transition-colors ${
+                      className={`status-tag cursor-pointer border px-3 py-1.5 transition-colors ${
                         active
-                          ? "border-primary bg-primary/15 text-foreground"
-                          : "border-white/12 bg-white/[0.05] hover:border-primary"
+                          ? "border-primary text-primary"
+                          : "border-border text-muted-foreground hover:border-[#4C93A6]"
                       }`}
                     >
                       {categoryLabel(categories, c.id)}
@@ -602,7 +597,7 @@ export default function ExpensesTab({
                 min="0.01"
                 inputMode="decimal"
                 placeholder="0.00"
-                className={`${rowField} tnum font-mono`}
+                className={`${rowField} figure`}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 onKeyDown={enterSubmits}
@@ -645,7 +640,7 @@ export default function ExpensesTab({
             <div className="flex gap-2 pt-1">
               <button
                 type="submit"
-                className="bg-primary text-primary-foreground flex-1 cursor-pointer rounded-xl border-none py-3 text-[14px] font-semibold hover:bg-[#D8B27A]"
+                className="flex-1 cursor-pointer border border-[#4C93A6] bg-[#123945] py-3 text-[14px] font-medium text-[#C4E7F0] hover:bg-[#174756]"
               >
                 {editing ? "Save changes" : "Add expense"}
               </button>
@@ -653,7 +648,7 @@ export default function ExpensesTab({
                 <button
                   type="button"
                   onClick={cancelEdit}
-                  className="text-foreground cursor-pointer rounded-xl border border-white/15 bg-transparent px-4 py-3 text-[14px] hover:bg-white/[0.06]"
+                  className="text-foreground border-border cursor-pointer border bg-transparent px-4 py-3 text-[14px] hover:bg-white/[0.06]"
                 >
                   Cancel
                 </button>
@@ -677,7 +672,7 @@ export default function ExpensesTab({
             <ul className="mt-4 space-y-2.5">
               {recurring.map((r) => (
                 <li key={r.id} className="flex items-center gap-3">
-                  <div className="grid size-9 flex-none place-items-center rounded-lg bg-[#241C17] font-mono text-[12px] text-[#CFC1AE]">
+                  <div className="text-muted-foreground grid size-9 flex-none place-items-center rounded-lg bg-white/[0.06] font-mono text-[12px]">
                     {monogram(r.note || topCategoryName(categories, r.categoryId))}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -686,7 +681,7 @@ export default function ExpensesTab({
                     </p>
                     <p className="text-muted-foreground text-[12.5px]">day {r.dayOfMonth} · next {r.nextRun}</p>
                   </div>
-                  <span className="tnum font-mono text-[13.5px] font-medium">{formatRon(r.amount)}</span>
+                  <span className="figure text-[13.5px]">{formatRon(r.amount)}</span>
                   <button
                     onClick={() => deleteRecurring(r.id).then(reload)}
                     aria-label="Remove recurring"

@@ -2,7 +2,9 @@
 
 **Product:** Argali, a personal-finance web app (Romania / RON)
 **Owner:** Alexandru
-**This document** consolidates the product's objectives, architecture, requirements, and — new in this revision — the **visual design system** (the "Răboj — shepherd's ledger" world). It complements the engineering spec in the repo-root `DESIGN.md`; where they overlap, this file is the summary and the root spec is the authority for data models and API surface.
+**This document** consolidates the product's objectives, architecture, requirements, and the **visual design system**. It complements the engineering spec in the repo-root `DESIGN.md`; where they overlap, this file is the summary and the root spec is the authority for data models and API surface.
+
+**Design history:** the app shipped an earlier visual system, "Răboj — shepherd's ledger" (warm kraft-paper/espresso, brass accent, notch-tally streak, rotated ink-stamp badges). That system has been fully replaced by the one recorded below — treat any reference to brass/kraft/notch-tally/ink-stamp elsewhere (old docs, comments, memory) as superseded, not current.
 
 ---
 
@@ -18,7 +20,7 @@ A personal-finance app that helps a user **track expenses, understand spending t
 | O4 | Bank-account linking (expense import) + investment tracking | v2 ⏳ (schema/architecture leave room) |
 | O5 | Room to grow | ongoing |
 
-**Design intent:** make daily money-keeping feel like tending a **shepherd's account book** — deliberate, tactile, and rewarding — rather than a generic fintech dashboard.
+**Design intent:** make daily money-keeping feel like a precise **operator's account book** — legible, hairline-ruled, and unhurried — rather than a generic rounded fintech dashboard. (Superseded phrasing, kept for history: an earlier revision framed this as a "shepherd's account book"; see §5 for the current system.)
 
 ---
 
@@ -63,7 +65,7 @@ frontend/src/
 │  ├─ AddSheet.tsx         quick-add expense slide-over (wired to the real API)
 │  ├─ BootSplash.tsx       session intro splash
 │  ├─ brand.tsx            Argali mark + one-hand icon set (nav, close, chevron, check, bell, search)
-│  ├─ raboj.tsx            RabojStreak (notch tally) + Stamp (inked status)
+│  ├─ raboj.tsx            RabojStreak (calendar-grid streak) + Stamp (flat status tag) — names kept for API stability, visuals rethemed
 │  ├─ NotificationsBell.tsx  live WebSocket notification center
 │  ├─ Toast.tsx            transient confirmations
 │  └─ ui/                  shadcn/ui primitives (Button, Input, Select, Card, …)
@@ -125,11 +127,13 @@ Design-specific NFRs added by the redesign: **WCAG contrast ≥ 4.5:1** for text
 
 ## 5. Design Style & Colorways
 
-### 5.1 The world — "Răboj, the shepherd's ledger"
+### 5.1 The world — the operator's account book
 
-Argali (a wild ram) is the brand. The design draws on the **răboj**, the Carpathian shepherd's **notched tally stick** — the genuine folk-accounting artifact of the culture the app serves. The surface reads like a warm **account book**: tanned-hide espresso ground, kraft-paper cards, hairline rules, a single struck-brass accent, and inked stamps. It deliberately refuses the interchangeable trust-blue fintech dashboard.
+Argali (a wild ram) is the brand. This revision replaces the earlier warm "shepherd's ledger" world with a **near-black operator's account book**: precision and legibility over craft-fair warmth. Hairline borders, near-zero radius, and a struck-teal accent stand in for the old rounded kraft-paper/brass system. Status reads from a colored left-edge mark and a mono label, never a rounded badge or a rotated ink stamp. It refuses both the old brass-ledger warmth and the interchangeable trust-blue fintech dashboard.
 
-**Mode:** Operate (a tool to complete tasks). One dark theme by design — the book is read indoors, at a glance, on a warm dark surface.
+The build reproduces an externally approved reference comp directly (a coded `.dc.html` comp covering every real screen as conditional states) rather than an internally invented concept — see the direction-contract HTML comment at the top of `frontend/index.html` for the recorded THESIS/OWN-WORLD/STORY/FIRST VIEWPORT/FORM/FINISH contract.
+
+**Mode:** Operate (a tool to complete tasks). One dark theme by design — the book is read indoors, at a glance.
 
 ### 5.2 Colorways
 
@@ -137,50 +141,63 @@ Semantic tokens (CSS variables in `index.css`; single dark theme, `:root` mirror
 
 | Role | Token | Value | Use |
 |------|-------|-------|-----|
-| Ground | `--background` | `#14100d` | app background (tanned hide) |
-| Card | `--card` | `#1d1712` | standard surfaces |
-| Paper | `--paper` | `#241c15` | kraft ledger surfaces (hero) |
-| Popover | `--popover` | `#2a211a` | menus, tooltips |
-| Foreground | `--foreground` | `#f3ece0` | primary text (warm ivory) |
-| Muted text | `--muted-foreground` | `#bfae97` | captions, meta (~6:1 on card) |
-| **Accent** | `--primary` / `--brass` | `#c79a5b` | struck brass — CTAs, active nav, progress, notches |
-| On-accent | `--primary-foreground` | `#14100d` | text on brass |
-| Positive | `--good` | `#9cb37a` | income, on-budget (sage) |
-| Negative | `--destructive` | `#c96a4e` | spend, over-budget (terracotta) |
-| Border | `--border` | `oklch(1 0 0 / 8%)` | hairlines |
-| Ring | `--ring` | `#c79a5b` | focus rings |
+| Ground | `--background` | `#0E1113` | app background |
+| Card | `--card` | `#101416` | standard surfaces, hero band |
+| Paper | `--paper` | `#171C1F` | secondary surface tier |
+| Popover | `--popover` | `#14181B` | menus, dropdowns, tooltips |
+| Foreground | `--foreground` | `#F2F5F6` | primary text |
+| Muted text | `--muted-foreground` | `#9AA3A8` | captions, meta |
+| **Accent** | `--primary` / `--brass`\* | `#9AD4E3` | struck teal — CTAs, active nav, focus, ledger-label tint |
+| On-accent | `--primary-foreground` | `#0E1113` | text on teal |
+| Positive | `--good` | `#8FC7A6` | income, on-budget (sage) |
+| Negative | `--destructive` | `#E09880` | spend, over-budget, unread/alert |
+| Border | `--border` | `#62696D` | hairlines everywhere |
+| Ring | `--ring` | `#9AD4E3` | focus rings |
 
-**Chart palette** (warm categorical): `#c79a5b · #9cb37a · #b6763e · #8a6440 · #6f5638`. Status is never encoded by color alone (calendar/quests carry shape marks — a notch for met, a cross for over).
+\* `--brass` is a legacy token name kept for CSS-variable stability across the redesign; it now holds the teal accent value, not brass.
+
+**Chart palette** (teal-toned categorical): `#9AD4E3 · #8FC7A6 · #4C93A6 · #E09880 · #8A9399`. Status is never encoded by color alone — a left-edge inset-shadow mark (`.edge-mark-good` / `.edge-mark-bad` / `.edge-mark-accent`) always accompanies the color.
 
 ### 5.3 Typography
 
-The user's request pinned **Inter** as the workhorse; personality lives in the ledger voice, not in an expressive body face.
+**Inter** remains the pinned workhorse across both design generations. What changed: money and headline figures now speak in the mono ledger-column voice (Spline Sans Mono), not the slab serif — Zilla Slab is reserved for page/section titles only.
 
 | Token | Face | Role |
 |-------|------|------|
 | `--font-sans` | **Inter** | all UI, body, labels |
-| `--font-heading` | **Zilla Slab** | stamped ledger headers & headline figures (slab = account-book / official) |
-| `--font-mono` | **Spline Sans Mono** | ruled ledger columns, serial numbers, money figures |
+| `--font-heading` | **Zilla Slab** | page/section titles only (e.g. the shared `<h1>` in `HomePage.tsx`) |
+| `--font-mono` | **Spline Sans Mono** | nav, section captions (`.ledger-label`), ALL money/headline figures (`.figure`), column headers |
 
-Money and stats use tabular-lining numerals (`.figure` / `.tnum`). Body floor ≥ 12px; section captions are `.ledger-label` (12px Inter uppercase, brass-tinted) — used as **column/section captions**, never as floating eyebrows.
+Money and stats use tabular-lining numerals (`.figure` / `.tnum`). Body floor ≥ 12px; section captions are `.ledger-label` (mono, uppercase, tracked, teal-tinted) — used as **column/section captions**, never as floating eyebrows.
 
 ### 5.4 Materials, shape & motion
 
-- **Cards:** `.ledger-card` — kraft-paper gradient, hairline brass top rule, one radius (`--radius-2xl` ≈ 16px). `.ledger-paper` — the hero page surface (warmer paper, brass edge, `.ink-underline` under carried-forward totals).
-- **Signature elements:** the **răboj tally** (`RabojStreak` — carved notches bundled in fives, ghost guides for room to grow) and the **ledger tape** (Expenses as ruled rows with serial numbers, column headers, and a page subtotal). Statuses render as inked **stamps**.
-- **Iconography:** one hand — drawn SVG icons at 1.7 stroke, round joins (nav set, close, chevron, check, bell, search) + the Argali ram mark. **No emoji anywhere.**
-- **Grain:** a faint (5%) paper-grain overlay across the app.
-- **Motion:** 150–300ms transitions; entrance keyframes (`sheetIn`, `riseIn`, boot sequence); `prefers-reduced-motion` collapses all animation.
+- **Panels:** `.ledger-card` — flat surface, hairline border, near-zero radius (`--radius: 0.125rem`, ≈2px), no gradient. `.ledger-paper` — the hero/section band: full-bleed, bounded by hairline top/bottom rules, no radius (replaces the old rounded kraft-paper hero).
+- **Signature elements:** the **entry streak** (`RabojStreak` — a calendar grid of filled/empty squares, replacing the old carved-notch tally graphic; export name kept for API stability) and the **ledger tape** (Expenses as ruled rows via the `.ruled` utility, with serial numbers and a page subtotal). Statuses render as flat mono `.status-tag` labels with a colored left-edge mark (`Stamp` component; replaces the old rotated ink-stamp look).
+- **Ghost balance:** the Overview hero includes a real (not fabricated) "if this month had kept last month's pace" comparison, computed from `Dashboard.previousMonthTotal` prorated to today's day-of-month — only renders when that data exists.
+- **Iconography:** one hand — drawn SVG icons, round joins (nav set, close, chevron, check, bell, search) + the Argali ram mark, retinted to the teal accent. **No emoji anywhere.**
+- **Grain:** removed. The old paper-grain texture overlay belonged to the kraft-paper world; this system is crisp and flat by design.
+- **Motion:** 150–300ms transitions; entrance keyframes (`sheetIn`, `riseIn`, `bootRise`/`bootFill`/`bootOut`, `fadeIn`); `prefers-reduced-motion` collapses all animation. The old notch-cut and coil-unroll keyframes (brass-motif-specific) were removed with the motif.
 
 ### 5.5 Accessibility & responsive
 
-- Contrast ≥ 4.5:1 for text; focus rings themed in brass; nav controls carry `aria-label`; expandable rows expose `role`/`aria-expanded`.
+- Contrast ≥ 4.5:1 for text; focus rings themed in teal; nav controls carry `aria-label`; expandable rows expose `role`/`aria-expanded`.
 - Themed browser surfaces (scrollbar, selection, caret, date-picker glyph) — nothing left at OS default.
 - Responsive: rail (desktop) folds to a bottom nav + FAB under 768px; layouts stack and reflow 360–1440px.
 
-**Closed in M10:** icon-button hit areas raised to 44×44 at ≤768px (enforced once as a zero-specificity `:where()` floor in `index.css`, so new components inherit it rather than re-specifying it); a mobile search affordance — under 640px the field collapses behind a 44px search control and expands to a full-width row, with `⌘K` and Escape wired to it; and the boot splash gated to once per session via `argali:splash-seen`. (Independent finish-review disposition on the visual system: **ship**.)
+**Closed in M10, before this redesign, and still true of it:** icon-button hit areas raised to 44×44 at ≤768px (enforced once as a zero-specificity `:where()` floor in `index.css`, so new components inherit it rather than re-specifying it); a mobile search affordance — under 640px the field collapses behind a 44px search control and expands to a full-width row, with `⌘K` and Escape wired to it; and the boot splash gated to once per session via `argali:splash-seen`. The dashboard is also user-arrangeable as of M10: widgets move between the wide and narrow columns by drag or by arrow buttons, and the arrangement persists per user in User Service (D9 — it is a choice nothing can regenerate, so it does not belong in localStorage). All of this behavior carried through this redesign unchanged; only its visual surface moved to the new system below.
 
-The dashboard is also user-arrangeable as of M10: widgets move between the wide and narrow columns by drag or by arrow buttons, and the arrangement persists per user in User Service (D9 — it is a choice nothing can regenerate, so it does not belong in localStorage).
+**F4 Shepherd's Weather (M13) under the new system:** the ambient background bands (`.weather-gathering` / `.weather-storm`, applied at root by `useShepherdWeather`) are retinted off the redesign's near-black base (`#0E1113`) rather than the old kraft-paper one — same clear → dimmer → darkest relationship, new palette, contrast unaffected since `--foreground` never moves.
+
+### 5.6 Intentional scope boundaries (visual-only redesign)
+
+This redesign preserved existing behavior, data-fetching, and API wiring exactly — it did not implement every mechanic the approved reference comp shows, where doing so would have meant new product behavior rather than a visual change:
+
+- **Mobile navigation topology.** The approved comp specifies a sticky top bar that expands into a dropdown tab list on tap. The app keeps its pre-existing bottom tab bar + floating add-button pattern instead. This is a deliberate choice, not an oversight: it's an established, ergonomic mobile pattern already in place before this redesign, and switching topologies is a structural/behavioral change beyond a visual reskin.
+- **Ledger running-balance & inline row actions.** The comp's ledger carries a running balance column and inline edit/void actions per row (a "correction-appended, never-renumbered" ledger model). The shipped Expenses table keeps its existing No./Entry/Amount·Date columns with an expand-to-detail row instead. The comp's model is behavioral, not just visual, so it's out of scope here — a candidate for a future feature-level pass, not this redesign.
+- **Header export control.** The comp shows a header "EXPORT" button. This app does not have one, by a standing pre-redesign product decision: CSV/PDF export is owner-handled outside the UI, not a user-facing feature in the current launch scope. Its absence predates and is unrelated to this redesign.
+
+**Known follow-ups:** this redesign was built against a `dev`-stale branch and had to be reconciled against `dev`'s actual current state (M9–M15: widget arrangement, Ghost Flock, Tally Oath, Shepherd's Weather, seasonal transhumance, dev-API) before merging — DashboardTab, HomePage, ProfileTab, and BootSplash needed a fresh retheme pass against that real content rather than a patch of the stale one; give those screens, and the `PledgeSheet` component, a finish-review pass of their own once landed. (Independent finish-review disposition on the redesign, prior to this reconciliation: **ship**.)
 
 ---
 

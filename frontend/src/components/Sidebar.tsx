@@ -31,18 +31,21 @@ export function Sidebar({
 
   return (
     <aside
-      className="bg-sidebar border-sidebar-border sticky top-0 z-30 hidden h-svh flex-none flex-col items-stretch gap-2 border-r p-[20px_14px] transition-[width] duration-200 ease-out md:flex"
+      className="bg-sidebar border-sidebar-border sticky top-0 z-30 hidden h-svh flex-none flex-col items-stretch gap-1 border-r p-[20px_14px] transition-[width] duration-200 ease-out md:flex"
       style={{ width: expanded ? 236 : 78 }}
     >
       {/* Brand */}
-      <div className="flex items-center gap-3 px-1.5 pb-5">
-        <div className="text-foreground grid size-10 flex-none place-items-center">
-          <ArgaliMark className="size-[34px]" strokeWidth={7} />
+      <div className="flex items-center gap-3 px-1 pb-4">
+        <div className="text-primary grid size-10 flex-none place-items-center">
+          <ArgaliMark className="size-[30px]" strokeWidth={7} />
         </div>
         {expanded && (
-          <span className="text-foreground text-[15px] font-semibold tracking-[0.2em]">ARGALI</span>
+          <span className="font-mono text-foreground text-[11px] font-medium tracking-[0.2em] uppercase">
+            Argali
+          </span>
         )}
       </div>
+      <div className="bg-sidebar-border mb-3 h-px" />
 
       {/* Nav */}
       {NAV.map((item) => {
@@ -55,20 +58,24 @@ export function Sidebar({
               onMouseLeave={() => setHover(null)}
               aria-current={active ? "page" : undefined}
               aria-label={item.label}
-              className={`flex w-full cursor-pointer items-center gap-3.5 rounded-xl border-none p-3 text-left transition-colors ${
+              className={`flex h-11 w-full cursor-pointer items-center gap-3.5 border-none px-3.5 text-left transition-colors ${
                 active
-                  ? "bg-primary text-primary-foreground"
-                  : "text-sidebar-foreground hover:bg-white/[0.07]"
+                  ? "edge-mark-accent bg-popover text-primary"
+                  : "text-sidebar-foreground hover:bg-popover"
               }`}
             >
-              <span className="grid size-[22px] flex-none place-items-center">
-                <NavIcon name={item.icon} />
+              <span className="grid size-[20px] flex-none place-items-center">
+                <NavIcon name={item.icon} size={18} />
               </span>
-              {expanded && <span className="text-[14.5px] font-medium">{item.label}</span>}
+              {expanded && (
+                <span className="font-mono text-[10px] font-medium tracking-[0.08em] uppercase">
+                  {item.label}
+                </span>
+              )}
             </button>
             {!expanded && hover === item.key && (
               <div
-                className="bg-popover border-border pointer-events-none absolute top-1/2 left-[calc(100%+14px)] z-[60] -translate-y-1/2 rounded-lg border px-2.5 py-1.5 text-[13px] font-medium whitespace-nowrap shadow-[0_8px_24px_rgba(0,0,0,0.5)]"
+                className="bg-popover border-border pointer-events-none absolute top-1/2 left-[calc(100%+12px)] z-[60] -translate-y-1/2 border px-2.5 py-1.5 text-[13px] font-medium whitespace-nowrap shadow-[0_12px_24px_rgba(0,0,0,0.4)]"
                 style={{ animation: "fadeIn .1s ease" }}
               >
                 {item.label}
@@ -84,41 +91,36 @@ export function Sidebar({
       <button
         onClick={onToggle}
         aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
-        className="text-muted-foreground flex cursor-pointer items-center gap-3.5 rounded-xl border border-white/10 bg-transparent px-3 py-2.5 text-left transition-colors hover:bg-white/5 hover:text-foreground"
+        className="text-muted-foreground border-border hover:border-[#4C93A6] flex cursor-pointer items-center gap-3.5 border bg-transparent px-3 py-2.5 text-left transition-colors hover:text-foreground"
       >
-        <span className="grid size-[22px] flex-none place-items-center">
-          <ChevronIcon size={16} className={expanded ? "rotate-180" : ""} />
+        <span className="grid size-[20px] flex-none place-items-center">
+          <ChevronIcon size={15} className={expanded ? "rotate-180" : ""} />
         </span>
-        {expanded && <span className="text-[13.5px]">Collapse</span>}
+        {expanded && <span className="ledger-label text-[10px]">Collapse</span>}
       </button>
 
       {/* Add */}
       <button
         onClick={onAdd}
         aria-label="Add transaction"
-        className="bg-primary text-primary-foreground mt-1 flex cursor-pointer items-center gap-3.5 rounded-2xl border-none px-3 py-3 text-left font-semibold shadow-[0_8px_22px_rgba(217,169,122,0.38)] transition-all hover:bg-[#D8B27A] hover:shadow-[0_10px_28px_rgba(217,169,122,0.5)]"
+        className="bg-[#123945] border-[#4C93A6] text-[#C4E7F0] hover:bg-[#174756] mt-1.5 flex cursor-pointer items-center gap-3.5 border px-3 py-3 text-left font-medium transition-colors"
       >
-        <span className="grid size-[22px] flex-none place-items-center text-[21px] leading-none">+</span>
-        {expanded && <span className="text-[14.5px]">Add</span>}
+        <span className="grid size-[20px] flex-none place-items-center text-[19px] leading-none">+</span>
+        {expanded && <span className="text-[13.5px]">Add expense</span>}
       </button>
 
       {/* User */}
       <button
         onClick={() => onNavigate("profile")}
-        className="mt-1.5 flex cursor-pointer items-center gap-3 border-none border-t border-white/[0.07] bg-transparent px-1.5 pt-3.5 text-left"
+        className="border-sidebar-border mt-1.5 flex cursor-pointer items-center gap-3 border-none border-t bg-transparent px-1 pt-3.5 text-left"
       >
-        <div
-          className="grid size-[34px] flex-none place-items-center rounded-full text-sm font-semibold"
-          style={{ background: "#6B4B35", color: "#F2EDE1" }}
-        >
+        <div className="bg-popover border-border text-primary grid size-[32px] flex-none place-items-center rounded-full border text-sm font-medium">
           {initial}
         </div>
         {expanded && (
           <div className="min-w-0">
             <div className="truncate text-[13.5px] font-medium">{user?.displayName}</div>
-            <div className="text-[12.5px]" style={{ color: "#C0B1A0" }}>
-              Level 4 · Saver
-            </div>
+            <div className="text-muted-foreground text-[12px]">Level 4 · Saver</div>
           </div>
         )}
       </button>
@@ -146,11 +148,11 @@ export function MobileNav({
             onClick={() => onNavigate(item.key)}
             aria-current={active ? "page" : undefined}
             aria-label={item.label}
-            className={`flex flex-1 cursor-pointer flex-col items-center gap-0.5 rounded-lg border-none bg-transparent py-1.5 text-[11px] font-medium ${
+            className={`flex flex-1 cursor-pointer flex-col items-center gap-1 border-none bg-transparent py-1.5 font-mono text-[9.5px] font-medium tracking-[0.06em] uppercase ${
               active ? "text-primary" : "text-sidebar-foreground"
             }`}
           >
-            <NavIcon name={item.icon} size={20} />
+            <NavIcon name={item.icon} size={19} />
             {item.label}
           </button>
         )
@@ -158,7 +160,7 @@ export function MobileNav({
       <button
         onClick={onAdd}
         aria-label="Add transaction"
-        className="bg-primary text-primary-foreground ml-1 grid size-11 flex-none place-items-center rounded-full border-none text-2xl leading-none shadow-[0_6px_18px_rgba(217,169,122,0.4)]"
+        className="bg-[#123945] border-[#4C93A6] text-[#C4E7F0] ml-1 grid size-11 flex-none place-items-center border text-2xl leading-none"
       >
         +
       </button>

@@ -18,7 +18,7 @@ const QuestsTab = lazy(() => import("@/pages/QuestsTab"))
 /** Shown for the moment a tab's chunk is in flight; matches the ledger-label voice. */
 function TabLoading() {
   return (
-    <div className="ledger-label py-16 text-center" style={{ color: "#a89473" }}>
+    <div className="ledger-label py-16 text-center">
       Turning the page
     </div>
   )
@@ -144,7 +144,7 @@ export default function HomePage() {
         {/* Header */}
         <header className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-[26px] font-semibold tracking-tight sm:text-[31px]">
+            <h1 className="font-heading text-[26px] font-semibold tracking-tight sm:text-[31px]">
               {head.title(firstName)}
             </h1>
             <p className="text-muted-foreground mt-1.5 text-[14px] sm:text-[15px]">{head.subtitle}</p>
@@ -156,7 +156,7 @@ export default function HomePage() {
               onClick={openMobileSearch}
               aria-label="Search transactions"
               aria-expanded={searchOpen}
-              className={`text-muted-foreground hover:text-foreground bg-card grid size-11 flex-none cursor-pointer place-items-center rounded-xl border border-white/[0.08] transition-colors hover:bg-white/[0.06] sm:hidden ${
+              className={`text-muted-foreground hover:text-foreground bg-card border-border grid size-11 flex-none cursor-pointer place-items-center border transition-colors hover:bg-white/[0.06] sm:hidden ${
                 searchOpen ? "hidden" : ""
               }`}
             >
@@ -164,7 +164,7 @@ export default function HomePage() {
             </button>
 
             <div
-              className={`bg-card w-full min-w-0 items-center gap-2.5 rounded-xl border border-white/[0.08] px-4 py-3 sm:flex sm:w-auto sm:min-w-[230px] ${
+              className={`bg-card border-border w-full min-w-0 items-center gap-2.5 border px-4 py-3 sm:flex sm:w-auto sm:min-w-[230px] ${
                 searchOpen ? "flex" : "hidden"
               }`}
             >
@@ -180,7 +180,7 @@ export default function HomePage() {
                 aria-label="Search transactions"
                 className="text-foreground min-w-0 flex-1 border-none bg-transparent text-sm outline-none"
               />
-              <span className="text-muted-foreground hidden rounded-[5px] border border-white/12 px-1.5 py-0.5 font-mono text-[12px] sm:inline">
+              <span className="text-muted-foreground border-border hidden border px-1.5 py-0.5 font-mono text-[12px] sm:inline">
                 ⌘K
               </span>
               <button

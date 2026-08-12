@@ -25,7 +25,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {toast && (
         <div
           role="status"
-          className="bg-popover fixed bottom-7 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-xl border px-4 py-3 shadow-2xl"
+          className="bg-popover border-border fixed bottom-7 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 border px-4 py-3 shadow-[0_12px_24px_rgba(0,0,0,0.4)]"
           style={{ animation: "toast-in .25s ease" }}
         >
           <span className="bg-primary/15 text-primary grid size-6 flex-none place-items-center rounded-full">

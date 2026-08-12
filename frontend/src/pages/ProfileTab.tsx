@@ -20,7 +20,7 @@ import {
 } from "@/lib/api"
 import { clearArgaliStorage } from "@/lib/storage"
 import { useToast } from "@/components/Toast"
-import { CloseIcon } from "@/components/brand"
+import { CloseIcon, HornGlyph } from "@/components/brand"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   Select,
@@ -38,8 +38,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 
-const GOOD = "#9cb37a"
-const OUT = "#c96a4e"
+const GOOD = "#8FC7A6"
+const OUT = "#E09880"
 
 const today = () => new Date().toISOString().slice(0, 10)
 const toBani = (v: FormDataEntryValue | null) => Math.round(parseFloat(String(v)) * 100)
@@ -52,7 +52,13 @@ const RECURRENCE_LABEL: Record<IncomeSource["recurrence"], string> = {
 
 const CARD = "ledger-card p-6"
 const FIELD =
-  "text-foreground w-full rounded-xl border border-white/10 bg-[#241C17] px-3.5 py-2.5 text-sm outline-none focus-visible:border-primary"
+  "text-foreground w-full border border-border bg-transparent px-3.5 py-2.5 text-sm outline-none focus-visible:border-[#4C93A6]"
+const CTA =
+  "cursor-pointer border border-[#4C93A6] bg-[#123945] text-[#C4E7F0] hover:bg-[#174756]"
+const OUTLINED =
+  "cursor-pointer border border-border bg-transparent text-foreground/85 hover:border-[#4C93A6] hover:text-foreground"
+const OUTLINED_DESTRUCTIVE =
+  "cursor-pointer border border-destructive/40 bg-transparent text-destructive hover:border-destructive hover:bg-destructive/10"
 
 function monogram(label: string): string {
   const w = label.trim().split(/\s+/).filter(Boolean)
@@ -76,18 +82,18 @@ function SalaryCalculatorCard() {
     }
   }
 
-  const row = "flex items-baseline justify-between border-b border-white/[0.06] py-3.5 text-[15px]"
+  const row = "flex items-baseline justify-between border-b border-[#2A3033] py-3.5 text-[15px]"
 
   return (
     <section className={CARD}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-[20px] font-semibold">Salary calculator</h2>
-        <span className="flex gap-0.5 rounded-lg bg-white/[0.06] p-[3px]">
+        <span className="border-border flex gap-0.5 border p-[3px]">
           {(["GROSS_TO_NET", "NET_TO_GROSS"] as const).map((m) => (
             <button
               key={m}
               onClick={() => setMode(m)}
-              className={`cursor-pointer rounded-md border-none px-3 py-1 font-mono text-[12.5px] font-medium ${
+              className={`cursor-pointer border-none px-3 py-1 font-mono text-[12.5px] font-medium ${
                 mode === m ? "bg-primary text-primary-foreground" : "text-muted-foreground bg-transparent"
               }`}
             >
@@ -110,12 +116,9 @@ function SalaryCalculatorCard() {
             required
             inputMode="decimal"
             placeholder="0.00"
-            className={`${FIELD} tnum !py-4 font-mono text-[22px] font-bold`}
+            className={`${FIELD} figure !py-4 text-[22px]`}
           />
-          <button
-            type="submit"
-            className="bg-primary text-primary-foreground cursor-pointer rounded-xl border-none px-5 text-[14px] font-semibold hover:bg-[#D8B27A]"
-          >
+          <button type="submit" className={`${CTA} px-5 text-[14px] font-semibold`}>
             Go
           </button>
         </div>
@@ -128,10 +131,10 @@ function SalaryCalculatorCard() {
       )}
 
       {result && (
-        <div className="mt-5 rounded-2xl border border-white/[0.07] bg-[#241C17] p-5.5">
+        <div className="border-border bg-secondary mt-5 border p-5.5">
           <div className={row}>
             <span>Gross salary</span>
-            <span className="tnum font-mono">{formatRon(result.gross)}</span>
+            <span className="figure">{formatRon(result.gross)}</span>
           </div>
           {[
             ["CAS — pension (25%)", result.cas],
@@ -140,14 +143,14 @@ function SalaryCalculatorCard() {
           ].map(([label, value]) => (
             <div key={label as string} className={row}>
               <span>{label}</span>
-              <span className="tnum font-mono" style={{ color: OUT }}>
+              <span className="figure" style={{ color: OUT }}>
                 −{formatRon(value as number)}
               </span>
             </div>
           ))}
           <div className="flex items-baseline justify-between pt-4 text-[17px] font-semibold">
             <span>Net salary</span>
-            <span className="tnum font-mono text-[22px] font-bold" style={{ color: GOOD }}>
+            <span className="figure text-[22px]" style={{ color: GOOD }}>
               {formatRon(result.net)}
             </span>
           </div>
@@ -295,19 +298,20 @@ export default function ProfileTab() {
         {/* Left */}
         <div className="flex min-w-[min(100%,360px)] flex-1 basis-[46%] flex-col gap-[22px]">
           {/* Profile */}
-          <section
-            className="flex items-center gap-5 rounded-2xl border border-white/[0.09] p-6"
-            style={{ background: "linear-gradient(160deg,#3A2A1E 0%,#191210 100%)" }}
-          >
-            <div
-              className="grid size-[66px] flex-none place-items-center rounded-full text-[26px] font-semibold"
-              style={{ background: "#C79A5B", color: "#14100D" }}
-            >
-              {initial}
-            </div>
-            <div>
-              <div className="text-[24px] font-semibold tracking-tight">{user?.displayName}</div>
-              <div className="text-muted-foreground mt-1 text-[14px]">{user?.email}</div>
+          <section className="border-border relative overflow-hidden border p-6" style={{ background: "var(--card)" }}>
+            <HornGlyph className="text-primary pointer-events-none absolute -right-6 -top-6 size-40 opacity-[0.08]" aria-hidden="true" />
+            <div className="relative flex items-center gap-5">
+              <div
+                className="grid size-[54px] flex-none place-items-center border text-[20px] font-semibold"
+                style={{ borderColor: "#9AD4E3", color: "#9AD4E3" }}
+              >
+                {initial}
+              </div>
+              <div>
+                <div className="ledger-label">Account</div>
+                <div className="font-heading mt-1 text-[24px] font-semibold tracking-tight">{user?.displayName}</div>
+                <div className="text-muted-foreground mt-1 text-[14px]">{user?.email}</div>
+              </div>
             </div>
           </section>
 
@@ -315,13 +319,13 @@ export default function ProfileTab() {
           <section className={`${CARD} flex items-center justify-between`}>
             <div>
               <div className="ledger-label">Net worth</div>
-              <div className="tnum mt-1.5 font-mono text-[22px] font-bold">
+              <div className="figure mt-1.5 text-[22px]">
                 {netWorth ? formatRon(netWorth.total) : "—"}
               </div>
             </div>
             <div className="text-right">
               <div className="ledger-label">Income / month</div>
-              <div className="tnum mt-1.5 font-mono text-[18px] font-semibold" style={{ color: GOOD }}>
+              <div className="figure mt-1.5 text-[18px]" style={{ color: GOOD }}>
                 {netWorth ? formatRon(netWorth.monthlyIncome) : "—"}
               </div>
             </div>
@@ -348,30 +352,27 @@ export default function ProfileTab() {
                 </Select>
                 <input name="startDate" type="date" required defaultValue={today()} aria-label="Start date" className={`${FIELD} font-mono`} />
               </div>
-              <button
-                type="submit"
-                className="bg-primary text-primary-foreground cursor-pointer rounded-xl border-none px-4 py-2.5 text-[13.5px] font-semibold hover:bg-[#D8B27A]"
-              >
+              <button type="submit" className={`${CTA} px-4 py-2.5 text-[13.5px] font-semibold`}>
                 Add income source
               </button>
             </form>
             <div className="mt-2">
               {income.map((source) => (
-                <div key={source.id} className="flex items-center gap-3.5 border-b border-white/[0.05] py-3 last:border-b-0">
-                  <div className="grid size-10 flex-none place-items-center rounded-xl bg-[#241C17] font-mono text-[13px] text-[#CFC1AE]">
+                <div key={source.id} className="flex items-center gap-3.5 border-b border-[#2A3033] py-3 last:border-b-0">
+                  <div className="border-border text-muted-foreground grid size-10 flex-none place-items-center border font-mono text-[13px]">
                     {monogram(source.name)}
                   </div>
                   <div className="flex-1">
                     <p className="text-[14px] font-medium">{source.name}</p>
                     <p className="text-muted-foreground text-[12px]">{RECURRENCE_LABEL[source.recurrence]}</p>
                   </div>
-                  <span className="tnum font-mono text-[14px] font-medium" style={{ color: GOOD }}>
+                  <span className="figure text-[14px] font-medium" style={{ color: GOOD }}>
                     {formatRon(source.amount)}
                   </span>
                   <button
                     onClick={() => deleteIncomeSource(source.id).then(reload)}
                     aria-label="Remove income source"
-                    className="text-muted-foreground hover:text-foreground grid size-9 flex-none cursor-pointer place-items-center rounded-lg hover:bg-white/[0.06]"
+                    className="text-muted-foreground hover:text-foreground grid size-9 flex-none cursor-pointer place-items-center hover:bg-white/[0.06]"
                   >
                     <CloseIcon size={15} />
                   </button>
@@ -380,9 +381,9 @@ export default function ProfileTab() {
               {income.length === 0 && <p className="text-muted-foreground py-2 text-sm">No income sources yet.</p>}
             </div>
             {netWorth && (
-              <div className="mt-2 flex justify-between border-t border-white/[0.07] pt-4 text-[15px] font-semibold">
+              <div className="border-border mt-2 flex justify-between border-t pt-4 text-[15px] font-semibold">
                 <span>Total monthly income</span>
-                <span className="tnum font-mono">{formatRon(netWorth.monthlyIncome)}</span>
+                <span className="figure">{formatRon(netWorth.monthlyIncome)}</span>
               </div>
             )}
           </section>
@@ -393,10 +394,7 @@ export default function ProfileTab() {
             <form className="flex gap-2.5" onSubmit={addSavings}>
               <input name="name" required placeholder="Emergency fund" aria-label="Savings name" className={FIELD} />
               <input name="balance" type="number" step="0.01" min="0" required placeholder="Balance" aria-label="Balance" className={`${FIELD} max-w-36 font-mono`} />
-              <button
-                type="submit"
-                className="bg-primary text-primary-foreground cursor-pointer rounded-xl border-none px-4 text-[13.5px] font-semibold hover:bg-[#D8B27A]"
-              >
+              <button type="submit" className={`${CTA} px-4 text-[13.5px] font-semibold`}>
                 Add
               </button>
             </form>
@@ -404,17 +402,17 @@ export default function ProfileTab() {
               {savings.map((account) => (
                 <li key={account.id} className="flex items-center justify-between gap-2 py-2 text-sm">
                   <span className="flex items-center gap-3">
-                    <span className="grid size-9 flex-none place-items-center rounded-lg bg-[#241C17] font-mono text-[12px] text-[#CFC1AE]">
+                    <span className="border-border text-muted-foreground grid size-9 flex-none place-items-center border font-mono text-[12px]">
                       {monogram(account.name)}
                     </span>
                     {account.name}
                   </span>
                   <span className="flex items-center gap-1.5">
-                    <span className="tnum font-mono font-medium">{formatRon(account.balance)}</span>
+                    <span className="figure font-medium">{formatRon(account.balance)}</span>
                     <button onClick={() => adjustBalance(account)} className="text-muted-foreground hover:text-foreground cursor-pointer px-1.5 text-[13px]">
                       Adjust
                     </button>
-                    <button onClick={() => deleteSavings(account.id).then(reload)} aria-label="Delete pot" className="text-muted-foreground hover:text-foreground grid size-8 flex-none cursor-pointer place-items-center rounded-lg hover:bg-white/[0.06]">
+                    <button onClick={() => deleteSavings(account.id).then(reload)} aria-label="Delete pot" className="text-muted-foreground hover:text-foreground grid size-8 flex-none cursor-pointer place-items-center hover:bg-white/[0.06]">
                       <CloseIcon size={15} />
                     </button>
                   </span>
@@ -432,10 +430,7 @@ export default function ProfileTab() {
                 Download a copy of your profile, income, savings and expenses
               </div>
             </div>
-            <button
-              onClick={handleExport}
-              className="text-foreground cursor-pointer rounded-full border border-white/15 bg-transparent px-6 py-2.5 text-[14px] font-medium hover:bg-white/[0.06]"
-            >
+            <button onClick={handleExport} className={`${OUTLINED} px-6 py-2.5 text-[14px] font-medium`}>
               Download export
             </button>
           </section>
@@ -446,26 +441,20 @@ export default function ProfileTab() {
               <div className="text-[16px] font-semibold">Sign out</div>
               <div className="text-muted-foreground mt-1 text-[13.5px]">End your session on this device</div>
             </div>
-            <button
-              onClick={logout}
-              className="text-destructive cursor-pointer rounded-full border border-[#c96a4e]/50 bg-transparent px-6 py-2.5 text-[14px] font-medium hover:bg-[#c96a4e]/12"
-            >
+            <button onClick={logout} className={`${OUTLINED_DESTRUCTIVE} px-6 py-2.5 text-[14px] font-medium`}>
               Log out
             </button>
           </section>
 
           {/* Delete account */}
-          <section className={`${CARD} flex flex-wrap items-center justify-between gap-4`}>
+          <section className={`${CARD} flex flex-wrap items-center justify-between gap-4`} style={{ borderColor: "rgba(224,152,128,.35)" }}>
             <div>
-              <div className="text-[16px] font-semibold">Delete account</div>
+              <div className="text-[16px] font-semibold" style={{ color: OUT }}>Delete account</div>
               <div className="text-muted-foreground mt-1 text-[13.5px]">
                 Permanently erase your account and all your data — this cannot be undone.
               </div>
             </div>
-            <button
-              onClick={() => setDeleteOpen(true)}
-              className="text-destructive cursor-pointer rounded-full border border-[#c96a4e]/50 bg-transparent px-6 py-2.5 text-[14px] font-medium hover:bg-[#c96a4e]/12"
-            >
+            <button onClick={() => setDeleteOpen(true)} className={`${OUTLINED_DESTRUCTIVE} px-6 py-2.5 text-[14px] font-medium`}>
               Delete account
             </button>
           </section>
@@ -499,15 +488,14 @@ export default function ProfileTab() {
               <DialogFooter>
                 <button
                   onClick={() => onDeleteDialogChange(false)}
-                  className="text-foreground cursor-pointer rounded-full border border-white/15 bg-transparent px-5 py-2.5 text-[14px] font-medium hover:bg-white/[0.06]"
+                  className={`${OUTLINED} px-5 py-2.5 text-[14px] font-medium`}
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleDeleteAccount}
                   disabled={deleteConfirmText !== "DELETE" || deleting}
-                  style={{ background: OUT, color: "#14100D" }}
-                  className="cursor-pointer rounded-full border-none px-5 py-2.5 text-[14px] font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+                  className="cursor-pointer border border-destructive bg-transparent px-5 py-2.5 text-[14px] font-semibold text-destructive hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {deleting ? "Deleting…" : "Delete my account"}
                 </button>

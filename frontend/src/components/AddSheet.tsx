@@ -95,7 +95,8 @@ export function AddSheet({
   }
 
   const fieldClass =
-    "text-foreground w-full rounded-xl border border-white/10 bg-[#241C17] px-4.5 py-3.5 text-[15px] outline-none focus-visible:border-primary"
+    "text-foreground border-border w-full border bg-transparent px-4 py-3.5 text-[15px] outline-none focus-visible:border-primary"
+  const fieldLabelClass = "ledger-label mt-6 mb-2.5 block text-[10.5px]"
 
   return (
     <div
@@ -105,14 +106,14 @@ export function AddSheet({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-card h-full w-[430px] max-w-[92vw] overflow-y-auto border-l border-white/10 p-7 shadow-[-24px_0_60px_rgba(0,0,0,0.5)]"
+        className="bg-popover border-border h-full w-[430px] max-w-[92vw] overflow-y-auto border-l p-7 shadow-[-24px_0_60px_rgba(0,0,0,0.5)]"
         style={{ animation: "sheetIn .22s cubic-bezier(.22,.9,.3,1)" }}
         role="dialog"
         aria-label="Add transaction"
       >
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-[22px] font-semibold tracking-tight">Add transaction</h2>
+            <h2 className="font-heading text-[22px] font-semibold tracking-tight">Add transaction</h2>
             <p className="text-muted-foreground mt-1.5 text-[13.5px]">
               Balance stays visible while you type
             </p>
@@ -120,13 +121,13 @@ export function AddSheet({
           <button
             onClick={onClose}
             aria-label="Close"
-            className="text-muted-foreground hover:text-foreground grid size-9 flex-none cursor-pointer place-items-center rounded-[10px] border border-white/10 bg-white/[0.06] hover:bg-white/[0.12]"
+            className="text-muted-foreground border-border hover:border-[#4C93A6] grid size-9 flex-none cursor-pointer place-items-center border bg-transparent hover:text-foreground"
           >
             <CloseIcon />
           </button>
         </div>
 
-        <label className="text-muted-foreground mt-6.5 mb-2.5 block text-[13px]">Amount (RON)</label>
+        <label className={fieldLabelClass}>Amount (RON)</label>
         <input
           ref={amountRef}
           value={amount}
@@ -134,10 +135,10 @@ export function AddSheet({
           onKeyDown={(e) => e.key === "Enter" && save()}
           inputMode="decimal"
           placeholder="0.00"
-          className={`${fieldClass} tnum font-mono text-2xl font-bold`}
+          className={`${fieldClass} tnum font-mono text-2xl font-light`}
         />
 
-        <label className="text-muted-foreground mt-5 mb-2.5 block text-[13px]">Description</label>
+        <label className={fieldLabelClass}>Description</label>
         <input
           value={note}
           onChange={(e) => setNote(e.target.value)}
@@ -146,19 +147,19 @@ export function AddSheet({
           className={fieldClass}
         />
 
-        <label className="text-muted-foreground mt-5 mb-2.5 block text-[13px]">Category</label>
+        <label className={fieldLabelClass}>Category</label>
         {chips.length > 0 && (
-          <div className="mb-3 flex flex-wrap gap-2.5">
+          <div className="mb-3 flex flex-wrap gap-2">
             {chips.map((c) => {
               const active = categoryId === c.id
               return (
                 <button
                   key={c.id}
                   onClick={() => setCategoryId(c.id)}
-                  className={`cursor-pointer rounded-full border px-3.5 py-2 text-[13.5px] transition-colors ${
+                  className={`status-tag cursor-pointer border px-3 py-1.5 transition-colors ${
                     active
-                      ? "border-primary bg-primary/15 text-foreground"
-                      : "border-white/12 bg-white/[0.05] hover:border-primary"
+                      ? "border-primary text-primary"
+                      : "border-border text-muted-foreground hover:border-[#4C93A6]"
                   }`}
                 >
                   {categoryLabel(categories, c.id)}
@@ -169,7 +170,7 @@ export function AddSheet({
         )}
         <CategorySelect categories={categories} value={categoryId} onChange={setCategoryId} />
 
-        <label className="text-muted-foreground mt-5 mb-2.5 block text-[13px]">Date</label>
+        <label className={fieldLabelClass}>Date</label>
         <input
           type="date"
           value={date}
@@ -182,14 +183,14 @@ export function AddSheet({
         <div className="mt-7.5 flex gap-3">
           <button
             onClick={onClose}
-            className="text-foreground flex-1 cursor-pointer rounded-xl border border-white/15 bg-transparent py-3.5 text-[14.5px] hover:bg-white/[0.06]"
+            className="text-foreground border-border flex-1 cursor-pointer border bg-transparent py-3.5 text-[14.5px] hover:bg-popover"
           >
             Cancel
           </button>
           <button
             onClick={save}
             disabled={saving}
-            className="bg-primary text-primary-foreground flex-[2] cursor-pointer rounded-xl border-none py-3.5 text-[14.5px] font-semibold shadow-[0_8px_22px_rgba(217,169,122,0.35)] hover:bg-[#D8B27A] disabled:opacity-60"
+            className="bg-[#123945] border-[#4C93A6] text-[#C4E7F0] hover:bg-[#174756] flex-[2] cursor-pointer border py-3.5 text-[14.5px] font-medium disabled:opacity-60"
           >
             {saving ? "Saving…" : "Save transaction"}
           </button>
