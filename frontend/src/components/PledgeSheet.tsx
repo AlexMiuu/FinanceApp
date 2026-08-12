@@ -101,7 +101,8 @@ export function PledgeSheet({
   }
 
   const fieldClass =
-    "text-foreground w-full rounded-xl border border-white/10 bg-[#241C17] px-4.5 py-3.5 text-[15px] outline-none focus-visible:border-primary"
+    "text-foreground border-border w-full border bg-transparent px-4.5 py-3.5 text-[15px] outline-none focus-visible:border-primary"
+  const fieldLabelClass = "ledger-label mt-6 mb-2.5 block text-[10.5px]"
 
   const previewAmount =
     amount && !Number.isNaN(parseFloat(amount)) ? `${parseFloat(amount).toFixed(2)} RON` : "—"
@@ -116,14 +117,14 @@ export function PledgeSheet({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-card h-full w-[430px] max-w-[92vw] overflow-y-auto border-l border-white/10 p-7 shadow-[-24px_0_60px_rgba(0,0,0,0.5)]"
+        className="bg-popover border-border h-full w-[430px] max-w-[92vw] overflow-y-auto border-l p-7 shadow-[-24px_0_60px_rgba(0,0,0,0.5)]"
         style={{ animation: "sheetIn .22s cubic-bezier(.22,.9,.3,1)" }}
         role="dialog"
         aria-label="Take an oath"
       >
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-[22px] font-semibold tracking-tight">Take an oath</h2>
+            <h2 className="font-heading text-[22px] font-semibold tracking-tight">Take an oath</h2>
             <p className="text-muted-foreground mt-1.5 text-[13.5px]">
               A pledge, sworn before you spend — not a record after
             </p>
@@ -131,7 +132,7 @@ export function PledgeSheet({
           <button
             onClick={onClose}
             aria-label="Close"
-            className="text-muted-foreground hover:text-foreground grid size-9 flex-none cursor-pointer place-items-center rounded-[10px] border border-white/10 bg-white/[0.06] hover:bg-white/[0.12]"
+            className="text-muted-foreground border-border hover:border-[#4C93A6] grid size-9 flex-none cursor-pointer place-items-center border bg-transparent hover:text-foreground"
           >
             <CloseIcon />
           </button>
@@ -143,7 +144,7 @@ export function PledgeSheet({
           <span className="text-foreground font-medium">{previewCategory}</span> {previewWindow}.
         </p>
 
-        <label className="text-muted-foreground mt-6 mb-2.5 block text-[13px]">Pledged amount (RON)</label>
+        <label className={fieldLabelClass}>Pledged amount (RON)</label>
         <input
           ref={amountRef}
           value={amount}
@@ -151,22 +152,22 @@ export function PledgeSheet({
           onKeyDown={(e) => e.key === "Enter" && save()}
           inputMode="decimal"
           placeholder="0.00"
-          className={`${fieldClass} tnum font-mono text-2xl font-bold`}
+          className={`${fieldClass} tnum font-mono text-2xl font-light`}
         />
 
-        <label className="text-muted-foreground mt-5 mb-2.5 block text-[13px]">Category</label>
+        <label className={fieldLabelClass}>Category</label>
         <CategorySelect categories={categories} value={categoryId} onChange={setCategoryId} />
 
-        <label className="text-muted-foreground mt-5 mb-2.5 block text-[13px]">Window</label>
+        <label className={fieldLabelClass}>Window</label>
         <div className="flex gap-2.5">
           {PRESETS.map((p) => (
             <button
               key={p.key}
               onClick={() => setPreset(p.key)}
-              className={`flex-1 cursor-pointer rounded-xl border px-3.5 py-3 text-[13.5px] transition-colors ${
+              className={`flex-1 cursor-pointer border px-3.5 py-3 text-[13.5px] transition-colors ${
                 preset === p.key
                   ? "border-primary bg-primary/15 text-foreground"
-                  : "border-white/12 bg-white/[0.05] hover:border-primary"
+                  : "border-border bg-transparent text-muted-foreground hover:border-[#4C93A6]"
               }`}
             >
               {p.label}
@@ -179,14 +180,14 @@ export function PledgeSheet({
         <div className="mt-7.5 flex gap-3">
           <button
             onClick={onClose}
-            className="text-foreground flex-1 cursor-pointer rounded-xl border border-white/15 bg-transparent py-3.5 text-[14.5px] hover:bg-white/[0.06]"
+            className="text-foreground border-border flex-1 cursor-pointer border bg-transparent py-3.5 text-[14.5px] hover:bg-popover"
           >
             Cancel
           </button>
           <button
             onClick={save}
             disabled={saving}
-            className="bg-primary text-primary-foreground flex-[2] cursor-pointer rounded-xl border-none py-3.5 text-[14.5px] font-semibold shadow-[0_8px_22px_rgba(217,169,122,0.35)] hover:bg-[#D8B27A] disabled:opacity-60"
+            className="bg-[#123945] border-[#4C93A6] text-[#C4E7F0] hover:bg-[#174756] flex-[2] cursor-pointer border py-3.5 text-[14.5px] font-medium disabled:opacity-60"
           >
             {saving ? "Swearing…" : "Swear the oath"}
           </button>

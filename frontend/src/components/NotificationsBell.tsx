@@ -14,9 +14,9 @@ import {
 
 // A small status dot stands in for each notification type — one hand, no emoji.
 const TYPE_DOT: Record<string, string> = {
-  "quest.completed": "#9cb37a",
-  "quest.failed": "#c96a4e",
-  "quest.suggested": "#c79a5b",
+  "quest.completed": "var(--good)",
+  "quest.failed": "var(--destructive)",
+  "quest.suggested": "var(--primary)",
 }
 
 export function NotificationsBell() {
@@ -65,19 +65,24 @@ export function NotificationsBell() {
     <Popover>
       <PopoverTrigger asChild>
         <button
-          className="bg-card text-foreground/85 relative grid size-11 cursor-pointer place-items-center rounded-xl border border-white/[0.08] transition-colors hover:bg-[#241C17] hover:text-foreground"
+          className="text-muted-foreground border-border hover:border-[#4C93A6] relative grid size-11 cursor-pointer place-items-center border bg-transparent transition-colors hover:text-foreground"
           aria-label={unread > 0 ? `Notifications — ${unread} unread` : "Notifications"}
           title={unread > 0 ? `Notifications — ${unread} unread` : "Notifications"}
         >
           <BellIcon />
           {unread > 0 && (
-            <span className="bg-destructive border-card absolute right-2 top-2 size-2 rounded-full border-[1.5px]" />
+            <span className="bg-primary text-primary-foreground border-sidebar absolute -right-1.5 -top-1.5 flex h-[16px] min-w-[16px] items-center justify-center border px-1 font-mono text-[10px] leading-none">
+              {unread > 9 ? "9+" : unread}
+            </span>
           )}
         </button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-80 p-0">
+      <PopoverContent
+        align="end"
+        className="bg-popover border-border w-80 rounded-none p-0 shadow-[0_12px_24px_rgba(0,0,0,0.4)]"
+      >
         <div className="flex items-center justify-between border-b p-3">
-          <p className="text-sm font-semibold">Notifications</p>
+          <p className="ledger-label text-[10.5px]">Notifications</p>
           {unread > 0 && (
             <Button variant="ghost" size="sm" onClick={readAll}>
               Mark all read
@@ -98,7 +103,7 @@ export function NotificationsBell() {
               <p className="flex items-center gap-2 font-medium">
                 <span
                   className="size-1.5 flex-none rounded-full"
-                  style={{ background: TYPE_DOT[n.type] ?? "#bfae97" }}
+                  style={{ background: TYPE_DOT[n.type] ?? "var(--muted-foreground)" }}
                 />
                 {n.title}
               </p>
