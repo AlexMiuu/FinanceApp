@@ -1,12 +1,19 @@
 package com.personalfinance.quest.service;
 
+import java.text.Normalizer;
 import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.Month;
 import java.time.YearMonth;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
+import java.util.OptionalDouble;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -15,11 +22,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.personalfinance.quest.entity.ExpenseProjectionEntity;
+import com.personalfinance.quest.entity.MacroSeasonEntity;
 import com.personalfinance.quest.entity.QuestEntity;
 import com.personalfinance.quest.entity.UserIncomeEntity;
 import com.personalfinance.quest.events.Events;
 import com.personalfinance.quest.exception.NotFoundException;
 import com.personalfinance.quest.repository.ExpenseProjectionRepository;
+import com.personalfinance.quest.repository.MacroSeasonRepository;
 import com.personalfinance.quest.repository.QuestRepository;
 import com.personalfinance.quest.repository.UserIncomeRepository;
 
@@ -33,16 +42,31 @@ public class QuestService {
 
     private static final long MIN_CAP = 10_00; // 10 RON floor so caps never degenerate
 
+    private static final Set<Month> WINTER_MONTHS = Set.of(Month.DECEMBER, Month.JANUARY, Month.FEBRUARY);
+    private static final Set<Month> SUMMER_MONTHS = Set.of(Month.JUNE, Month.JULY, Month.AUGUST);
+    private static final double RESERVE_INCOME_SHARE = 0.10;
+
+    /**
+     * The macro calendar's season vocabulary belongs to report-service, so the
+     * autumn-descent window is matched against several spellings of the same
+     * moment rather than one literal: a naming difference across the service
+     * boundary would otherwise disable the quest silently.
+     */
+    private static final Set<String> RESERVE_SEASONS =
+            Set.of("COBORATUL", "COBORATUL_OILOR", "AUTUMN_DESCENT", "AUTUMN", "TOAMNA");
+
     private final QuestRepository quests;
     private final ExpenseProjectionRepository expenses;
     private final UserIncomeRepository incomes;
+    private final MacroSeasonRepository seasons;
     private final ApplicationEventPublisher events;
 
     public QuestService(QuestRepository quests, ExpenseProjectionRepository expenses,
-            UserIncomeRepository incomes, ApplicationEventPublisher events) {
+            UserIncomeRepository incomes, MacroSeasonRepository seasons, ApplicationEventPublisher events) {
         this.quests = quests;
         this.expenses = expenses;
         this.incomes = incomes;
+        this.seasons = seasons;
         this.events = events;
     }
 
@@ -138,6 +162,116 @@ public class QuestService {
                         Map.of("cap", lastMonthTotal), month.atDay(1), month.atEndOfMonth());
             }
         }
+
+        // SEASONAL_RESERVE: only inside the macro calendar's lead-up to winter.
+        seasons.findById(MacroSeasonEntity.SINGLETON_ID)
+                .filter(season -> isReserveSeason(season.getSeason()))
+                .ifPresent(season -> suggestWinterReserve(userId, today, month, season));
+    }
+
+    /**
+     * A season change is addressed to nobody in particular, so re-templating fans
+     * out over every user this service knows about. It re-runs the ordinary
+     * generator rather than a seasonal-only path, which keeps one code path for
+     * both triggers and makes a redelivered event a no-op through the existing
+     * per-template idempotency guard.
+     */
+    @Transactional
+    public void applySeasonChange(String season, String source, LocalDate asOfDate, LocalDate today) {
+        if (season == null || season.isBlank()) {
+            throw new IllegalArgumentException("macro.season.changed carried no season");
+        }
+        seasons.save(new MacroSeasonEntity(season, source, asOfDate));
+        knownUserIds().forEach(userId -> generateSuggestions(userId, today));
+    }
+
+    private Set<UUID> knownUserIds() {
+        Set<UUID> userIds = new LinkedHashSet<>(expenses.findDistinctUserIds());
+        incomes.findAll().forEach(income -> userIds.add(income.getUserId()));
+        return userIds;
+    }
+
+    /**
+     * "Build the winter reserve": a monthly ceiling set below the user's usual
+     * spend by the amount they are asked to hold back. Modelled as a cap rather
+     * than a savings balance so the service stays non-custodial — the reserve is
+     * the gap the user leaves, never money this app holds — and so it reuses the
+     * existing cap evaluation unchanged.
+     */
+    private void suggestWinterReserve(UUID userId, LocalDate today, YearMonth month, MacroSeasonEntity season) {
+        if (quests.existsByUserIdAndTemplateCodeAndPeriodStart(userId, "SEASONAL_RESERVE", month.atDay(1))) {
+            return;
+        }
+        YearMonth previous = month.minusMonths(1);
+        long monthlyIncome = incomes.findById(userId).map(UserIncomeEntity::getMonthlyIncome).orElse(0L);
+        long usualSpend = expenses.sumForRange(userId, previous.atDay(1), previous.atEndOfMonth());
+        if (usualSpend < MIN_CAP) {
+            // No month to learn from: treat income as the envelope they would otherwise spend.
+            usualSpend = monthlyIncome;
+        }
+        long reserve = winterSpendDelta(userId, month)
+                .orElseGet(() -> Math.round(monthlyIncome * RESERVE_INCOME_SHARE));
+        long cap = usualSpend - reserve;
+        if (reserve < MIN_CAP || cap < MIN_CAP) {
+            return;
+        }
+        if (expenses.sumForRange(userId, month.atDay(1), today) > cap) {
+            return;
+        }
+        Map<String, Object> params = new HashMap<>();
+        params.put("cap", cap);
+        params.put("reserve", reserve);
+        params.put("season", season.getSeason());
+        if (season.getSource() != null) {
+            params.put("macroSource", season.getSource());
+        }
+        if (season.getAsOfDate() != null) {
+            params.put("macroAsOfDate", season.getAsOfDate().toString());
+        }
+        suggest(userId, "SEASONAL_RESERVE",
+                "Set aside " + ron(reserve) + " for winter — keep this month under " + ron(cap),
+                params, month.atDay(1), month.atEndOfMonth());
+    }
+
+    /**
+     * How much more a winter month has historically cost this user than a summer
+     * month. Only months that carry data are averaged: an absent month means the
+     * user was not recording yet, not that they spent nothing.
+     */
+    private Optional<Long> winterSpendDelta(UUID userId, YearMonth month) {
+        Map<YearMonth, Long> perMonth = expenses
+                .findByUserIdAndExpenseDateBetween(userId, month.minusMonths(12).atDay(1),
+                        month.minusMonths(1).atEndOfMonth())
+                .stream()
+                .collect(Collectors.groupingBy(row -> YearMonth.from(row.getExpenseDate()),
+                        Collectors.summingLong(ExpenseProjectionEntity::getAmount)));
+        OptionalDouble winter = averageOf(perMonth, WINTER_MONTHS);
+        OptionalDouble summer = averageOf(perMonth, SUMMER_MONTHS);
+        if (winter.isEmpty() || summer.isEmpty()) {
+            return Optional.empty();
+        }
+        long delta = Math.round(winter.getAsDouble() - summer.getAsDouble());
+        return delta >= MIN_CAP ? Optional.of(delta) : Optional.empty();
+    }
+
+    private static OptionalDouble averageOf(Map<YearMonth, Long> perMonth, Set<Month> months) {
+        return perMonth.entrySet().stream()
+                .filter(entry -> months.contains(entry.getKey().getMonth()))
+                .mapToLong(Map.Entry::getValue)
+                .average();
+    }
+
+    /** Diacritics and separators are normalized away before matching (see {@link #RESERVE_SEASONS}). */
+    static boolean isReserveSeason(String season) {
+        if (season == null || season.isBlank()) {
+            return false;
+        }
+        String normalized = Normalizer.normalize(season.trim(), Normalizer.Form.NFD)
+                .replaceAll("\\p{M}+", "")
+                .toUpperCase(Locale.ROOT)
+                .replaceAll("[^A-Z0-9]+", "_")
+                .replaceAll("^_+|_+$", "");
+        return RESERVE_SEASONS.contains(normalized);
     }
 
     private void suggest(UUID userId, String code, String title, Map<String, Object> params,

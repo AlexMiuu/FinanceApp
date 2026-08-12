@@ -1,6 +1,7 @@
 package com.personalfinance.report.events;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 /**
@@ -11,7 +12,7 @@ public final class Events {
     private Events() {
     }
 
-    public sealed interface DomainEvent permits ErasureCompleted, WeatherUpdated {
+    public sealed interface DomainEvent permits ErasureCompleted, WeatherUpdated, MacroSeasonChanged, MacroCpiUpdated {
         String routingKey();
     }
 
@@ -30,6 +31,29 @@ public final class Events {
         @Override
         public String routingKey() {
             return "ambient.weather.updated";
+        }
+    }
+
+    /**
+     * F1: the pastoral calendar has crossed into a new season. Global, not
+     * per-user — every consumer sees the same season at the same time.
+     */
+    public record MacroSeasonChanged(String season, String source, LocalDate asOfDate, Instant occurredAt)
+            implements DomainEvent {
+
+        @Override
+        public String routingKey() {
+            return "macro.season.changed";
+        }
+    }
+
+    /** F1: a fresh INS CPI print differs from the cached one. */
+    public record MacroCpiUpdated(String value, String source, LocalDate asOfDate, Instant occurredAt)
+            implements DomainEvent {
+
+        @Override
+        public String routingKey() {
+            return "macro.cpi.updated";
         }
     }
 

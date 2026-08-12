@@ -63,6 +63,9 @@ function QuestRow({ quest }: { quest: Quest }) {
   const fmt = (v: number) => (quest.kind === "DAYS" ? `${v} days` : formatRon(v).replace(/\s?RON$/, ""))
   const status = done ? "Done" : failed ? "Over" : quest.status === "ACTIVE" ? daysLeftLabel(quest.periodEnd) : `${fmt(quest.progress)} / ${fmt(quest.target)}`
 
+  const macroSource = quest.templateCode === "SEASONAL_RESERVE" ? quest.params.macroSource : undefined
+  const macroAsOfDate = quest.templateCode === "SEASONAL_RESERVE" ? quest.params.macroAsOfDate : undefined
+
   return (
     <div>
       <div className="flex items-baseline justify-between gap-2.5">
@@ -79,6 +82,11 @@ function QuestRow({ quest }: { quest: Quest }) {
       <div className="mt-2.5 text-[13px]" style={{ color: hot || failed ? color : "#C3B4A2" }}>
         {fmt(quest.progress)} of {fmt(quest.target)}
       </div>
+      {typeof macroSource === "string" && typeof macroAsOfDate === "string" && (
+        <div className="text-muted-foreground mt-1 text-[11px]">
+          via {macroSource}, as of {macroAsOfDate}
+        </div>
+      )}
     </div>
   )
 }

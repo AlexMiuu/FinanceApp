@@ -17,16 +17,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.personalfinance.quest.entity.ExpenseProjectionEntity;
+import com.personalfinance.quest.entity.MacroSeasonEntity;
 import com.personalfinance.quest.entity.QuestEntity;
 import com.personalfinance.quest.entity.UserIncomeEntity;
 import com.personalfinance.quest.events.Events;
 import com.personalfinance.quest.exception.NotFoundException;
 import com.personalfinance.quest.repository.ExpenseProjectionRepository;
+import com.personalfinance.quest.repository.MacroSeasonRepository;
 import com.personalfinance.quest.repository.QuestRepository;
 import com.personalfinance.quest.repository.UserIncomeRepository;
 
@@ -38,21 +41,32 @@ class QuestServiceTest {
     private QuestRepository quests;
     private ExpenseProjectionRepository expenses;
     private UserIncomeRepository incomes;
+    private MacroSeasonRepository seasons;
     private QuestService service;
     private final List<QuestEntity> saved = new ArrayList<>();
     private final List<Object> published = new ArrayList<>();
+    private final AtomicReference<MacroSeasonEntity> storedSeason = new AtomicReference<>();
 
     @BeforeEach
     void setUp() {
         quests = mock(QuestRepository.class);
         expenses = mock(ExpenseProjectionRepository.class);
         incomes = mock(UserIncomeRepository.class);
-        service = new QuestService(quests, expenses, incomes, published::add);
+        seasons = mock(MacroSeasonRepository.class);
+        service = new QuestService(quests, expenses, incomes, seasons, published::add);
         when(quests.save(any())).thenAnswer(inv -> {
             saved.add(inv.getArgument(0));
             return inv.getArgument(0);
         });
         when(quests.existsByUserIdAndTemplateCodeAndPeriodStart(any(), anyString(), any())).thenReturn(false);
+        // The season is written and then read back within one generation pass,
+        // so the mock has to behave like storage rather than two unrelated stubs.
+        when(seasons.save(any())).thenAnswer(inv -> {
+            storedSeason.set(inv.getArgument(0));
+            return inv.getArgument(0);
+        });
+        when(seasons.findById(MacroSeasonEntity.SINGLETON_ID))
+                .thenAnswer(inv -> Optional.ofNullable(storedSeason.get()));
     }
 
     private ExpenseProjectionEntity row(String path, boolean mandatory, long amount, LocalDate date) {
@@ -430,6 +444,68 @@ class QuestServiceTest {
             assertThat(view.kind()).isEqualTo("CAP");
             assertThat(view.target()).isEqualTo(10000L);
         });
+    }
+
+    // ---- applySeasonChange / SEASONAL_RESERVE (M15) ----
+
+    @Test
+    void applySeasonChangeRejectsANullOrBlankSeason() {
+        assertThatThrownBy(() -> service.applySeasonChange(null, "calendar", today, today))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> service.applySeasonChange("  ", "calendar", today, today))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    /**
+     * Regression test: report-service's real wire name for the autumn descent is
+     * "coboratul" (PastoralSeason.COBORATUL.wireName()), not any of the guessed
+     * spellings this class originally hedged against. This is the exact payload
+     * a live macro.season.changed event carries.
+     */
+    @Test
+    void seasonChangeToTheRealAutumnDescentWireNameSuggestsAWinterReserve() {
+        when(expenses.findDistinctUserIds()).thenReturn(List.of(userId));
+        when(incomes.findAll()).thenReturn(List.of());
+        when(incomes.findById(userId)).thenReturn(Optional.of(new UserIncomeEntity(userId, 300000)));
+        givenExpenses(List.of());
+        when(expenses.sumForRange(eq(userId), any(), any())).thenReturn(0L);
+
+        service.applySeasonChange("coboratul", "calendar", today, today);
+
+        List<String> codes = saved.stream().map(QuestEntity::getTemplateCode).toList();
+        assertThat(codes).contains("SEASONAL_RESERVE");
+    }
+
+    @Test
+    void seasonChangeToANonReserveSeasonSuggestsNoWinterReserve() {
+        when(expenses.findDistinctUserIds()).thenReturn(List.of(userId));
+        when(incomes.findAll()).thenReturn(List.of());
+        when(incomes.findById(userId)).thenReturn(Optional.of(new UserIncomeEntity(userId, 300000)));
+        givenExpenses(List.of());
+        when(expenses.sumForRange(eq(userId), any(), any())).thenReturn(0L);
+
+        service.applySeasonChange("munte", "calendar", today, today);
+
+        List<String> codes = saved.stream().map(QuestEntity::getTemplateCode).toList();
+        assertThat(codes).doesNotContain("SEASONAL_RESERVE");
+    }
+
+    @Test
+    void redeliveredSeasonChangeDoesNotDoubleSuggestTheReserve() {
+        when(expenses.findDistinctUserIds()).thenReturn(List.of(userId));
+        when(incomes.findAll()).thenReturn(List.of());
+        when(incomes.findById(userId)).thenReturn(Optional.of(new UserIncomeEntity(userId, 300000)));
+        givenExpenses(List.of());
+        when(expenses.sumForRange(eq(userId), any(), any())).thenReturn(0L);
+        // Simulate the first delivery having already created one: the idempotency
+        // guard is a DB unique constraint modeled here as an existsBy... stub.
+        when(quests.existsByUserIdAndTemplateCodeAndPeriodStart(eq(userId), eq("SEASONAL_RESERVE"), any()))
+                .thenReturn(true);
+
+        service.applySeasonChange("coboratul", "calendar", today, today);
+
+        List<String> codes = saved.stream().map(QuestEntity::getTemplateCode).toList();
+        assertThat(codes).doesNotContain("SEASONAL_RESERVE");
     }
 
     private QuestEntity quest(String templateCode, Map<String, Object> params) {
