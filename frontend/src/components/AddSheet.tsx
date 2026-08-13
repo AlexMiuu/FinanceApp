@@ -77,7 +77,7 @@ export function AddSheet({
     }
     const bani = Math.round(parseFloat(amount) * 100)
     if (!bani || bani <= 0) {
-      setError("Enter a valid amount")
+      setError("An amount above zero is needed to notch the stick.")
       return
     }
     setSaving(true)
@@ -97,6 +97,7 @@ export function AddSheet({
   const fieldClass =
     "text-foreground border-border w-full border bg-transparent px-4 py-3.5 text-[15px] outline-none focus-visible:border-primary"
   const fieldLabelClass = "ledger-label mt-6 mb-2.5 block text-[10.5px]"
+  const amountError = error === "An amount above zero is needed to notch the stick."
 
   return (
     <div
@@ -106,14 +107,14 @@ export function AddSheet({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-popover border-border h-full w-[430px] max-w-[92vw] overflow-y-auto border-l p-7 shadow-[-24px_0_60px_rgba(0,0,0,0.5)]"
+        className="bg-popover border-border h-full w-[440px] max-w-[92vw] overflow-y-auto border-l p-7 shadow-[-24px_0_60px_rgba(0,0,0,0.5)]"
         style={{ animation: "sheetIn .22s cubic-bezier(.22,.9,.3,1)" }}
         role="dialog"
-        aria-label="Add transaction"
+        aria-label="Record an expense"
       >
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="font-heading text-[22px] font-semibold tracking-tight">Add transaction</h2>
+            <h2 className="font-heading text-[22px] font-semibold tracking-tight">Record an expense</h2>
             <p className="text-muted-foreground mt-1.5 text-[13.5px]">
               Balance stays visible while you type
             </p>
@@ -121,13 +122,13 @@ export function AddSheet({
           <button
             onClick={onClose}
             aria-label="Close"
-            className="text-muted-foreground border-border hover:border-[#4C93A6] grid size-9 flex-none cursor-pointer place-items-center border bg-transparent hover:text-foreground"
+            className="text-muted-foreground border-border hover:border-[#4C93A6] grid size-11 flex-none cursor-pointer place-items-center border bg-transparent hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-[#9AD4E3]"
           >
             <CloseIcon />
           </button>
         </div>
 
-        <label className={fieldLabelClass}>Amount (RON)</label>
+        <label className={fieldLabelClass}>Amount · RON</label>
         <input
           ref={amountRef}
           value={amount}
@@ -135,10 +136,15 @@ export function AddSheet({
           onKeyDown={(e) => e.key === "Enter" && save()}
           inputMode="decimal"
           placeholder="0.00"
-          className={`${fieldClass} tnum font-mono text-2xl font-light`}
+          aria-invalid={amountError}
+          className={`${fieldClass} tnum font-mono text-2xl font-light ${
+            amountError ? "border-destructive" : ""
+          }`}
+          style={amountError ? { boxShadow: "inset 2px 0 0 0 var(--destructive)" } : undefined}
         />
+        {amountError && <p className="text-destructive mt-2 text-[12.5px]">{error}</p>}
 
-        <label className={fieldLabelClass}>Description</label>
+        <label className={fieldLabelClass}>What was it</label>
         <input
           value={note}
           onChange={(e) => setNote(e.target.value)}
@@ -168,31 +174,37 @@ export function AddSheet({
             })}
           </div>
         )}
-        <CategorySelect categories={categories} value={categoryId} onChange={setCategoryId} />
+        <div className="flex gap-3">
+          <div className="min-w-0 flex-1">
+            <CategorySelect categories={categories} value={categoryId} onChange={setCategoryId} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              aria-label="Date"
+              className={`${fieldClass} font-mono`}
+            />
+          </div>
+        </div>
 
-        <label className={fieldLabelClass}>Date</label>
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          className={`${fieldClass} font-mono`}
-        />
+        {error && !amountError && <p className="text-destructive mt-4 text-[13px]">{error}</p>}
 
-        {error && <p className="text-destructive mt-4 text-[13px]">{error}</p>}
-
-        <div className="mt-7.5 flex gap-3">
+        <p className="text-muted-foreground mt-7.5 text-[12px]">Nothing moves. This only records.</p>
+        <div className="mt-3 flex gap-3">
           <button
             onClick={onClose}
-            className="text-foreground border-border flex-1 cursor-pointer border bg-transparent py-3.5 text-[14.5px] hover:bg-popover"
+            className="text-foreground border-border flex-1 cursor-pointer border bg-transparent py-3.5 text-[14.5px] hover:bg-popover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9AD4E3]"
           >
             Cancel
           </button>
           <button
             onClick={save}
             disabled={saving}
-            className="bg-[#123945] border-[#4C93A6] text-[#C4E7F0] hover:bg-[#174756] flex-[2] cursor-pointer border py-3.5 text-[14.5px] font-medium disabled:opacity-60"
+            className="bg-[#123945] border-[#4C93A6] text-[#C4E7F0] hover:bg-[#174756] flex-[2] cursor-pointer border py-3.5 text-[14.5px] font-medium disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9AD4E3]"
           >
-            {saving ? "Saving…" : "Save transaction"}
+            {saving ? "Cutting the notch…" : "Cut the notch"}
           </button>
         </div>
       </div>

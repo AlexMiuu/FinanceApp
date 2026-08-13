@@ -18,6 +18,8 @@ import { Label } from "@/components/ui/label"
 
 const CATEGORY_BAR = ["#9AD4E3", "#8FC7A6", "#4C93A6", "#E09880", "#8A9399", "#62696D"]
 
+const formatTime = (d: Date) => d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+
 export default function ReportsTab({ categories }: { categories: Category[] }) {
   const toast = useToast()
   const [reports, setReports] = useState<Report[]>([])
@@ -26,9 +28,15 @@ export default function ReportsTab({ categories }: { categories: Category[] }) {
   const [creating, setCreating] = useState(false)
   const [filterCategory, setFilterCategory] = useState<string>()
   const [hoverPoint, setHoverPoint] = useState<number | null>(null)
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [lastReadAt, setLastReadAt] = useState<Date | null>(null)
 
   const reload = useCallback(() => {
+    setLoading(true)
+    setLoadError(null)
     listReports()
       .then((list) => {
         setReports(list)
@@ -38,8 +46,14 @@ export default function ReportsTab({ categories }: { categories: Category[] }) {
           )
         )
         setSelected((prev) => prev ?? list[0]?.id ?? null)
+        setLastReadAt(new Date())
       })
-      .catch((e) => setError(e instanceof Error ? e.message : "Failed to load reports"))
+      .catch((e) =>
+        setLoadError(
+          e instanceof Error ? `We could not read your reports — ${e.message}` : "We could not read your reports"
+        )
+      )
+      .finally(() => setLoading(false))
   }, [])
 
   useEffect(() => {
@@ -70,6 +84,16 @@ export default function ReportsTab({ categories }: { categories: Category[] }) {
   }, [result])
 
   const biggest = categoryRows[0]
+
+  // Naive linear projection from the last two shown months — same shape as the
+  // dashboard's month-end projection, scoped to this report's own trend.
+  const projectedNext = useMemo(() => {
+    if (monthPoints.length < 2) return null
+    const last = monthPoints[monthPoints.length - 1].amount
+    const prev = monthPoints[monthPoints.length - 2].amount
+    const delta = last - prev
+    return { amount: Math.max(0, Math.round(last + delta)), delta: Math.round(delta) }
+  }, [monthPoints])
 
   function describeFilters(r: Report): string {
     const parts: string[] = []
@@ -111,6 +135,15 @@ export default function ReportsTab({ categories }: { categories: Category[] }) {
       toast("Report re-evaluated")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Run failed")
+    }
+  }
+
+  async function exportRow(r: Report) {
+    try {
+      await downloadReportCsv(r.id, r.name)
+      toast("CSV exported — check your downloads")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Export failed")
     }
   }
 
@@ -157,34 +190,98 @@ export default function ReportsTab({ categories }: { categories: Category[] }) {
             </form>
           )}
 
-          {reports.length === 0 && !creating && (
-            <p className="text-muted-foreground py-4 text-sm">No saved reports yet — create one with “+ New”.</p>
-          )}
-          <div className="flex flex-col gap-1">
-            {reports.map((r) => {
-              const sel = selected === r.id
-              return (
-                <button
-                  key={r.id}
-                  onClick={() => setSelected(r.id)}
-                  className={`cursor-pointer p-3.5 text-left transition-colors ${
-                    sel ? "bg-white/[0.05] edge-mark-accent" : "hover:bg-white/[0.03]"
-                  }`}
+          {loading && reports.length === 0 ? (
+            <div role="status" aria-live="polite" className="flex flex-col gap-2 py-1">
+              <span className="sr-only">Reading your reports</span>
+              {[0, 1, 2].map((i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-3.5 p-3.5"
+                  style={{ animation: `shimmer 1.6s ease-in-out ${(i * 0.22).toFixed(2)}s infinite` }}
                 >
-                  <p className="text-[13.5px] font-medium">{r.name}</p>
-                  <p className="text-muted-foreground mt-0.5 text-[12.5px]">{describeFilters(r)}</p>
-                </button>
-              )
-            })}
-          </div>
+                  <span className="h-5 w-[3px] flex-none bg-white/15" aria-hidden />
+                  <span className="h-px flex-1 bg-white/15" style={{ maxWidth: `${60 - i * 12}%` }} aria-hidden />
+                  <span className="h-px w-10 flex-none bg-white/10" aria-hidden />
+                </div>
+              ))}
+            </div>
+          ) : loadError && reports.length === 0 ? (
+            <div
+              role="alert"
+              className="my-2 flex flex-col gap-3 border border-destructive/50 bg-white/[0.02] px-4 py-5 shadow-[inset_2px_0_0_0_var(--destructive)]"
+            >
+              <p className="text-[14.5px] font-semibold">We could not read your reports</p>
+              <p className="text-muted-foreground text-[12.5px] text-pretty">
+                Nothing was lost — this is a reading problem, not a money problem.
+                {lastReadAt ? ` Last read ${formatTime(lastReadAt)}.` : ""}
+              </p>
+              <button
+                onClick={() => reload()}
+                className="cursor-pointer self-start border border-[#4C93A6] bg-[#123945] px-4 py-2 text-[13px] font-medium text-[#C4E7F0] hover:bg-[#174756]"
+              >
+                Try again
+              </button>
+            </div>
+          ) : (
+            <>
+              {reports.length === 0 && !creating && (
+                <p className="text-muted-foreground py-4 text-sm text-pretty">
+                  No saved reports yet. Set a range and a category below, then save the view.
+                </p>
+              )}
+              <div className="flex flex-col gap-1">
+                {reports.map((r) => {
+                  const sel = selected === r.id
+                  const cached = results[r.id]
+                  const barColor = sel ? "#9AD4E3" : "#62696D"
+                  return (
+                    <div
+                      key={r.id}
+                      className={`flex items-center gap-2 pr-2 transition-colors ${
+                        sel ? "bg-white/[0.05] edge-mark-accent" : "hover:bg-white/[0.03]"
+                      }`}
+                    >
+                      <button
+                        onClick={() => setSelected(r.id)}
+                        className="flex min-w-0 flex-1 cursor-pointer items-center gap-3.5 p-3.5 text-left"
+                      >
+                        <span className="flex flex-none items-end gap-[3px]" aria-hidden="true">
+                          <span className="block h-2 w-[3px]" style={{ background: barColor }} />
+                          <span className="block h-3.5 w-[3px]" style={{ background: barColor }} />
+                          <span className="block h-5 w-[3px]" style={{ background: barColor }} />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <p className="truncate text-[13.5px] font-medium">{r.name}</p>
+                          <p className="text-muted-foreground mt-0.5 truncate text-[12.5px]">{describeFilters(r)}</p>
+                        </span>
+                        <span className="flex-none text-right">
+                          <span className="figure block text-[13px]">
+                            {cached ? formatRon(cached.totalSpent).replace(/\s?RON$/, "") : "not run"}
+                          </span>
+                          {sel && <span className="ledger-label text-primary mt-0.5 block">Viewing</span>}
+                        </span>
+                      </button>
+                      <button
+                        onClick={() => exportRow(r)}
+                        aria-label={`Export ${r.name}`}
+                        className="status-tag text-muted-foreground hover:text-foreground min-h-[36px] flex-none cursor-pointer px-2"
+                      >
+                        Export
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            </>
+          )}
         </section>
 
         {/* Selected report analytics */}
         <div className="flex flex-col gap-[22px]">
           {!report ? (
             <section className={card}>
-              <p className="text-muted-foreground py-10 text-center text-sm">
-                Select or create a report on the left.
+              <p className="text-muted-foreground py-10 text-center text-sm" aria-busy={loading}>
+                {loading ? "Reading your reports…" : "Select or create a report on the left."}
               </p>
             </section>
           ) : (
@@ -248,12 +345,27 @@ export default function ReportsTab({ categories }: { categories: Category[] }) {
                     ))}
                   </div>
 
-                  {/* Spending trend */}
+                  {/* Month against month */}
                   {monthPoints.length > 1 && (
                     <section className={card}>
-                      <h2 className="mb-1 text-[18px] font-semibold">Spending trend</h2>
+                      <h2 className="mb-1 text-[18px] font-semibold">Month against month</h2>
                       <p className="text-muted-foreground mb-3 text-[13px]">Last {monthPoints.length} months</p>
-                      <TrendChart points={monthPoints} hover={hoverPoint} onHover={setHoverPoint} />
+                      <MonthBars points={monthPoints} hover={hoverPoint} onHover={setHoverPoint} />
+                      {projectedNext && (
+                        <div className="border-border mt-6 border-t pt-5">
+                          <div className="ledger-label">Projected next month</div>
+                          <div className="figure mt-2.5 text-[22px]">
+                            {formatRon(projectedNext.amount).replace(/\s?RON$/, "")}
+                          </div>
+                          <p className="text-muted-foreground mt-2 text-[12.5px] text-pretty">
+                            {projectedNext.delta === 0
+                              ? "Flat on this month's pace."
+                              : `${projectedNext.delta > 0 ? "Up" : "Down"} ${formatRon(
+                                  Math.abs(projectedNext.delta)
+                                ).replace(/\s?RON$/, "")} on this month's pace.`}
+                          </p>
+                        </div>
+                      )}
                     </section>
                   )}
 
@@ -261,20 +373,54 @@ export default function ReportsTab({ categories }: { categories: Category[] }) {
                   <section className={card}>
                     <h2 className="mb-5.5 text-[18px] font-semibold">By category</h2>
                     <div className="flex flex-col gap-4.5">
-                      {categoryRows.map((row) => (
-                        <div key={row.name}>
-                          <div className="flex items-center justify-between text-[14.5px]">
-                            <span className="flex items-center gap-2.5 font-medium">
-                              <span className="inline-block size-2.5 flex-none" style={{ background: row.color }} />
-                              {row.name}
-                            </span>
-                            <span className="figure">{formatRon(row.amount).replace(/\s?RON$/, "")}</span>
+                      {categoryRows.map((row, i) => {
+                        const isOpen = expandedCategory === row.name
+                        return (
+                          <div key={row.name}>
+                            <button
+                              type="button"
+                              onClick={() => setExpandedCategory(isOpen ? null : row.name)}
+                              aria-expanded={isOpen}
+                              className="w-full cursor-pointer text-left"
+                            >
+                              <div className="flex items-center justify-between text-[14.5px]">
+                                <span className="flex items-center gap-2.5 font-medium">
+                                  <span
+                                    className="inline-block size-2.5 flex-none"
+                                    style={{ background: row.color }}
+                                  />
+                                  {row.name}
+                                </span>
+                                <span className="figure">{formatRon(row.amount).replace(/\s?RON$/, "")}</span>
+                              </div>
+                              <div className="bg-border mt-2.5 h-px w-full">
+                                <div className="h-px" style={{ width: `${row.pct}%`, background: row.color }} />
+                              </div>
+                            </button>
+                            {isOpen && (
+                              <div
+                                className="ledger-card mt-2.5 flex flex-wrap gap-6 p-4"
+                                style={{ animation: "riseIn .16s ease" }}
+                              >
+                                <div className="min-w-[100px]">
+                                  <div className="ledger-label">Share of total</div>
+                                  <div className="tnum mt-1.5 text-[14.5px]">{row.pct}%</div>
+                                </div>
+                                <div className="min-w-[100px]">
+                                  <div className="ledger-label">Rank</div>
+                                  <div className="tnum mt-1.5 text-[14.5px]">
+                                    #{i + 1} of {categoryRows.length}
+                                  </div>
+                                </div>
+                                <p className="text-muted-foreground w-full text-[13px] text-pretty">
+                                  {row.name} accounts for {row.pct}% of the{" "}
+                                  {formatRon(result.totalSpent)} covered by this report.
+                                </p>
+                              </div>
+                            )}
                           </div>
-                          <div className="bg-border mt-2.5 h-px w-full">
-                            <div className="h-px" style={{ width: `${row.pct}%`, background: row.color }} />
-                          </div>
-                        </div>
-                      ))}
+                        )
+                      })}
                       <div className="border-border mt-1 flex justify-between border-t pt-4 text-[14px] font-semibold">
                         <span>Total · {result.expenseCount} expenses</span>
                         <span className="figure">{formatRon(result.totalSpent)}</span>
@@ -291,8 +437,8 @@ export default function ReportsTab({ categories }: { categories: Category[] }) {
   )
 }
 
-/** Ledger trend chart — teal line, area fill, hoverable points with tooltip. */
-function TrendChart({
+/** Month-against-month bar chart — hover a bar to pick out its value and month. */
+function MonthBars({
   points,
   hover,
   onHover,
@@ -301,77 +447,43 @@ function TrendChart({
   hover: number | null
   onHover: (i: number | null) => void
 }) {
-  const W = 1000
-  const H = 240
-  const pad = 46
-  const values = points.map((p) => p.amount)
-  const min = Math.min(...values)
-  const max = Math.max(...values)
-  const lo = Math.max(0, min - (max - min) * 0.2)
-  const hi = max + (max - min) * 0.2 || max + 1
-  const n = points.length
-  const xy = points.map((p, i) => [
-    pad + (i * (W - pad * 2)) / (n - 1),
-    H - 24 - ((p.amount - lo) / (hi - lo || 1)) * (H - 60),
-  ])
-  const gridVals = [0, 0.25, 0.5, 0.75, 1].map((t) => lo + t * (hi - lo))
-
+  const max = Math.max(...points.map((p) => p.amount), 1)
   return (
-    <div className="relative h-[280px]">
-      <svg viewBox={`0 0 ${W} ${H + 30}`} preserveAspectRatio="none" className="h-full w-full overflow-visible">
-        {gridVals.map((g, i) => {
-          const y = H - 24 - ((g - lo) / (hi - lo || 1)) * (H - 60)
+    <div>
+      <div className="border-border flex items-end gap-4 border-b" style={{ height: 148 }}>
+        {points.map((p, i) => {
+          const hot = hover === i
           return (
-            <g key={i}>
-              <line x1={pad} x2={W - pad} y1={y} y2={y} stroke="#2A3033" strokeWidth={1} />
-              <text x={8} y={y + 4} fill="#9AA3A8" fontSize={13} fontFamily="var(--font-mono)">
-                {(g / 1000).toFixed(1)}k
-              </text>
-            </g>
-          )
-        })}
-        <polygon
-          points={`${pad},${H - 24} ${xy.map((p) => p.join(",")).join(" ")} ${W - pad},${H - 24}`}
-          fill="rgba(154,212,227,0.14)"
-        />
-        <polyline
-          points={xy.map((p) => p.join(",")).join(" ")}
-          fill="none"
-          stroke="#9AD4E3"
-          strokeWidth={1.6}
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
-        {xy.map((p, i) => (
-          <g key={i}>
-            <circle
-              cx={p[0]}
-              cy={p[1]}
-              r={hover === i ? 6 : 3.5}
-              fill={hover === i ? "#F2F5F6" : "#9AD4E3"}
-              stroke="#9AD4E3"
-              strokeWidth={1.6}
-              style={{ cursor: "pointer" }}
+            <div
+              key={i}
+              className="flex h-full flex-1 cursor-pointer flex-col items-center justify-end"
               onMouseEnter={() => onHover(i)}
               onMouseLeave={() => onHover(null)}
-            />
-            <text x={p[0]} y={H + 14} fill="#9AA3A8" fontSize={14} textAnchor="middle" fontFamily="var(--font-mono)">
-              {points[i].month}
-            </text>
-          </g>
+            >
+              <span className={`tnum mb-2 text-[12px] ${hot ? "text-foreground" : "text-muted-foreground"}`}>
+                {Math.round(p.amount).toLocaleString()}
+              </span>
+              <div
+                className="w-full rounded-t-sm transition-colors"
+                style={{
+                  height: `${Math.max(4, Math.round((p.amount / max) * 100))}%`,
+                  background: hot ? "#9AD4E3" : "#4C93A6",
+                }}
+              />
+            </div>
+          )
+        })}
+      </div>
+      <div className="mt-2.5 flex gap-4">
+        {points.map((p, i) => (
+          <div
+            key={i}
+            className={`ledger-label flex-1 text-center ${hover === i ? "text-foreground" : ""}`}
+          >
+            {p.month}
+          </div>
         ))}
-        {hover !== null && (
-          <g pointerEvents="none">
-            <rect x={xy[hover][0] - 66} y={xy[hover][1] - 62} width={132} height={44} fill="#14181B" stroke="#62696D" />
-            <text x={xy[hover][0]} y={xy[hover][1] - 42} fill="#F2F5F6" fontSize={17} fontWeight={500} textAnchor="middle" fontFamily="var(--font-mono)">
-              {Math.round(points[hover].amount).toLocaleString()} RON
-            </text>
-            <text x={xy[hover][0]} y={xy[hover][1] - 26} fill="#9AA3A8" fontSize={13} textAnchor="middle" fontFamily="var(--font-sans)">
-              {points[hover].month}
-            </text>
-          </g>
-        )}
-      </svg>
+      </div>
     </div>
   )
 }

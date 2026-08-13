@@ -5,7 +5,6 @@ import {
   type AppNotification,
 } from "@/lib/api"
 import { BellIcon } from "@/components/brand"
-import { Button } from "@/components/ui/button"
 import {
   Popover,
   PopoverContent,
@@ -65,7 +64,7 @@ export function NotificationsBell() {
     <Popover>
       <PopoverTrigger asChild>
         <button
-          className="text-muted-foreground border-border hover:border-[#4C93A6] relative grid size-11 cursor-pointer place-items-center border bg-transparent transition-colors hover:text-foreground"
+          className="text-muted-foreground border-border hover:border-[#4C93A6] relative grid size-11 cursor-pointer place-items-center border bg-transparent transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9AD4E3]"
           aria-label={unread > 0 ? `Notifications — ${unread} unread` : "Notifications"}
           title={unread > 0 ? `Notifications — ${unread} unread` : "Notifications"}
         >
@@ -79,20 +78,27 @@ export function NotificationsBell() {
       </PopoverTrigger>
       <PopoverContent
         align="end"
-        className="bg-popover border-border w-80 rounded-none p-0 shadow-[0_12px_24px_rgba(0,0,0,0.4)]"
+        className="bg-popover border-border w-[360px] rounded-none p-0 shadow-[0_12px_24px_rgba(0,0,0,0.4)]"
       >
         <div className="flex items-center justify-between border-b p-3">
           <p className="ledger-label text-[10.5px]">Notifications</p>
           {unread > 0 && (
-            <Button variant="ghost" size="sm" onClick={readAll}>
+            <button
+              onClick={readAll}
+              className="text-primary min-h-9 cursor-pointer px-2 text-[12.5px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9AD4E3]"
+            >
               Mark all read
-            </Button>
+            </button>
           )}
         </div>
         <ul className="max-h-80 overflow-y-auto">
           {items.length === 0 && (
-            <li className="text-muted-foreground p-4 text-center text-sm">
-              Nothing yet. Quest updates will appear here live.
+            <li className="flex flex-col items-start gap-1.5 p-5 text-left">
+              <p className="font-heading text-[15px] font-semibold">Nothing to tell you</p>
+              <p className="text-muted-foreground text-[13px] text-pretty">
+                Argali speaks up when a pace changes or an oath comes due. Quiet here means quiet
+                in the ledger.
+              </p>
             </li>
           )}
           {items.map((n) => (

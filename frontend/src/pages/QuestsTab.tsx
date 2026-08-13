@@ -14,16 +14,15 @@ import {
   type Goal,
   type GoalCalendar,
   type Oath,
-  type OathStatus,
   type PeriodSummary,
   type Quest,
 } from "@/lib/api"
 import { useToast } from "@/components/Toast"
 import { CategorySelect } from "@/components/CategorySelect"
 import { PledgeSheet } from "@/components/PledgeSheet"
-import { CloseIcon, HornGlyph } from "@/components/brand"
-import { RabojStreak, Stamp } from "@/components/raboj"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { CloseIcon } from "@/components/brand"
+import { Stamp } from "@/components/raboj"
+import { Alert, AlertAction, AlertDescription } from "@/components/ui/alert"
 import { Input } from "@/components/ui/input"
 import {
   Select,
@@ -35,7 +34,9 @@ import {
 
 const OUT = "#E09880"
 const GOOD = "#8FC7A6"
-const WARN = "#E09880"
+const ICE = "#9AD4E3"
+
+const MONTH_LABELS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
 
 const today = () => new Date().toISOString().slice(0, 10)
 const thisMonth = () => new Date().toISOString().slice(0, 7)
@@ -45,46 +46,160 @@ function daysLeftLabel(periodEnd: string): string {
   return diff <= 0 ? "ends today" : diff === 1 ? "1 day left" : `${diff} days left`
 }
 
-// KEPT and FORGONE are deliberately different tones — they are different acts
-// (a match within tolerance vs. a window closing with no match at all).
-const OATH_STAMP_TONE: Record<OathStatus, "brass" | "good" | "over" | "muted"> = {
-  OPEN: "brass",
-  KEPT: "good",
-  SLIPPED: "over",
-  FORGONE: "muted",
+// Outcomes are deliberately different tones — a quest actually pursued and lost
+// (missed) reads differently from one that simply expired unclaimed (let go).
+const CLOSED_OUTCOME: Record<string, { label: string; color: string }> = {
+  COMPLETED: { label: "kept", color: GOOD },
+  FAILED: { label: "missed", color: OUT },
+  DECLINED: { label: "let go — no penalty", color: "#9AA3A8" },
 }
 
-function QuestRow({ quest }: { quest: Quest }) {
-  const pct = quest.target > 0 ? Math.min(100, (quest.progress / quest.target) * 100) : 0
-  const done = quest.status === "COMPLETED"
-  const failed = quest.status === "FAILED"
-  const hot = quest.kind === "CAP" && pct > 85 && !done
-  const color = done ? GOOD : failed ? OUT : hot ? WARN : "#9AD4E3"
-  const fmt = (v: number) => (quest.kind === "DAYS" ? `${v} days` : formatRon(v).replace(/\s?RON$/, ""))
-  const status = done ? "Done" : failed ? "Over" : quest.status === "ACTIVE" ? daysLeftLabel(quest.periodEnd) : `${fmt(quest.progress)} / ${fmt(quest.target)}`
-
+/** An offered or in-progress quest: title, a hairline bar with a tick at the target, meta. */
+function QuestCard({
+  quest,
+  actions,
+}: {
+  quest: Quest
+  actions?: { onAccept: () => void; onDecline: () => void }
+}) {
+  const target = Math.max(quest.target, 0)
+  const scale = Math.max(target, 1) * 1.25
+  const barPct = Math.min(100, (quest.progress / scale) * 100)
+  const tickPct = Math.min(100, (target / scale) * 100)
+  const over = quest.kind === "CAP" && quest.progress > target
+  const color = over ? OUT : ICE
+  const fmt = (v: number) => (quest.kind === "DAYS" ? `${v} day${v === 1 ? "" : "s"}` : formatRon(v).replace(/\s?RON$/, ""))
   const macroSource = quest.templateCode === "SEASONAL_RESERVE" ? quest.params.macroSource : undefined
   const macroAsOfDate = quest.templateCode === "SEASONAL_RESERVE" ? quest.params.macroAsOfDate : undefined
 
   return (
-    <div>
-      <div className="flex items-baseline justify-between gap-2.5">
-        <span className="text-[15px] font-medium" style={{ color: hot || failed ? color : undefined }}>
-          {quest.title}
-        </span>
-        <span className="status-tag" style={{ color: hot || failed || done ? color : "#9AA3A8" }}>
-          {status}
+    <div className="edge-mark-accent border-b border-[#2A3033] py-5 pl-3 last:border-b-0">
+      <div className="flex items-baseline justify-between gap-4">
+        <span className="text-[15.5px]">{quest.title}</span>
+        <span className="figure flex-none text-[15px]" style={{ color }}>
+          {fmt(quest.progress)} / {fmt(target)}
         </span>
       </div>
-      <div className="bg-border relative mt-3 h-px">
-        <div className="absolute inset-y-0 left-0 h-px" style={{ width: `${pct}%`, background: color }} />
+      <div className="bg-border relative mt-3.5 h-px">
+        <div className="bg-primary absolute inset-y-0 left-0 h-px" style={{ width: `${barPct}%` }} />
+        <div className="absolute -top-[5px] h-[11px] w-px" style={{ left: `${tickPct}%`, background: OUT }} />
       </div>
-      <div className="mt-2.5 text-[13px]" style={{ color: hot || failed ? color : "#9AA3A8" }}>
-        {fmt(quest.progress)} of {fmt(quest.target)}
+      <div className="mt-2.5 flex flex-wrap items-baseline justify-between gap-4">
+        <span className="text-muted-foreground text-[13px]">
+          {quest.periodStart} → {quest.periodEnd}
+        </span>
+        <span className="status-tag text-muted-foreground whitespace-nowrap">{daysLeftLabel(quest.periodEnd)}</span>
       </div>
       {typeof macroSource === "string" && typeof macroAsOfDate === "string" && (
-        <div className="text-muted-foreground mt-1 text-[11px]">
+        <div className="text-muted-foreground mt-1.5 text-[11px]">
           via {macroSource}, as of {macroAsOfDate}
+        </div>
+      )}
+      {actions && (
+        <div className="mt-3.5 flex gap-2.5">
+          <button
+            onClick={actions.onAccept}
+            className="cursor-pointer border border-[#4C93A6] bg-[#123945] px-4 py-2 text-[13px] font-semibold text-[#C4E7F0] hover:bg-[#174756]"
+          >
+            Accept
+          </button>
+          <button
+            onClick={actions.onDecline}
+            className="cursor-pointer border border-border bg-transparent px-4 py-2 text-[13px] text-foreground/85 hover:border-[#4C93A6] hover:text-foreground"
+          >
+            Skip
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** A self-set pledge: same-day oaths get an urgent minute countdown, multi-day ones a day count. */
+function OathRow({
+  oath,
+  confirming,
+  onRequestCancel,
+  onDismissCancel,
+  onConfirmCancel,
+}: {
+  oath: Oath
+  confirming: boolean
+  onRequestCancel: () => void
+  onDismissCancel: () => void
+  onConfirmCancel: () => void
+}) {
+  const now = Date.now()
+  const expires = new Date(oath.expiresAt).getTime()
+  const created = new Date(oath.createdAt).getTime()
+  const sameDay = new Date(oath.expiresAt).toDateString() === new Date().toDateString()
+  const msLeft = Math.max(0, expires - now)
+
+  let countdown: string
+  let urgent = false
+  let barColor = ICE
+  let barPct: number
+
+  if (sameDay) {
+    const minsLeft = Math.floor(msLeft / 60000)
+    const h = Math.floor(minsLeft / 60)
+    const m = minsLeft % 60
+    countdown = `${h}h ${m}m left`
+    urgent = minsLeft <= 120
+    barColor = minsLeft <= 360 ? OUT : ICE
+    barPct = Math.max(6, Math.round((minsLeft / (24 * 60)) * 100))
+  } else {
+    const daysLeft = Math.max(0, Math.ceil(msLeft / 86400000))
+    countdown = `${daysLeft} day${daysLeft === 1 ? "" : "s"} left`
+    const totalMs = Math.max(1, expires - created)
+    barPct = Math.max(6, Math.round((msLeft / totalMs) * 100))
+  }
+
+  return (
+    <div className="edge-mark-accent border-b border-[#2A3033] py-4.5 pl-3 last:border-b-0">
+      <div className="flex items-baseline justify-between gap-3.5">
+        <span className="text-[15px]">{oath.categoryName}</span>
+        <span className="flex flex-none items-center gap-2">
+          <span
+            className={`status-tag whitespace-nowrap ${urgent ? "animate-pulse" : ""}`}
+            style={{ color: barColor }}
+          >
+            {countdown}
+          </span>
+          <button
+            onClick={onRequestCancel}
+            className="status-tag text-muted-foreground hover:text-destructive cursor-pointer"
+          >
+            abandon
+          </button>
+        </span>
+      </div>
+      <div className="text-muted-foreground mt-1.5 text-[13px]">
+        Pledged {formatRon(oath.pledgedAmount)} · until {oath.expiresAt.slice(0, 10)}
+      </div>
+      <div className="relative mt-2.5 h-px bg-[#2A3033]">
+        <div className="h-px" style={{ width: `${barPct}%`, background: barColor }} />
+      </div>
+      {confirming && (
+        <div className="mt-3.5 border border-[#2A3033] bg-[#14181B] p-4">
+          <p className="text-[13.5px] font-medium">Abandon this oath?</p>
+          <p className="text-muted-foreground mt-1.5 text-[12.5px]">
+            Abandoning is recorded as a fact, not a failure — nothing is deducted, because nothing is scored.
+          </p>
+          <div className="mt-3.5 flex justify-end gap-2.5">
+            <button
+              onClick={onDismissCancel}
+              className="cursor-pointer border border-border bg-transparent px-3.5 py-2 text-[13px] text-foreground/85 hover:border-[#4C93A6]"
+            >
+              Keep holding
+            </button>
+            <button
+              onClick={onConfirmCancel}
+              className="text-destructive border-destructive/40 hover:bg-destructive/10 hover:border-destructive cursor-pointer border bg-transparent px-3.5 py-2 text-[13px]"
+            >
+              Abandon
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -102,6 +217,9 @@ export default function QuestsTab({ categories }: { categories: Category[] }) {
   const [period, setPeriod] = useState<Goal["period"]>("MONTHLY")
   const [goalCategory, setGoalCategory] = useState<string>()
   const [pledgeOpen, setPledgeOpen] = useState(false)
+  const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null)
+  const [streakView, setStreakView] = useState<"month" | "year">("month")
+  const [yearCache, setYearCache] = useState<{ year: string; months: Record<string, GoalCalendar | null> } | null>(null)
 
   const reload = useCallback(() => {
     Promise.all([listQuests(), listGoals(), getCalendar(month), listOaths()])
@@ -112,12 +230,35 @@ export default function QuestsTab({ categories }: { categories: Category[] }) {
         setOaths(o)
         setError(null)
       })
-      .catch((e) => setError(e instanceof Error ? e.message : "Failed to load"))
+      .catch((e) => setError(e instanceof Error ? e.message : "Could not read your quests and oaths"))
   }, [month])
 
   useEffect(() => {
     reload()
   }, [reload])
+
+  // Lazy, cached: only fetched once the Year view is opened, and only for months
+  // up to today (months ahead of now stay blank — see copy below).
+  useEffect(() => {
+    if (streakView !== "year") return
+    const year = month.slice(0, 4)
+    if (yearCache?.year === year) return
+    const now = new Date()
+    const lastMonthNum = year === String(now.getFullYear()) ? now.getMonth() + 1 : 12
+    const keys = Array.from({ length: lastMonthNum }, (_, i) => `${year}-${String(i + 1).padStart(2, "0")}`)
+    let cancelled = false
+    Promise.all(keys.map((k) => getCalendar(k).catch(() => null))).then((results) => {
+      if (cancelled) return
+      const months: Record<string, GoalCalendar | null> = {}
+      results.forEach((c, i) => {
+        months[keys[i]] = c
+      })
+      setYearCache({ year, months })
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [streakView, month, yearCache])
 
   async function act(action: (id: string) => Promise<unknown>, id: string, msg?: string) {
     try {
@@ -151,21 +292,47 @@ export default function QuestsTab({ categories }: { categories: Category[] }) {
     }
   }
 
-  const suggested = quests.filter((q) => q.status === "SUGGESTED")
-  const active = quests.filter((q) => q.status === "ACTIVE")
-  const finished = quests.filter((q) => q.status === "COMPLETED" || q.status === "FAILED").slice(0, 4)
+  const offered = quests.filter((q) => q.status === "SUGGESTED")
+  const inProgress = quests.filter((q) => q.status === "ACTIVE")
+  const closed = quests
+    .filter((q) => q.status === "COMPLETED" || q.status === "FAILED" || q.status === "DECLINED")
+    .slice(0, 8)
+  const openOaths = oaths.filter((o) => o.status === "OPEN")
+  const keptCount = oaths.filter((o) => o.status === "KEPT").length
+  const slippedCount = oaths.filter((o) => o.status === "SLIPPED").length
 
-  // Trailing streak of on-budget days up to today.
-  const streak = useMemo(() => {
+  // "Entered" is deliberately distinct from "on budget" — any day with a logged
+  // expense counts, matching the copy below ("at least one entry").
+  const daysEntered = useMemo(() => calendar?.days.filter((d) => d.totalSpent > 0).length ?? 0, [calendar])
+  const entryStreak = useMemo(() => {
     if (!calendar) return 0
     let n = 0
     for (const d of [...calendar.days].reverse()) {
-      if (d.status === "MET") n++
-      else if (d.status === "MISSED") break
+      if (d.totalSpent > 0) n++
+      else if (d.status !== "FUTURE") break
     }
     return n
   }, [calendar])
-  const greenDays = calendar?.days.filter((d) => d.status === "MET").length ?? 0
+
+  const counts = [
+    { k: "days entered", v: String(daysEntered), mark: "edge-mark-accent" },
+    { k: "day streak", v: String(entryStreak), mark: "edge-mark-good" },
+    { k: "kept · missed", v: `${keptCount} · ${slippedCount}`, mark: "edge-mark-bad" },
+  ]
+
+  const yearHeatmap = useMemo(() => {
+    const year = month.slice(0, 4)
+    if (!yearCache || yearCache.year !== year) return null
+    const now = new Date()
+    return MONTH_LABELS.map((label, i) => {
+      const key = `${year}-${String(i + 1).padStart(2, "0")}`
+      const cal = yearCache.months[key]
+      if (!cal) return { label, share: null as number | null }
+      const elapsedDays = key === thisMonth() ? now.getDate() : cal.days.length
+      const entered = cal.days.filter((d) => d.totalSpent > 0).length
+      return { label, share: elapsedDays > 0 ? entered / elapsedDays : 0 }
+    })
+  }, [yearCache, month])
 
   const firstDayOffset = calendar ? (new Date(`${calendar.month}-01T00:00:00`).getDay() + 6) % 7 : 0
   const periodSummaries: PeriodSummary[] = [
@@ -182,70 +349,106 @@ export default function QuestsTab({ categories }: { categories: Category[] }) {
       {error && (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
+          <AlertAction>
+            <button onClick={reload} className="status-tag text-destructive hover:text-foreground cursor-pointer">
+              Retry
+            </button>
+          </AlertAction>
         </Alert>
       )}
 
-      <div className="flex flex-wrap items-start gap-[22px]">
-        {/* Left */}
-        <div className="flex min-w-[min(100%,300px)] flex-1 basis-[30%] flex-col gap-[22px]">
-          <section className={card}>
-            <div className="ledger-label">Days on budget · this month</div>
-            <div className="mt-3 flex items-baseline gap-2.5">
-              <div className="figure text-[54px] leading-none font-semibold">{greenDays}</div>
-              <div className="text-muted-foreground text-[15px]">day{greenDays === 1 ? "" : "s"} notched</div>
-            </div>
-            <div className="mt-5">
-              <RabojStreak count={greenDays} />
-            </div>
-            <p className="text-muted-foreground mt-4 text-[14px]">
-              {streak > 0
-                ? `${streak}-day run going — keep it up`
-                : "No run yet — a square fills each on-budget day"}
+      <div className="flex flex-col gap-11 lg:flex-row lg:items-start">
+        {/* Main */}
+        <div className="min-w-0 flex-1">
+          <div className="ledger-label">Offered to you</div>
+          {offered.length === 0 ? (
+            <p className="text-muted-foreground py-4 text-[13.5px]">
+              No quests offered right now — new ones arrive as your spending history grows.
             </p>
-          </section>
+          ) : (
+            offered.map((q) => (
+              <QuestCard
+                key={q.id}
+                quest={q}
+                actions={{
+                  onAccept: () => act(acceptQuest, q.id, "Quest accepted — good luck!"),
+                  onDecline: () => act(declineQuest, q.id),
+                }}
+              />
+            ))
+          )}
+          <p className="text-muted-foreground mt-3 text-[12.5px]">
+            Offered quests that go unclaimed expire quietly at the window&rsquo;s end — no missed mark,
+            matching the counted-not-scored philosophy on the right.
+          </p>
 
-          <section className={card}>
-            <h2 className="mb-1 text-[17px] font-semibold">Suggested for you</h2>
-            <div className="flex flex-col">
-              {suggested.length === 0 ? (
-                <p className="text-muted-foreground py-3 text-[13px]">
-                  No more suggestions — new quests arrive as your spending history grows.
-                </p>
-              ) : (
-                suggested.map((q) => (
+          {inProgress.length > 0 && (
+            <>
+              <div className="ledger-label mt-7">In progress</div>
+              {inProgress.map((q) => (
+                <QuestCard key={q.id} quest={q} />
+              ))}
+            </>
+          )}
+
+          <div className="mt-7 flex items-baseline justify-between gap-3">
+            <div className="ledger-label">Set by you</div>
+            <button
+              onClick={() => setPledgeOpen(true)}
+              className="status-tag text-primary hover:text-foreground cursor-pointer"
+            >
+              + take an oath
+            </button>
+          </div>
+          {openOaths.length === 0 ? (
+            <p className="text-muted-foreground py-4 text-[13.5px]">
+              No oaths sworn yet — pledge a category limit for today, the week, or the month.
+            </p>
+          ) : (
+            openOaths.map((oath) => (
+              <OathRow
+                key={oath.id}
+                oath={oath}
+                confirming={confirmCancelId === oath.id}
+                onRequestCancel={() => setConfirmCancelId(oath.id)}
+                onDismissCancel={() => setConfirmCancelId(null)}
+                onConfirmCancel={() => {
+                  act(cancelOath, oath.id, "Oath abandoned")
+                  setConfirmCancelId(null)
+                }}
+              />
+            ))
+          )}
+
+          {closed.length > 0 && (
+            <>
+              <div className="ledger-label mt-7">Closed</div>
+              {closed.map((q, i) => {
+                const outcome = CLOSED_OUTCOME[q.status] ?? { label: q.status.toLowerCase(), color: "#9AA3A8" }
+                return (
                   <div
                     key={q.id}
-                    className="edge-mark-accent flex items-center gap-3.5 border-b border-[#2A3033] py-3.5 pl-2.5 last:border-b-0"
+                    className="flex items-center justify-between gap-3.5 border-b border-[#2A3033] py-3 last:border-b-0"
                   >
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[13.5px] font-medium">{q.title}</p>
-                      <p className="text-muted-foreground font-mono text-[12.5px]">
-                        {q.periodStart} → {q.periodEnd}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => act(acceptQuest, q.id, "Quest accepted — good luck!")}
-                      className="cursor-pointer border border-[#4C93A6] bg-[#123945] px-3 py-1.5 text-[13px] font-semibold text-[#C4E7F0] hover:bg-[#174756]"
-                    >
-                      Accept
-                    </button>
-                    <button
-                      onClick={() => act(declineQuest, q.id)}
-                      className="text-muted-foreground hover:text-foreground cursor-pointer text-[13px]"
-                    >
-                      Skip
-                    </button>
+                    <span className="flex min-w-0 items-center gap-3">
+                      <span className="text-muted-foreground flex-none font-mono text-[11px]">
+                        Q-{String(closed.length - i).padStart(3, "0")}
+                      </span>
+                      <span className="truncate text-[14px] text-[#C7CDD0]">{q.title}</span>
+                    </span>
+                    <span className="status-tag flex-none whitespace-nowrap" style={{ color: outcome.color }}>
+                      {outcome.label}
+                    </span>
                   </div>
-                ))
-              )}
-            </div>
-          </section>
-        </div>
+                )
+              })}
+            </>
+          )}
 
-        {/* Right */}
-        <div className="flex min-w-[min(100%,440px)] flex-1 basis-[62%] flex-col gap-[22px]">
-          {/* Calendar */}
-          <section className={card}>
+          {/* Budget goals — a separate real feature the mockup doesn't cover, kept below the quest ledger */}
+          <div className="ledger-label mt-9">Budget goals</div>
+
+          <section className={`${card} mt-3`}>
             <div className="mb-5 flex flex-wrap items-start justify-between gap-3.5">
               <div>
                 <h2 className="text-[18px] font-semibold">Goal calendar</h2>
@@ -337,80 +540,7 @@ export default function QuestsTab({ categories }: { categories: Category[] }) {
             )}
           </section>
 
-          {/* Active quests */}
-          <section className={card}>
-            <div className="mb-5.5 flex items-center gap-2.5">
-              <HornGlyph className="text-primary size-5.5" />
-              <h2 className="text-[18px] font-semibold">Active quests</h2>
-            </div>
-            {active.length === 0 && finished.length === 0 ? (
-              <p className="text-muted-foreground text-sm">Nothing active — accept a suggestion on the left.</p>
-            ) : (
-              <div className="grid gap-6 [grid-template-columns:repeat(auto-fit,minmax(280px,1fr))]">
-                {active.map((q) => <QuestRow key={q.id} quest={q} />)}
-                {finished.map((q) => <QuestRow key={q.id} quest={q} />)}
-              </div>
-            )}
-          </section>
-
-          {/* Oaths */}
-          <section className={card}>
-            <div className="mb-5 flex flex-wrap items-start justify-between gap-3.5">
-              <div>
-                <h2 className="text-[18px] font-semibold">Oaths</h2>
-                <p className="text-muted-foreground mt-1.5 text-[13.5px]">
-                  Pledges sworn before you spend, not records after
-                </p>
-              </div>
-              <button
-                onClick={() => setPledgeOpen(true)}
-                className="bg-[#123945] border-[#4C93A6] text-[#C4E7F0] hover:bg-[#174756] cursor-pointer border px-4 py-2.5 text-[13.5px] font-semibold"
-              >
-                Take an oath
-              </button>
-            </div>
-            {oaths.length === 0 ? (
-              <p className="text-muted-foreground text-sm">
-                No oaths sworn yet — pledge a category limit for the week or month.
-              </p>
-            ) : (
-              <ul className="space-y-2">
-                {oaths.map((oath) => (
-                  <li
-                    key={oath.id}
-                    className="border-border bg-card flex items-center justify-between gap-2.5 border px-4 py-3"
-                  >
-                    <span className="flex min-w-0 items-center gap-2.5">
-                      <span className="truncate text-[13.5px] font-medium">{oath.categoryName}</span>
-                      <Stamp tone={OATH_STAMP_TONE[oath.status]}>{oath.status.toLowerCase()}</Stamp>
-                      {oath.status === "OPEN" && (
-                        <span className="text-muted-foreground font-mono text-[11.5px]">
-                          until {oath.expiresAt.slice(0, 10)}
-                        </span>
-                      )}
-                    </span>
-                    <span className="flex flex-none items-center gap-2">
-                      <span className="tnum text-muted-foreground font-mono text-xs">
-                        {formatRon(oath.pledgedAmount)}
-                      </span>
-                      {oath.status === "OPEN" && (
-                        <button
-                          onClick={() => act(cancelOath, oath.id, "Oath cancelled")}
-                          aria-label="Cancel oath"
-                          className="text-muted-foreground hover:text-foreground grid size-9 flex-none cursor-pointer place-items-center rounded-lg hover:bg-white/[0.06]"
-                        >
-                          <CloseIcon size={15} />
-                        </button>
-                      )}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-
-          {/* Your goals */}
-          <section className={card}>
+          <section className={`${card} mt-[22px]`}>
             <h2 className="text-[18px] font-semibold">Your goals</h2>
             <p className="text-muted-foreground mt-1 mb-4 text-[13.5px]">
               Spending limits per day, month, or year — overall or per category.
@@ -456,7 +586,7 @@ export default function QuestsTab({ categories }: { categories: Category[] }) {
                       <button
                         onClick={() => deleteGoal(goal.id).then(reload)}
                         aria-label="Delete goal"
-                        className="text-muted-foreground hover:text-foreground grid size-9 flex-none cursor-pointer place-items-center hover:bg-white/[0.06]"
+                        className="text-muted-foreground hover:text-foreground grid size-11 flex-none cursor-pointer place-items-center hover:bg-white/[0.06]"
                       >
                         <CloseIcon size={15} />
                       </button>
@@ -466,6 +596,105 @@ export default function QuestsTab({ categories }: { categories: Category[] }) {
               </ul>
             )}
           </section>
+        </div>
+
+        {/* Sidebar */}
+        <div className="flex w-full flex-none flex-col lg:w-[320px]">
+          <div className="ledger-label">This season</div>
+          <div className="mt-4 flex gap-8">
+            {counts.map((c) => (
+              <div key={c.k} className={`${c.mark} pl-3`}>
+                <div className="figure text-[27px] font-light">{c.v}</div>
+                <div className="text-muted-foreground mt-1.5 whitespace-nowrap font-mono text-[9.5px] tracking-[0.14em] uppercase">
+                  {c.k}
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="text-muted-foreground mt-3.5 text-[13px]">
+            Counted, not scored. No points, no badges, no levels.
+          </p>
+
+          <div className="border-border mt-6 border-t pt-[18px]">
+            <div className="flex items-center justify-between">
+              <span className="ledger-label">Entry streak</span>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setStreakView("month")}
+                  className={`status-tag cursor-pointer pb-0.5 ${
+                    streakView === "month" ? "text-primary shadow-[inset_0_-1px_0_0_var(--primary)]" : "text-muted-foreground"
+                  }`}
+                >
+                  Month
+                </button>
+                <button
+                  onClick={() => setStreakView("year")}
+                  className={`status-tag cursor-pointer pb-0.5 ${
+                    streakView === "year" ? "text-primary shadow-[inset_0_-1px_0_0_var(--primary)]" : "text-muted-foreground"
+                  }`}
+                >
+                  Year
+                </button>
+              </div>
+            </div>
+
+            {streakView === "month" ? (
+              <>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {calendar?.days.map((d) => {
+                    const entered = d.totalSpent > 0
+                    return (
+                      <div
+                        key={d.date}
+                        className="grid size-8 flex-none place-items-center border font-mono text-[11px]"
+                        style={{
+                          background: entered ? "#123945" : "transparent",
+                          borderColor: entered ? "#4C93A6" : "var(--border)",
+                          color: entered ? "#C4E7F0" : "#9AA3A8",
+                        }}
+                      >
+                        {Number(d.date.slice(8, 10))}
+                      </div>
+                    )
+                  })}
+                </div>
+                <p className="text-muted-foreground mt-3.5 text-[13px]">
+                  Filled squares are days with at least one entry. The streak counts backwards from today, so
+                  a gap yesterday costs you the run — not the record.
+                </p>
+              </>
+            ) : yearHeatmap ? (
+              <>
+                <div className="mt-3.5 grid grid-cols-6 gap-1.5">
+                  {yearHeatmap.map((m) => {
+                    const bg =
+                      m.share == null
+                        ? "#2A3033"
+                        : m.share >= 0.65
+                          ? "#123945"
+                          : m.share >= 0.4
+                            ? "rgba(76,147,166,.35)"
+                            : "rgba(224,152,128,.25)"
+                    const fg = m.share == null ? "#9AA3A8" : m.share >= 0.65 ? "#C4E7F0" : "#C7CDD0"
+                    return (
+                      <div
+                        key={m.label}
+                        className="grid aspect-square place-items-center font-mono text-[9.5px]"
+                        style={{ background: bg, color: fg }}
+                      >
+                        {m.label}
+                      </div>
+                    )
+                  })}
+                </div>
+                <p className="text-muted-foreground mt-3.5 text-[13px]">
+                  Shaded by share of days entered that month. Months ahead of today are blank, not zero.
+                </p>
+              </>
+            ) : (
+              <p className="text-muted-foreground mt-3.5 text-[13px]">Loading…</p>
+            )}
+          </div>
         </div>
       </div>
 

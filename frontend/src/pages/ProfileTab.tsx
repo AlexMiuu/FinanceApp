@@ -21,7 +21,7 @@ import {
 import { clearArgaliStorage } from "@/lib/storage"
 import { useToast } from "@/components/Toast"
 import { CloseIcon, HornGlyph } from "@/components/brand"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Alert, AlertAction, AlertDescription } from "@/components/ui/alert"
 import {
   Select,
   SelectContent,
@@ -66,10 +66,12 @@ function monogram(label: string): string {
   return (w.length === 1 ? w[0].slice(0, 2) : w[0][0] + w[1][0]).toUpperCase()
 }
 
-function SalaryCalculatorCard() {
+function SalaryCalculatorCard({ onIncomeSaved }: { onIncomeSaved: () => void }) {
+  const toast = useToast()
   const [mode, setMode] = useState<"GROSS_TO_NET" | "NET_TO_GROSS">("GROSS_TO_NET")
   const [result, setResult] = useState<SalaryBreakdown | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [savingIncome, setSavingIncome] = useState(false)
 
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -79,6 +81,27 @@ function SalaryCalculatorCard() {
       setResult(await calculateSalary(mode, toBani(data.get("salary"))))
     } catch (err) {
       setError(err instanceof Error ? err.message : "Calculation failed")
+    }
+  }
+
+  async function saveAsIncome() {
+    if (!result) return
+    setError(null)
+    setSavingIncome(true)
+    try {
+      await createIncomeSource({
+        name: "Salary (calculated)",
+        amount: result.net,
+        recurrence: "MONTHLY",
+        startDate: today(),
+        endDate: null,
+      })
+      toast("Saved as income source")
+      onIncomeSaved()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Save failed")
+    } finally {
+      setSavingIncome(false)
     }
   }
 
@@ -94,7 +117,7 @@ function SalaryCalculatorCard() {
               key={m}
               onClick={() => setMode(m)}
               className={`cursor-pointer border-none px-3 py-1 font-mono text-[12.5px] font-medium ${
-                mode === m ? "bg-primary text-primary-foreground" : "text-muted-foreground bg-transparent"
+                mode === m ? "bg-primary/15 text-primary" : "text-muted-foreground bg-transparent"
               }`}
             >
               {m === "GROSS_TO_NET" ? "gross → net" : "net → gross"}
@@ -160,6 +183,39 @@ function SalaryCalculatorCard() {
         Rates are versioned config ({result?.rulesValidFrom?.slice(0, 4) ?? "2026"}). Personal
         deduction not applied in this quick view.
       </p>
+
+      {result && (
+        <div className="border-border mt-5.5 border-t pt-5.5">
+          <div className="ledger-label mb-2.5">Where it goes</div>
+          <div className="border-border flex h-[26px] border">
+            <span style={{ flex: Math.max(result.cas, 0.0001), background: "#4C93A6" }} />
+            <span style={{ flex: Math.max(result.cass, 0.0001), background: "#2E6E80", borderLeft: "1px solid #0E1113" }} />
+            <span style={{ flex: Math.max(result.incomeTax, 0.0001), background: OUT, borderLeft: "1px solid #0E1113" }} />
+            <span style={{ flex: Math.max(result.net, 0.0001), background: "#9AD4E3", borderLeft: "1px solid #0E1113" }} />
+          </div>
+          <div className="text-muted-foreground mt-2.5 flex flex-wrap gap-x-5 gap-y-1.5 font-mono text-[10.5px] tracking-[0.08em] uppercase">
+            <span className="flex items-center gap-1.5">
+              <span className="size-2.5" style={{ background: "#4C93A6" }} /> CAS {Math.round((result.cas / result.gross) * 100)}%
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="size-2.5" style={{ background: "#2E6E80" }} /> CASS {Math.round((result.cass / result.gross) * 100)}%
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="size-2.5" style={{ background: OUT }} /> Tax {Math.round((result.incomeTax / result.gross) * 100)}%
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="size-2.5" style={{ background: "#9AD4E3" }} /> Net {Math.round((result.net / result.gross) * 100)}%
+            </span>
+          </div>
+          <button
+            onClick={saveAsIncome}
+            disabled={savingIncome}
+            className={`${CTA} mt-5 px-4 py-2.5 text-[13.5px] font-semibold disabled:opacity-60`}
+          >
+            {savingIncome ? "Saving…" : "Save as income source"}
+          </button>
+        </div>
+      )}
     </section>
   )
 }
@@ -170,6 +226,7 @@ export default function ProfileTab() {
   const [income, setIncome] = useState<IncomeSource[]>([])
   const [savings, setSavings] = useState<SavingsAccount[]>([])
   const [netWorth, setNetWorth] = useState<NetWorth | null>(null)
+  const [loading, setLoading] = useState(true)
   const [recurrence, setRecurrence] = useState<IncomeSource["recurrence"]>("MONTHLY")
   const [error, setError] = useState<string | null>(null)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -183,8 +240,10 @@ export default function ProfileTab() {
         setIncome(i)
         setSavings(s)
         setNetWorth(n)
+        setError(null)
       })
-      .catch((e) => setError(e instanceof Error ? e.message : "Failed to load"))
+      .catch((e) => setError(e instanceof Error ? e.message : "Could not read your account"))
+      .finally(() => setLoading(false))
   }, [])
 
   useEffect(() => {
@@ -291,6 +350,11 @@ export default function ProfileTab() {
       {error && (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
+          <AlertAction>
+            <button onClick={reload} className="status-tag text-destructive hover:text-foreground cursor-pointer">
+              Retry
+            </button>
+          </AlertAction>
         </Alert>
       )}
 
@@ -320,13 +384,25 @@ export default function ProfileTab() {
             <div>
               <div className="ledger-label">Net worth</div>
               <div className="figure mt-1.5 text-[22px]">
-                {netWorth ? formatRon(netWorth.total) : "—"}
+                {loading ? (
+                  <span className="bg-border inline-block h-px w-24 align-middle" />
+                ) : netWorth ? (
+                  formatRon(netWorth.total)
+                ) : (
+                  "—"
+                )}
               </div>
             </div>
             <div className="text-right">
               <div className="ledger-label">Income / month</div>
               <div className="figure mt-1.5 text-[18px]" style={{ color: GOOD }}>
-                {netWorth ? formatRon(netWorth.monthlyIncome) : "—"}
+                {loading ? (
+                  <span className="bg-border ml-auto inline-block h-px w-20 align-middle" />
+                ) : netWorth ? (
+                  formatRon(netWorth.monthlyIncome)
+                ) : (
+                  "—"
+                )}
               </div>
             </div>
           </section>
@@ -372,7 +448,7 @@ export default function ProfileTab() {
                   <button
                     onClick={() => deleteIncomeSource(source.id).then(reload)}
                     aria-label="Remove income source"
-                    className="text-muted-foreground hover:text-foreground grid size-9 flex-none cursor-pointer place-items-center hover:bg-white/[0.06]"
+                    className="text-muted-foreground hover:text-foreground grid size-11 flex-none cursor-pointer place-items-center hover:bg-white/[0.06]"
                   >
                     <CloseIcon size={15} />
                   </button>
@@ -412,7 +488,7 @@ export default function ProfileTab() {
                     <button onClick={() => adjustBalance(account)} className="text-muted-foreground hover:text-foreground cursor-pointer px-1.5 text-[13px]">
                       Adjust
                     </button>
-                    <button onClick={() => deleteSavings(account.id).then(reload)} aria-label="Delete pot" className="text-muted-foreground hover:text-foreground grid size-8 flex-none cursor-pointer place-items-center hover:bg-white/[0.06]">
+                    <button onClick={() => deleteSavings(account.id).then(reload)} aria-label="Delete pot" className="text-muted-foreground hover:text-foreground grid size-11 flex-none cursor-pointer place-items-center hover:bg-white/[0.06]">
                       <CloseIcon size={15} />
                     </button>
                   </span>
@@ -506,7 +582,7 @@ export default function ProfileTab() {
 
         {/* Right */}
         <div className="flex min-w-[min(100%,360px)] flex-1 basis-[46%]">
-          <SalaryCalculatorCard />
+          <SalaryCalculatorCard onIncomeSaved={reload} />
         </div>
       </div>
     </div>
