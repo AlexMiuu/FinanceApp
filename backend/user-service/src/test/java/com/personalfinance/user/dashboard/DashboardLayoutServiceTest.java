@@ -26,7 +26,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 class DashboardLayoutServiceTest {
 
-    private static final List<String> DEFAULT_MAIN = List.of("balance", "breakdown");
+    private static final List<String> DEFAULT_MAIN = List.of("breakdown");
     private static final List<String> DEFAULT_SIDE = List.of("savings", "streak", "quests");
 
     private DashboardLayoutRepository layouts;
@@ -54,11 +54,11 @@ class DashboardLayoutServiceTest {
     void aSavedArrangementIsReadBackInTheOrderItWasStored() {
         UUID userId = UUID.randomUUID();
         when(layouts.findById(userId)).thenReturn(Optional.of(new DashboardLayoutEntity(userId,
-                "{\"main\":[\"breakdown\",\"balance\"],\"side\":[\"quests\",\"savings\",\"streak\"]}")));
+                "{\"main\":[\"breakdown\"],\"side\":[\"quests\",\"savings\",\"streak\"]}")));
 
         DashboardLayoutDto layout = service.layoutFor(userId);
 
-        assertThat(layout.getMain()).containsExactly("breakdown", "balance");
+        assertThat(layout.getMain()).containsExactly("breakdown");
         assertThat(layout.getSide()).containsExactly("quests", "savings", "streak");
         assertThat(layout.getUpdatedAt()).isNotNull();
     }
@@ -67,24 +67,27 @@ class DashboardLayoutServiceTest {
     void aWidgetMissingFromAStoredLayoutComesBackInItsDefaultColumn() {
         UUID userId = UUID.randomUUID();
         when(layouts.findById(userId)).thenReturn(Optional.of(new DashboardLayoutEntity(userId,
-                "{\"main\":[\"breakdown\"],\"side\":[\"quests\"]}")));
+                "{\"main\":[],\"side\":[\"quests\"]}")));
 
         DashboardLayoutDto layout = service.layoutFor(userId);
 
-        assertThat(layout.getMain()).containsExactly("breakdown", "balance");
+        assertThat(layout.getMain()).containsExactly("breakdown");
         assertThat(layout.getSide()).containsExactly("quests", "savings", "streak");
     }
 
     @Test
     void aWidgetThisVersionNoLongerKnowsIsDroppedOnRead() {
         UUID userId = UUID.randomUUID();
+        // "balance" (the Balance carried forward hero) was retired from the
+        // arrangeable catalogue — a layout saved before that change should read
+        // back with it silently dropped, exactly like any other retired widget.
         when(layouts.findById(userId)).thenReturn(Optional.of(new DashboardLayoutEntity(userId,
                 "{\"main\":[\"balance\",\"retired-widget\",\"breakdown\"],"
                         + "\"side\":[\"savings\",\"streak\",\"quests\"]}")));
 
         DashboardLayoutDto layout = service.layoutFor(userId);
 
-        assertThat(layout.getMain()).containsExactly("balance", "breakdown");
+        assertThat(layout.getMain()).containsExactly("breakdown");
         assertThat(layout.getSide()).containsExactly("savings", "streak", "quests");
     }
 
@@ -115,9 +118,9 @@ class DashboardLayoutServiceTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         DashboardLayoutDto saved = service.saveLayout(userId, new DashboardLayoutRequestDto(
-                List.of("breakdown", "balance"), List.of("quests", "streak", "savings")));
+                List.of("breakdown"), List.of("quests", "streak", "savings")));
 
-        assertThat(saved.getMain()).containsExactly("breakdown", "balance");
+        assertThat(saved.getMain()).containsExactly("breakdown");
         assertThat(saved.getUpdatedAt()).isNotNull();
 
         ArgumentCaptor<DashboardLayoutEntity> persisted =
@@ -125,7 +128,7 @@ class DashboardLayoutServiceTest {
         verify(layouts).save(persisted.capture());
         assertThat(persisted.getValue().getUserId()).isEqualTo(userId);
         assertThat(persisted.getValue().getLayout())
-                .isEqualTo("{\"main\":[\"breakdown\",\"balance\"],"
+                .isEqualTo("{\"main\":[\"breakdown\"],"
                         + "\"side\":[\"quests\",\"streak\",\"savings\"]}");
     }
 
@@ -133,19 +136,19 @@ class DashboardLayoutServiceTest {
     void savingTwiceReplacesTheExistingRowRatherThanAddingAnother() {
         UUID userId = UUID.randomUUID();
         DashboardLayoutEntity existing = new DashboardLayoutEntity(userId,
-                "{\"main\":[\"balance\",\"breakdown\"],\"side\":[\"savings\",\"streak\",\"quests\"]}");
+                "{\"main\":[\"breakdown\"],\"side\":[\"savings\",\"streak\",\"quests\"]}");
         when(layouts.findById(userId)).thenReturn(Optional.of(existing));
         when(layouts.save(any(DashboardLayoutEntity.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         service.saveLayout(userId, new DashboardLayoutRequestDto(
-                List.of("breakdown", "balance"), List.of("quests", "streak", "savings")));
+                List.of("breakdown"), List.of("quests", "streak", "savings")));
 
         ArgumentCaptor<DashboardLayoutEntity> saved =
                 ArgumentCaptor.forClass(DashboardLayoutEntity.class);
         verify(layouts).save(saved.capture());
         assertThat(saved.getValue()).isSameAs(existing);
-        assertThat(existing.getLayout()).contains("\"breakdown\",\"balance\"");
+        assertThat(existing.getLayout()).contains("\"quests\",\"streak\",\"savings\"");
     }
 
     @Test
@@ -153,7 +156,7 @@ class DashboardLayoutServiceTest {
         UUID userId = UUID.randomUUID();
 
         assertThatThrownBy(() -> service.saveLayout(userId,
-                new DashboardLayoutRequestDto(List.of("balance"), List.of("savings"))))
+                new DashboardLayoutRequestDto(List.of("breakdown"), List.of("savings"))))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("every known widget exactly once");
 
@@ -165,7 +168,7 @@ class DashboardLayoutServiceTest {
         UUID userId = UUID.randomUUID();
 
         assertThatThrownBy(() -> service.saveLayout(userId, new DashboardLayoutRequestDto(
-                List.of("balance", "breakdown", "balance"), List.of("savings", "streak", "quests"))))
+                List.of("breakdown", "breakdown"), List.of("savings", "streak", "quests"))))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("cannot appear twice");
 
@@ -177,7 +180,7 @@ class DashboardLayoutServiceTest {
         UUID userId = UUID.randomUUID();
 
         assertThatThrownBy(() -> service.saveLayout(userId, new DashboardLayoutRequestDto(
-                List.of("balance", "breakdown", "rm -rf"), List.of("savings", "streak", "quests"))))
+                List.of("breakdown", "rm -rf"), List.of("savings", "streak", "quests"))))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("every known widget exactly once");
 

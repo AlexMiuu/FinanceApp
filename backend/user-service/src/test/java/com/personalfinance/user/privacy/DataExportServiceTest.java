@@ -127,11 +127,11 @@ class DataExportServiceTest {
         UUID userId = user.getId();
         when(users.findById(userId)).thenReturn(Optional.of(user));
         when(dashboardLayouts.findById(userId)).thenReturn(Optional.of(new DashboardLayoutEntity(
-                userId, "{\"main\":[\"breakdown\",\"balance\"],\"side\":[\"quests\",\"streak\",\"savings\"]}")));
+                userId, "{\"main\":[\"breakdown\"],\"side\":[\"quests\",\"streak\",\"savings\"]}")));
 
         DataExportDto export = service.exportFor(userId);
 
-        assertThat(export.getDashboardLayout().getMain()).containsExactly("breakdown", "balance");
+        assertThat(export.getDashboardLayout().getMain()).containsExactly("breakdown");
         assertThat(export.getDashboardLayout().getSide()).containsExactly("quests", "streak", "savings");
     }
 
@@ -142,7 +142,7 @@ class DataExportServiceTest {
 
         DataExportDto export = service.exportFor(user.getId());
 
-        assertThat(export.getDashboardLayout().getMain()).containsExactly("balance", "breakdown");
+        assertThat(export.getDashboardLayout().getMain()).containsExactly("breakdown");
         assertThat(export.getDashboardLayout().getSide()).containsExactly("savings", "streak", "quests");
         assertThat(export.getDashboardLayout().getUpdatedAt()).isNull();
     }

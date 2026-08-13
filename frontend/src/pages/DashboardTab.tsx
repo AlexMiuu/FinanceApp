@@ -154,7 +154,6 @@ export default function DashboardTab({
   if (!data) return <DashSkeletonNote slow={slowLoad} onRetry={loadDashboard} />
 
   const widgets: Record<WidgetId, React.ReactNode> = {
-    balance: <BalanceWidget month={month} data={data} netWorth={netWorth} calendar={calendar} />,
     breakdown: (
       <BreakdownWidget
         data={data}
@@ -210,7 +209,9 @@ export default function DashboardTab({
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-[22px]">
+      <BalanceWidget month={month} data={data} netWorth={netWorth} calendar={calendar} />
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <button
           onClick={() => setArranging((v) => !v)}

@@ -29,19 +29,21 @@ import org.springframework.web.server.ResponseStatusException;
 @RequiredArgsConstructor
 public class DashboardLayoutService {
 
-    private static final String WIDGET_BALANCE = "balance";
+    // "balance" (the Balance carried forward hero) was retired from the arrangeable
+    // catalogue — it's now a fixed section above the grid, not a widget a user can
+    // move. reconcile() drops it from any layout saved before this change.
     private static final String WIDGET_BREAKDOWN = "breakdown";
     private static final String WIDGET_SAVINGS = "savings";
     private static final String WIDGET_STREAK = "streak";
     private static final String WIDGET_QUESTS = "quests";
 
     /** The arrangement a user sees before they have ever rearranged anything. */
-    private static final List<String> DEFAULT_MAIN = List.of(WIDGET_BALANCE, WIDGET_BREAKDOWN);
+    private static final List<String> DEFAULT_MAIN = List.of(WIDGET_BREAKDOWN);
     private static final List<String> DEFAULT_SIDE =
             List.of(WIDGET_SAVINGS, WIDGET_STREAK, WIDGET_QUESTS);
 
     private static final Set<String> KNOWN_WIDGETS = Set.of(
-            WIDGET_BALANCE, WIDGET_BREAKDOWN, WIDGET_SAVINGS, WIDGET_STREAK, WIDGET_QUESTS);
+            WIDGET_BREAKDOWN, WIDGET_SAVINGS, WIDGET_STREAK, WIDGET_QUESTS);
 
     private final DashboardLayoutRepository layouts;
     private final DashboardLayoutMapper dashboardLayoutMapper;
