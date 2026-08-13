@@ -29,19 +29,19 @@ import org.springframework.web.server.ResponseStatusException;
 @RequiredArgsConstructor
 public class DashboardLayoutService {
 
-    private static final String WIDGET_BALANCE = "balance";
-    private static final String WIDGET_BREAKDOWN = "breakdown";
+    // Retired from the arrangeable catalogue, and dropped from older saved layouts
+    // by reconcile(): "balance" (the hero) and "tally" are now fixed sections above
+    // the grid, and "breakdown"/"streak" left the Overview entirely.
+    private static final String WIDGET_LEDGER = "ledger";
     private static final String WIDGET_SAVINGS = "savings";
-    private static final String WIDGET_STREAK = "streak";
     private static final String WIDGET_QUESTS = "quests";
 
     /** The arrangement a user sees before they have ever rearranged anything. */
-    private static final List<String> DEFAULT_MAIN = List.of(WIDGET_BALANCE, WIDGET_BREAKDOWN);
-    private static final List<String> DEFAULT_SIDE =
-            List.of(WIDGET_SAVINGS, WIDGET_STREAK, WIDGET_QUESTS);
+    private static final List<String> DEFAULT_MAIN = List.of(WIDGET_LEDGER);
+    private static final List<String> DEFAULT_SIDE = List.of(WIDGET_SAVINGS, WIDGET_QUESTS);
 
-    private static final Set<String> KNOWN_WIDGETS = Set.of(
-            WIDGET_BALANCE, WIDGET_BREAKDOWN, WIDGET_SAVINGS, WIDGET_STREAK, WIDGET_QUESTS);
+    private static final Set<String> KNOWN_WIDGETS =
+            Set.of(WIDGET_LEDGER, WIDGET_SAVINGS, WIDGET_QUESTS);
 
     private final DashboardLayoutRepository layouts;
     private final DashboardLayoutMapper dashboardLayoutMapper;

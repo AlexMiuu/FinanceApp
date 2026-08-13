@@ -472,8 +472,12 @@ export async function downloadReportCsv(id: string, name: string) {
 
 // ---- Dashboard widget arrangement (M10) ----
 
-/** Widget ids the server knows; a layout must place every one of them exactly once. */
-export type WidgetId = "balance" | "breakdown" | "savings" | "streak" | "quests"
+/**
+ * Widget ids the server knows; a layout must place every one of them exactly once.
+ * The balance hero and the tally are not in this catalogue — they are fixed
+ * sections above the arrangeable grid, not something a user can move.
+ */
+export type WidgetId = "ledger" | "savings" | "quests"
 
 export type DashboardLayout = {
   main: WidgetId[]

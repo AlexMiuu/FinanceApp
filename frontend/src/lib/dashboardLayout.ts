@@ -9,18 +9,16 @@ export type Layout = Record<Column, WidgetId[]>
 
 /** Mirrors DashboardLayoutService's default so the first paint matches what the server sends. */
 export const DEFAULT_LAYOUT: Layout = {
-  main: ["balance", "breakdown"],
-  side: ["savings", "streak", "quests"],
+  main: ["ledger"],
+  side: ["savings", "quests"],
 }
 
 export const OTHER: Record<Column, Column> = { main: "side", side: "main" }
 
 export const WIDGET_NAMES: Record<WidgetId, string> = {
-  balance: "Balance carried forward",
-  breakdown: "Where your money goes",
-  savings: "Savings",
-  streak: "Streak",
-  quests: "Active quests",
+  ledger: "Ledger",
+  savings: "Net worth",
+  quests: "Quests & commitments",
 }
 
 export const COLUMN_NAMES: Record<Column, string> = {
