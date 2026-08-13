@@ -474,10 +474,10 @@ export async function downloadReportCsv(id: string, name: string) {
 
 /**
  * Widget ids the server knows; a layout must place every one of them exactly once.
- * "balance" (the Balance carried forward hero) is not in this catalogue — it's a
- * fixed section above the arrangeable grid, not something a user can move.
+ * The balance hero and the tally are not in this catalogue — they are fixed
+ * sections above the arrangeable grid, not something a user can move.
  */
-export type WidgetId = "breakdown" | "savings" | "streak" | "quests"
+export type WidgetId = "ledger" | "savings" | "quests"
 
 export type DashboardLayout = {
   main: WidgetId[]
