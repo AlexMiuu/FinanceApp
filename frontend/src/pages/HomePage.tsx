@@ -1,11 +1,12 @@
 import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react"
 import { useAuth } from "@/auth/AuthContext"
-import { getCategories, getWeather, type Category } from "@/lib/api"
+import { exportMyData, getCategories, getWeather, type Category } from "@/lib/api"
 import { Sidebar, MobileNav, type PageKey } from "@/components/Sidebar"
 import { AddSheet } from "@/components/AddSheet"
 import { BootSplash } from "@/components/BootSplash"
 import { NotificationsBell } from "@/components/NotificationsBell"
 import { CloseIcon, SearchIcon } from "@/components/brand"
+import { useToast } from "@/components/Toast"
 import { STORAGE_REGISTRY, readStored, writeStored } from "@/lib/storage"
 // Each tab is its own chunk: opening the app pays for the dashboard only, and the
 // other four arrive when they are first navigated to.
@@ -24,6 +25,16 @@ function TabLoading() {
   )
 }
 
+/** "August 2026 · Day 8 of 31" — the ledger's own dateline, above every page title. */
+function dateLine(): string {
+  const now = new Date()
+  const month = now.toLocaleDateString("en-GB", { month: "long", year: "numeric" })
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+  return `${month} · Day ${now.getDate()} of ${daysInMonth}`
+}
+
+const today = () => new Date().toISOString().slice(0, 10)
+
 const HEADER: Record<PageKey, { title: (name: string) => string; subtitle: string }> = {
   dashboard: { title: (n) => `Hello, ${n}`, subtitle: "Here's your money at a glance" },
   expenses: { title: () => "Expenses", subtitle: "Your spending log" },
@@ -34,6 +45,7 @@ const HEADER: Record<PageKey, { title: (name: string) => string; subtitle: strin
 
 export default function HomePage() {
   const { user } = useAuth()
+  const toast = useToast()
   const [page, setPage] = useState<PageKey>("dashboard")
   const [categories, setCategories] = useState<Category[]>([])
   const [expanded, setExpanded] = useState(true)
@@ -128,6 +140,25 @@ export default function HomePage() {
     setReloadKey((k) => k + 1)
   }
 
+  // Same shape as ProfileTab's GDPR export — a JSON snapshot of the account and its
+  // expenses, reachable from the header everywhere rather than only from Account.
+  async function exportAll() {
+    try {
+      const { user: userData, expenses } = await exportMyData()
+      const payload = { exportedAt: new Date().toISOString(), user: userData, expenses }
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `argali-data-export-${today()}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast("Data export downloaded")
+    } catch {
+      /* non-fatal — the same export lives on the Account page */
+    }
+  }
+
   return (
     <div className="bg-background text-foreground flex min-h-svh">
       {booting && <BootSplash onDone={onBootDone} />}
@@ -144,19 +175,26 @@ export default function HomePage() {
         {/* Header */}
         <header className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="font-heading text-[26px] font-semibold tracking-tight sm:text-[31px]">
+            <div className="ledger-label !text-[10px]">{dateLine()}</div>
+            <h1 className="font-heading mt-1 text-[26px] font-semibold tracking-tight sm:text-[31px]">
               {head.title(firstName)}
             </h1>
             <p className="text-muted-foreground mt-1.5 text-[14px] sm:text-[15px]">{head.subtitle}</p>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-3">
+            <button
+              onClick={exportAll}
+              className="status-tag border-border hover:border-[#4C93A6] hover:text-foreground text-muted-foreground min-h-11 cursor-pointer border bg-transparent px-3.5 normal-case tracking-[0.06em] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9AD4E3]"
+            >
+              Export
+            </button>
             {/* Under 640px the search field is collapsed behind this control, so the
                 header still fits a phone without dropping search entirely. */}
             <button
               onClick={openMobileSearch}
               aria-label="Search transactions"
               aria-expanded={searchOpen}
-              className={`text-muted-foreground hover:text-foreground bg-card border-border grid size-11 flex-none cursor-pointer place-items-center border transition-colors hover:bg-white/[0.06] sm:hidden ${
+              className={`text-muted-foreground hover:text-foreground bg-card border-border grid size-11 flex-none cursor-pointer place-items-center border transition-colors hover:bg-white/[0.06] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9AD4E3] sm:hidden ${
                 searchOpen ? "hidden" : ""
               }`}
             >

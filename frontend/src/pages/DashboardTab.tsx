@@ -6,14 +6,18 @@ import {
   getDashboardLayout,
   getNetWorth,
   listExpenses,
+  listOaths,
   listQuests,
+  listSavings,
   saveDashboardLayout,
   type Category,
   type Dashboard,
   type Expense,
   type GoalCalendar,
   type NetWorth,
+  type Oath,
   type Quest,
+  type SavingsAccount,
   type WidgetId,
 } from "@/lib/api"
 import { ChevronIcon, HornGlyph } from "@/components/brand"
@@ -48,11 +52,6 @@ function topName(categories: Category[], id: string): string {
   if (!c) return "Other"
   return c.parentId ? categories.find((x) => x.id === c.parentId)?.name ?? "Other" : c.name
 }
-function monogram(label: string): string {
-  const w = label.trim().split(/\s+/).filter(Boolean)
-  if (!w.length) return "··"
-  return (w.length === 1 ? w[0].slice(0, 2) : w[0][0] + w[1][0]).toUpperCase()
-}
 const shortDate = (iso: string) =>
   new Date(iso + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" })
 
@@ -70,14 +69,18 @@ export default function DashboardTab({
   const [quests, setQuests] = useState<Quest[]>([])
   const [calendar, setCalendar] = useState<GoalCalendar | null>(null)
   const [recent, setRecent] = useState<Expense[]>([])
+  const [savings, setSavings] = useState<SavingsAccount[]>([])
+  const [oaths, setOaths] = useState<Oath[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [slowLoad, setSlowLoad] = useState(false)
 
   const [layout, setLayout] = useState<Layout>(DEFAULT_LAYOUT)
   const [arranging, setArranging] = useState(false)
   const [layoutError, setLayoutError] = useState<string | null>(null)
   const [dragging, setDragging] = useState<{ column: Column; index: number } | null>(null)
 
-  useEffect(() => {
+  const loadDashboard = useCallback(() => {
+    setError(null)
     getDashboard(month)
       .then((d) => {
         setData(d)
@@ -87,10 +90,24 @@ export default function DashboardTab({
   }, [month])
 
   useEffect(() => {
+    loadDashboard()
+  }, [loadDashboard])
+
+  // "Still fetching?" affordance — a plain retry, not a spinner that runs forever.
+  useEffect(() => {
+    if (data) return
+    setSlowLoad(false)
+    const t = setTimeout(() => setSlowLoad(true), 6000)
+    return () => clearTimeout(t)
+  }, [data, month])
+
+  useEffect(() => {
     getNetWorth().then(setNetWorth).catch(() => setNetWorth(null))
     listQuests().then(setQuests).catch(() => setQuests([]))
     getCalendar().then(setCalendar).catch(() => setCalendar(null))
     listExpenses({}).then((p) => setRecent(p.items.slice(0, 4))).catch(() => setRecent([]))
+    listSavings().then(setSavings).catch(() => setSavings([]))
+    listOaths().then(setOaths).catch(() => setOaths([]))
     // The arrangement is per-user server state (D9), so it survives this browser.
     getDashboardLayout()
       .then((saved) => setLayout({ main: saved.main, side: saved.side }))
@@ -122,11 +139,22 @@ export default function DashboardTab({
   const greenDays = calendar?.days.filter((d) => d.status === "MET").length ?? 0
   const activeQuests = quests.filter((q) => q.status === "ACTIVE").slice(0, 3)
 
-  if (error) return <p className="text-destructive py-8 text-center text-sm">{error}</p>
-  if (!data) return <DashSkeletonNote />
+  if (error)
+    return (
+      <div className="flex flex-col items-center gap-3 py-8 text-center">
+        <p className="text-destructive text-sm">We could not read your ledger — {error}</p>
+        <button
+          onClick={loadDashboard}
+          className="text-primary min-h-11 cursor-pointer px-3 text-[13.5px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9AD4E3]"
+        >
+          Try again
+        </button>
+      </div>
+    )
+  if (!data) return <DashSkeletonNote slow={slowLoad} onRetry={loadDashboard} />
 
   const widgets: Record<WidgetId, React.ReactNode> = {
-    balance: <BalanceWidget month={month} data={data} netWorth={netWorth} />,
+    balance: <BalanceWidget month={month} data={data} netWorth={netWorth} calendar={calendar} />,
     breakdown: (
       <BreakdownWidget
         data={data}
@@ -136,9 +164,11 @@ export default function DashboardTab({
         onNavigate={onNavigate}
       />
     ),
-    savings: <SavingsWidget netWorth={netWorth} />,
+    savings: <SavingsWidget netWorth={netWorth} savings={savings} />,
     streak: <StreakWidget greenDays={greenDays} />,
-    quests: <QuestsWidget activeQuests={activeQuests} onNavigate={onNavigate} />,
+    quests: (
+      <QuestsWidget activeQuests={activeQuests} oaths={oaths} onNavigate={onNavigate} />
+    ),
   }
 
   function renderColumn(column: Column, className: string) {
@@ -348,12 +378,19 @@ function BalanceWidget({
   month,
   data,
   netWorth,
+  calendar,
 }: {
   month: string
   data: Dashboard
   netWorth: NetWorth | null
+  calendar: GoalCalendar | null
 }) {
   const delta = data.totalSpent - data.previousMonthTotal
+
+  // Flow row — came in / went out / left to spend — mirrors the ledger's own
+  // three-line summary rather than restating totalSpent a second way.
+  const income = netWorth?.monthlyIncome ?? null
+  const leftToSpend = income !== null ? income - data.totalSpent : null
 
   // Ghost balance — a hypothetical: what this month would look like if spend had
   // continued at last month's daily rate. Real numbers (data.previousMonthTotal),
@@ -383,13 +420,39 @@ function BalanceWidget({
           </div>
           <div className="ink-underline mt-3 inline-flex items-baseline gap-2">
             <span className="figure text-[52px] leading-none sm:text-[60px]">
-              {netWorth ? Math.floor(netWorth.total / 100).toLocaleString("en-US") : "—"}
+              {netWorth ? Math.floor(netWorth.total / 100).toLocaleString("ro-RO") : "—"}
             </span>
             <span className="figure text-[24px] text-[#C7CDD0]">
               {netWorth ? "." + String(netWorth.total % 100).padStart(2, "0") : ""}
             </span>
             <span className="text-muted-foreground mb-1 font-mono text-[14px]">RON</span>
           </div>
+
+          {income !== null && (
+            <div className="mt-5 flex gap-8">
+              <div>
+                <div className="ledger-label">came in</div>
+                <div className="figure text-good mt-1.5 text-[21px]">
+                  {formatRon(income).replace(/\s?RON$/, "")}
+                </div>
+              </div>
+              <div>
+                <div className="ledger-label">went out</div>
+                <div className="figure mt-1.5 text-[21px]">
+                  {formatRon(data.totalSpent).replace(/\s?RON$/, "")}
+                </div>
+              </div>
+              {leftToSpend !== null && (
+                <div>
+                  <div className="ledger-label">left to spend</div>
+                  <div className="figure mt-1.5 text-[21px] text-[#C7CDD0]">
+                    {formatRon(Math.abs(leftToSpend)).replace(/\s?RON$/, "")}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="text-muted-foreground mt-4 text-[13.5px]">
             {delta <= 0 ? "Down" : "Up"}{" "}
             <span className={delta <= 0 ? "text-good" : "text-destructive"}>
@@ -399,12 +462,6 @@ function BalanceWidget({
           </div>
         </div>
         <div className="ruled min-w-[210px] flex-1 basis-[240px] text-[14px]">
-          <div className="flex items-baseline justify-between py-2.5">
-            <span className="text-muted-foreground">Spent · {monthLabel(month).split(" ")[0]}</span>
-            <span className="tnum text-destructive font-mono">
-              −{formatRon(data.totalSpent).replace(/\s?RON$/, "")}
-            </span>
-          </div>
           {data.projectedMonthEnd !== null && (
             <div className="flex items-baseline justify-between py-2.5">
               <span className="text-muted-foreground">Projected month-end</span>
@@ -464,150 +521,156 @@ function BalanceWidget({
           {data.macroStale && " (last known good — not refreshed recently)"}
         </p>
       )}
-      <SpendTrajectory data={data} month={month} />
+      <Tally data={data} month={month} calendar={calendar} />
     </section>
   )
 }
 
-const GHOST_LINE = "rgba(154,212,227,0.35)"
-const GHOST_GUIDE = "rgba(154,212,227,0.14)"
-
-const runningTotals = (series: { amount: number }[]) => {
-  let sum = 0
-  return series.map((point) => (sum += point.amount))
-}
+const DAY_OK = "#9AD4E3"
+const DAY_OVER = "#E09880"
+const DAY_EMPTY = "#2A3033"
 
 /**
- * Cumulative spend for the month against the F3 ghost flock — the same month with
- * non-mandatory spend held at its trailing 3-month median. The ghost borrows the
- * ledger's faint guide-mark language so it reads as a reference the eye can dismiss,
- * never as a second ledger competing with what was actually recorded.
+ * Tally — a day-by-day bar chart of this month's spend, colored by the calendar's
+ * own MET/MISSED read of that day, with the F3 ghost flock's daily figures ruled
+ * in beneath as a faint comparison row. Replaces a cumulative line with the
+ * ledger's own notch language: one mark per day, not a trend to read tea leaves in.
  */
-function SpendTrajectory({ data, month }: { data: Dashboard; month: string }) {
+function Tally({
+  data,
+  month,
+  calendar,
+}: {
+  data: Dashboard
+  month: string
+  calendar: GoalCalendar | null
+}) {
+  const [selectedDay, setSelectedDay] = useState<string | null>(null)
+
   const days = data.byDay.length
   if (days === 0) return null
 
-  const real = runningTotals(data.byDay)
-  const ghost = data.ghostByDay ? runningTotals(data.ghostByDay) : null
+  const statusByDate = new Map((calendar?.days ?? []).map((d) => [d.date, d.status]))
+  const ghostByDate = new Map((data.ghostByDay ?? []).map((d) => [d.date, d.amount]))
 
-  // The recorded line stops at today: a flat run to month-end is missing data, not restraint.
-  const now = new Date()
-  const realThrough =
-    month === now.toISOString().slice(0, 7) ? Math.min(now.getDate(), days) : days
-  const peak = Math.max(...real.slice(0, realThrough), ...(ghost ?? [0]), 1)
+  const peak = Math.max(...data.byDay.map((d) => d.amount), ...(data.ghostByDay?.map((d) => d.amount) ?? [0]), 1)
+  const daysEntered = data.byDay.filter((d) => d.amount > 0).length
+  const hasGhost = data.ghostByDay !== null
 
-  const VW = 340
-  const H = 104
-  const padX = 10
-  const padTop = 10
-  const padBottom = 18
-
-  const x = (day: number) => padX + ((day - 1) / Math.max(days - 1, 1)) * (VW - padX * 2)
-  const y = (value: number) => H - padBottom - (value / peak) * (H - padTop - padBottom)
-  const path = (values: number[], through: number) =>
-    values
-      .slice(0, through)
-      .map((value, i) => `${x(i + 1).toFixed(1)},${y(value).toFixed(1)}`)
-      .join(" ")
-
-  const spent = formatRon(real[realThrough - 1] ?? 0).replace(/\s?RON$/, "")
+  const spent = formatRon(data.totalSpent).replace(/\s?RON$/, "")
   const baseline = formatRon(data.ghostMonthTotal ?? 0).replace(/\s?RON$/, "")
+  const selectedEntry = data.byDay.find((d) => d.date === selectedDay) ?? null
 
   return (
-    <div className="relative mt-7">
-      <div className="ledger-label mb-3">The month so far</div>
-      <svg
-        viewBox={`0 0 ${VW} ${H}`}
-        style={{ width: "100%", height: "auto", display: "block" }}
-        role="img"
-        aria-label={
-          ghost
-            ? `Recorded spend of ${spent} RON so far this month, against a ghost flock baseline of ${baseline} RON by month end`
-            : `Recorded spend of ${spent} RON so far this month`
-        }
-      >
-        <line x1={padX} y1={H - padBottom} x2={VW - padX} y2={H - padBottom} stroke="var(--border)" strokeWidth="1" />
-
-        {ghost && (
-          <>
-            {/* Guide marks every fifth day — the ledger bundles its notches in fives. */}
-            {ghost.map((value, i) =>
-              (i + 1) % 5 === 0 ? (
-                <line
-                  key={`guide-${i}`}
-                  x1={x(i + 1)}
-                  y1={y(value)}
-                  x2={x(i + 1)}
-                  y2={H - padBottom}
-                  stroke={GHOST_GUIDE}
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              ) : null
-            )}
-            <polyline
-              points={path(ghost, days)}
-              fill="none"
-              stroke={GHOST_LINE}
-              strokeWidth="1.25"
-              strokeDasharray="3 3"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </>
-        )}
-
-        {/* The recorded ledger: a dark cut with a lit edge, as the notches are carved. */}
-        <polyline
-          points={path(real, realThrough)}
-          fill="none"
-          stroke="#0E1113"
-          strokeWidth="3.4"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <polyline
-          points={path(real, realThrough)}
-          fill="none"
-          stroke="#9AD4E3"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-
-      <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5">
-        <span className="text-muted-foreground inline-flex items-center gap-2 text-[12.5px]">
-          <svg width="18" height="6" aria-hidden="true">
-            <line x1="0" y1="3" x2="18" y2="3" stroke="#9AD4E3" strokeWidth="2" strokeLinecap="round" />
-          </svg>
-          Recorded
-        </span>
-        {ghost && (
-          <span className="text-muted-foreground inline-flex items-center gap-2 text-[12.5px]">
-            <svg width="18" height="6" aria-hidden="true">
-              <line
-                x1="0"
-                y1="3"
-                x2="18"
-                y2="3"
-                stroke={GHOST_LINE}
-                strokeWidth="1.25"
-                strokeDasharray="3 3"
-                strokeLinecap="round"
-              />
-            </svg>
-            Ghost flock
-          </span>
-        )}
+    <div className="mt-7">
+      <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3">
+        <div className="flex items-baseline gap-3.5">
+          <span className="ledger-label">Tally · {monthLabel(month).split(" ")[0]}</span>
+          <span className="text-muted-foreground text-[13px]">{daysEntered} days recorded</span>
+        </div>
+        <div className="flex gap-4">
+          <TallyLegendItem color={DAY_OK} label="on pace" />
+          <TallyLegendItem color={DAY_OVER} label="over" />
+          <TallyLegendItem color={DAY_EMPTY} label="not yet" />
+        </div>
       </div>
 
-      <p className="text-muted-foreground mt-2 text-[12.5px] leading-relaxed">
-        {ghost
-          ? `The ghost flock is this same month with your non-mandatory spending held at its trailing 3-month median — ${baseline} RON by month end. The carved line is what you actually recorded.`
+      <p className="sr-only">
+        {hasGhost
+          ? `Recorded spend of ${spent} RON so far this month, against a ghost flock baseline of ${baseline} RON by month end`
+          : `Recorded spend of ${spent} RON so far this month, across ${daysEntered} recorded days`}
+      </p>
+      <div className="flex items-center gap-3.5">
+        <div className="w-[74px] flex-none">
+          <div className="text-[12.5px]">this month</div>
+          <div className="text-muted-foreground mt-0.5 font-mono text-[10.5px]">{daysEntered} days</div>
+        </div>
+        <div className="border-border flex h-16 flex-1 items-end gap-0 border-b">
+          {data.byDay.map((d) => {
+            const status = statusByDate.get(d.date)
+            const color = d.amount === 0 ? DAY_EMPTY : status === "MISSED" ? DAY_OVER : DAY_OK
+            const heightPct = d.amount === 0 ? 8 : Math.round(22 + (d.amount / peak) * 68)
+            const isSelected = selectedDay === d.date
+            return (
+              <button
+                key={d.date}
+                type="button"
+                aria-pressed={isSelected}
+                aria-label={`${shortDate(d.date)} · ${formatRon(d.amount)}${status === "MISSED" ? " · over" : status === "MET" ? " · on pace" : ""}`}
+                title={`${d.date} · ${formatRon(d.amount)}`}
+                onClick={() => setSelectedDay(isSelected ? null : d.date)}
+                className="flex h-full flex-1 cursor-pointer items-end justify-center border-none bg-transparent p-0 focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-[#9AD4E3]"
+                style={{ boxShadow: isSelected ? "inset 0 -2px 0 0 var(--primary)" : "none" }}
+              >
+                <span
+                  className="block w-[70%]"
+                  style={{ height: `${heightPct}%`, background: color, opacity: isSelected ? 1 : 0.92 }}
+                />
+              </button>
+            )
+          })}
+        </div>
+      </div>
+      {selectedEntry && (
+        <p className="mt-2 pl-[86px] text-[12.5px]">
+          <span className="text-foreground font-mono">{shortDate(selectedEntry.date)}</span>
+          <span className="text-muted-foreground">
+            {" "}
+            · {formatRon(selectedEntry.amount)}
+            {(() => {
+              const st = statusByDate.get(selectedEntry.date)
+              return st === "MISSED" ? " · over" : st === "MET" ? " · on pace" : ""
+            })()}
+          </span>
+        </p>
+      )}
+
+      {hasGhost && (
+        <div className="mt-1.5 flex items-center gap-3.5">
+          <div className="w-[74px] flex-none">
+            <div className="text-[12.5px] text-[#C7CDD0]">ghost flock</div>
+          </div>
+          <div className="border-border flex h-8 flex-1 items-end gap-0 border-b" aria-hidden="true">
+            {data.byDay.map((d) => {
+              const g = ghostByDate.get(d.date) ?? 0
+              const heightPct = g === 0 ? 10 : Math.round(14 + (g / peak) * 60)
+              return (
+                <div key={d.date} className="flex h-full flex-1 items-end justify-center">
+                  <span className="text-muted-foreground block w-[70%]" style={{ height: `${heightPct}%`, background: "currentColor", opacity: 0.55 }} />
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      <div className="mt-1.5 flex pl-[86px]">
+        {data.byDay.map((d) => {
+          const dayNum = Number(d.date.slice(-2))
+          const show = dayNum === 1 || dayNum % 5 === 0
+          return (
+            <div key={d.date} className="text-muted-foreground flex-1 text-center font-mono text-[9px]">
+              {show ? dayNum : ""}
+            </div>
+          )
+        })}
+      </div>
+
+      <p className="text-muted-foreground mt-3 text-[12.5px] leading-relaxed">
+        {hasGhost
+          ? `The ghost flock is this same month with your non-mandatory spending held at its trailing 3-month median — ${baseline} RON by month end.`
           : "The ghost flock — this month with your non-mandatory spending held at its 3-month median — unlocks once you have three months of history."}
       </p>
     </div>
+  )
+}
+
+function TallyLegendItem({ color, label }: { color: string; label: string }) {
+  return (
+    <span className="text-muted-foreground flex items-center gap-1.5 font-mono text-[10.5px] tracking-[0.1em] uppercase">
+      <span className="h-[11px] w-px flex-none" style={{ background: color }} />
+      {label}
+    </span>
   )
 }
 
@@ -652,20 +715,14 @@ function BreakdownWidget({
                 const pct = totalSpent > 0 ? Math.round((s.amount / totalSpent) * 100) : 0
                 const sel = slice === s.category
                 return (
-                  <div
+                  <button
                     key={s.category}
-                    role="button"
-                    tabIndex={0}
+                    type="button"
+                    aria-pressed={sel}
                     onClick={() => setSlice(sel ? null : s.category)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault()
-                        setSlice(sel ? null : s.category)
-                      }
-                    }}
                     onMouseEnter={() => setHover(s.category)}
                     onMouseLeave={() => setHover(null)}
-                    className="cursor-pointer"
+                    className="w-full cursor-pointer border-none bg-transparent p-0 text-left focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-[#9AD4E3]"
                   >
                     <div className="flex items-center justify-between text-[14.5px]">
                       <span className={`flex items-center gap-2 font-medium ${sel ? "text-primary" : ""}`}>
@@ -687,7 +744,7 @@ function BreakdownWidget({
                         }}
                       />
                     </div>
-                  </div>
+                  </button>
                 )
               })}
               <p className="text-muted-foreground mt-0.5 text-[13px]">
@@ -732,55 +789,80 @@ function BreakdownWidget({
               See all
             </button>
           </div>
-          <div className="flex flex-col">
-            {recent.length === 0 ? (
-              <p className="text-muted-foreground py-4 text-sm">Nothing yet — add your first expense.</p>
-            ) : (
-              recent.map((t) => {
+          {recent.length === 0 ? (
+            <p className="text-muted-foreground py-4 text-sm">Nothing yet — add your first expense.</p>
+          ) : (
+            <div className="flex flex-col">
+              <div className="flex items-baseline justify-between pb-1">
+                <span className="ledger-label !text-[10px]">Entry</span>
+                <span className="ledger-label !text-[10px]">Amount</span>
+              </div>
+              {recent.map((t, i) => {
                 const label = t.note || topName(categories, t.categoryId)
                 return (
                   <button
                     key={t.id}
                     onClick={() => onNavigate?.("expenses")}
-                    className="-mx-3 flex min-h-11 items-center gap-3.5 px-3 py-2.75 text-left transition-colors hover:bg-popover"
+                    className="border-border flex h-11 min-h-11 w-full cursor-pointer items-baseline gap-3.5 border-b text-left transition-colors last:border-b-0 hover:bg-popover"
                   >
-                    <div className="text-muted-foreground bg-popover grid size-[38px] flex-none place-items-center font-mono text-[14px]">
-                      {monogram(label)}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-[14.5px] font-medium">{label}</div>
-                      <div className="text-muted-foreground font-mono text-[12px]">
-                        {categoryLabel(categories, t.categoryId)} · {shortDate(t.expenseDate)}
-                      </div>
-                    </div>
-                    <span className="figure text-foreground text-[14px]">−{formatRon(t.amount).replace(/\s?RON$/, "")}</span>
+                    <span className="text-muted-foreground w-6 flex-none font-mono text-[11px]">
+                      {String(recent.length - i).padStart(2, "0")}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-[14.5px]">{label}</span>
+                    <span className="text-muted-foreground hidden flex-none font-mono text-[11px] tracking-[0.08em] uppercase sm:inline">
+                      {categoryLabel(categories, t.categoryId)}
+                    </span>
+                    <span className="text-muted-foreground w-14 flex-none text-right font-mono text-[11px]">
+                      {shortDate(t.expenseDate)}
+                    </span>
+                    <span className="figure text-foreground w-24 flex-none text-right text-[14.5px]">
+                      −{formatRon(t.amount).replace(/\s?RON$/, "")}
+                    </span>
                   </button>
                 )
-              })
-            )}
-          </div>
+              })}
+              <div className="mt-1 flex h-11 items-baseline gap-3.5 pt-1">
+                <span className="w-6 flex-none" />
+                <span className="ledger-label flex-1">Shown here</span>
+                <span className="figure w-24 flex-none text-right text-[14.5px]">
+                  −{formatRon(recent.reduce((sum, t) => sum + t.amount, 0)).replace(/\s?RON$/, "")}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </section>
   )
 }
 
-function SavingsWidget({ netWorth }: { netWorth: NetWorth | null }) {
+function SavingsWidget({ netWorth, savings }: { netWorth: NetWorth | null; savings: SavingsAccount[] }) {
   return (
     <section className="ledger-card p-6">
       <div className="flex items-center gap-2.5">
         <HornGlyph className="text-primary size-5" />
-        <h2 className="text-[17px] font-semibold">Savings</h2>
+        <h2 className="text-[17px] font-semibold">Net worth · recorded</h2>
       </div>
       <div className="mt-4 flex items-baseline gap-2.5">
         <span className="figure text-[36px]">
           {netWorth ? formatRon(netWorth.total).replace(/\s?RON$/, "") : "—"}
         </span>
-        <span className="text-muted-foreground text-[14.5px]">RON saved</span>
+        <span className="text-muted-foreground text-[14.5px]">RON</span>
       </div>
-      <p className="text-muted-foreground mt-4 text-[13.5px]">
-        {netWorth?.accounts ?? 0} savings account{(netWorth?.accounts ?? 0) === 1 ? "" : "s"} ·{" "}
-        {netWorth ? formatRon(netWorth.monthlyIncome).replace(/\s?RON$/, "") : "—"} income / month
+      {savings.length > 0 ? (
+        <div className="ruled mt-4">
+          {savings.map((s) => (
+            <div key={s.id} className="flex items-center justify-between gap-3 py-2.5">
+              <span className="min-w-0 truncate text-[14px] text-[#C7CDD0]">{s.name}</span>
+              <span className="figure flex-none text-[14px]">{formatRon(s.balance).replace(/\s?RON$/, "")}</span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-muted-foreground mt-4 text-[13.5px]">No savings pots recorded yet.</p>
+      )}
+      <p className="text-muted-foreground mt-4 text-[13px]">
+        Figures you keep yourself. Argali never touches the money.
       </p>
     </section>
   )
@@ -802,13 +884,37 @@ function StreakWidget({ greenDays }: { greenDays: number }) {
   )
 }
 
+/** A row of notches filled to `pct` — the ledger's own texture for "how far along," in place of a smooth bar. */
+function Notches({ pct, hot }: { pct: number; hot: boolean }) {
+  const total = 18
+  const filled = Math.round((pct / 100) * total)
+  return (
+    <div className="mt-2.5 flex h-6 items-end gap-[2px]" aria-hidden="true">
+      {Array.from({ length: total }, (_, i) => (
+        <span
+          key={i}
+          className="flex-1"
+          style={{
+            height: `${28 + (i % 3) * 10}%`,
+            background: i < filled ? (hot ? "var(--destructive)" : "var(--primary)") : "var(--border)",
+          }}
+        />
+      ))}
+    </div>
+  )
+}
+
 function QuestsWidget({
   activeQuests,
+  oaths,
   onNavigate,
 }: {
   activeQuests: Quest[]
+  oaths: Oath[]
   onNavigate?: (page: string, categoryName?: string) => void
 }) {
+  const openOaths = oaths.filter((o) => o.status === "OPEN").slice(0, 3)
+
   return (
     <section className="ledger-card p-6">
       <div className="mb-4.5 flex items-center justify-between">
@@ -820,7 +926,7 @@ function QuestsWidget({
           All
         </button>
       </div>
-      <div className="flex flex-col gap-4.5">
+      <div className="flex flex-col gap-5">
         {activeQuests.length === 0 ? (
           <p className="text-muted-foreground text-sm">No active quests — accept one on the Quests page.</p>
         ) : (
@@ -838,17 +944,56 @@ function QuestsWidget({
                       : `${Math.round(q.progress / 100)} / ${Math.round(q.target / 100)}`}
                   </span>
                 </div>
-                <div className="border-border mt-2.5 h-1.5 border">
-                  <div
-                    className={`h-full transition-[width] ${hot ? "bg-destructive" : "bg-primary"}`}
-                    style={{ width: `${pct}%` }}
-                  />
-                </div>
+                <Notches pct={pct} hot={hot} />
               </div>
             )
           })
         )}
       </div>
+
+      {openOaths.length > 0 && (
+        <>
+          <div className="bg-border my-5 h-px" />
+          <div className="mb-3.5 flex items-baseline justify-between">
+            <span className="ledger-label">Open oaths</span>
+            <span className="text-muted-foreground text-[11px]">{openOaths.length} · pending</span>
+          </div>
+          <div className="flex flex-col gap-3.5">
+            {openOaths.map((o) => {
+              const msLeft = new Date(o.expiresAt).getTime() - Date.now()
+              const totalMs = new Date(o.expiresAt).getTime() - new Date(o.createdAt).getTime()
+              const urgent = msLeft <= 6 * 3_600_000
+              const hoursLeft = Math.max(0, Math.floor(msLeft / 3_600_000))
+              const daysLeft = Math.floor(hoursLeft / 24)
+              const countdown = msLeft <= 0 ? "closing" : daysLeft > 0 ? `${daysLeft}d left` : `${hoursLeft}h left`
+              const pctLeft = totalMs > 0 ? Math.max(4, Math.min(100, Math.round((msLeft / totalMs) * 100))) : 4
+              const barColor = urgent ? "var(--destructive)" : "var(--primary)"
+              return (
+                <div
+                  key={o.id}
+                  className="pb-3.5 pl-3 last:pb-0"
+                  style={{ boxShadow: `inset 2px 0 0 0 ${barColor}` }}
+                >
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="text-[14px]">
+                      Under {formatRon(o.pledgedAmount).replace(/\s?RON$/, "")} RON on {o.categoryName}
+                    </span>
+                    <span
+                      className="flex-none font-mono text-[10.5px] tracking-[0.1em] uppercase"
+                      style={{ color: barColor, animation: urgent ? "shimmer 1.6s ease-in-out infinite" : "none" }}
+                    >
+                      {countdown}
+                    </span>
+                  </div>
+                  <div className="mt-2.5 h-px" style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)" }}>
+                    <div className="h-px" style={{ width: `${pctLeft}%`, background: barColor }} />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </>
+      )}
     </section>
   )
 }
@@ -872,16 +1017,49 @@ function HornGlyphFull() {
   )
 }
 
-function DashSkeletonNote() {
+/** Notch heights standing in for a count that never climbs from zero — "a figure that climbs is a figure that lies." */
+const BOOT_NOTCHES = [
+  { h: "100%", color: "#9AD4E3" },
+  { h: "72%", color: "#9AD4E3" },
+  { h: "88%", color: "#9AD4E3" },
+  { h: "60%", color: "#4C93A6" },
+  { h: "80%", color: "#4C93A6" },
+  { h: "40%", color: "#62696D" },
+  { h: "40%", color: "#62696D" },
+]
+
+function DashSkeletonNote({ slow, onRetry }: { slow: boolean; onRetry: () => void }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-4 py-24">
-      <div className="text-primary size-14" style={{ animation: "shimmer 1.6s ease-in-out infinite" }}>
+    <div
+      role="status"
+      aria-live="polite"
+      className="flex flex-col items-center justify-center gap-[18px] py-24"
+    >
+      <div className="text-primary size-14">
         <svg viewBox="-8 -13 116 116" fill="none" stroke="currentColor" strokeWidth={7} strokeLinecap="round" strokeLinejoin="round" className="size-full" aria-hidden="true">
           <path d="M86 78H38L10 60V50L48 12A24 24 0 1 1 65 53A14 14 0 0 1 65 25A7 7 0 0 1 65 39" />
           <circle cx="32" cy="52" r="4" fill="currentColor" stroke="none" />
         </svg>
       </div>
-      <div className="ledger-label">Loading your money</div>
+      <div className="flex h-[22px] items-end gap-[3px]" aria-hidden="true">
+        {BOOT_NOTCHES.map((n, i) => (
+          <span key={i} className="w-[2px]" style={{ height: n.h, background: n.color }} />
+        ))}
+      </div>
+      <div className="ledger-label" style={{ animation: "shimmer 2.4s ease-in-out infinite" }}>
+        Counting your notches
+      </div>
+      {slow && (
+        <div className="mt-1 flex flex-col items-center gap-2">
+          <p className="text-muted-foreground text-[13px]">Taking longer than usual.</p>
+          <button
+            onClick={onRetry}
+            className="text-primary min-h-11 cursor-pointer px-3 text-[13.5px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9AD4E3]"
+          >
+            Try again
+          </button>
+        </div>
+      )}
     </div>
   )
 }

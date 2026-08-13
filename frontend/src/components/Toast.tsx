@@ -16,7 +16,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const show = useCallback((message: string) => {
     if (timer.current) clearTimeout(timer.current)
     setToast({ message })
-    timer.current = setTimeout(() => setToast(null), 2600)
+    // Confirmation layer, not an alert — success toasts settle in 5s (V5 §Alerts and toasts).
+    timer.current = setTimeout(() => setToast(null), 5000)
   }, [])
 
   return (
@@ -25,10 +26,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {toast && (
         <div
           role="status"
-          className="bg-popover border-border fixed bottom-7 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 border px-4 py-3 shadow-[0_12px_24px_rgba(0,0,0,0.4)]"
-          style={{ animation: "toast-in .25s ease" }}
+          aria-live="polite"
+          className="bg-popover border-border edge-mark-good fixed bottom-7 left-7 z-50 flex items-center gap-3 border px-4 py-3 shadow-[0_12px_24px_rgba(0,0,0,0.4)]"
+          style={{ animation: "riseIn .2s ease" }}
         >
-          <span className="bg-primary/15 text-primary grid size-6 flex-none place-items-center rounded-full">
+          <span className="text-good grid size-6 flex-none place-items-center">
             <CheckIcon size={14} />
           </span>
           <span className="text-[13.5px] font-medium">{toast.message}</span>

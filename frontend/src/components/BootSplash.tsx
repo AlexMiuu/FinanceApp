@@ -68,13 +68,19 @@ export function BootSplash({ onDone }: { onDone: () => void }) {
         className="relative flex flex-col items-center gap-4"
         style={{ animation: "fadeIn .8s ease .5s both" }}
       >
-        <div className="border-border h-px w-[190px] overflow-hidden border-t">
-          <div
-            className="bg-primary h-px"
-            style={{ animation: "bootFill 2.1s cubic-bezier(.35,0,.2,1) both" }}
-          />
+        <div className="flex h-[22px] items-end gap-[3px]" aria-hidden="true">
+          <span className="w-[2px]" style={{ height: "100%", background: "#9AD4E3" }} />
+          <span className="w-[2px]" style={{ height: "72%", background: "#9AD4E3" }} />
+          <span className="w-[2px]" style={{ height: "88%", background: "#9AD4E3" }} />
+          <span className="w-[2px]" style={{ height: "60%", background: "#4C93A6" }} />
+          <span className="w-[2px]" style={{ height: "80%", background: "#4C93A6" }} />
+          <span className="w-[1px]" style={{ height: "40%", background: "#62696D" }} />
+          <span className="w-[1px]" style={{ height: "40%", background: "#62696D" }} />
         </div>
-        <div className="ledger-label text-[10.5px]">Securing your account</div>
+        {/* A figure that climbs is a figure that lies — the caption breathes, nothing counts up. */}
+        <div className="ledger-label text-[10.5px]" style={{ animation: "shimmer 2.4s ease-in-out infinite" }}>
+          Counting your notches
+        </div>
       </div>
     </div>
   )

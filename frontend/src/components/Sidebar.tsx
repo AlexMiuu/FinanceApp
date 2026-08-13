@@ -58,7 +58,7 @@ export function Sidebar({
               onMouseLeave={() => setHover(null)}
               aria-current={active ? "page" : undefined}
               aria-label={item.label}
-              className={`flex h-11 w-full cursor-pointer items-center gap-3.5 border-none px-3.5 text-left transition-colors ${
+              className={`flex h-11 w-full cursor-pointer items-center gap-3.5 border-none px-3.5 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-[#9AD4E3] ${
                 active
                   ? "edge-mark-accent bg-popover text-primary"
                   : "text-sidebar-foreground hover:bg-popover"
@@ -91,7 +91,7 @@ export function Sidebar({
       <button
         onClick={onToggle}
         aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
-        className="text-muted-foreground border-border hover:border-[#4C93A6] flex cursor-pointer items-center gap-3.5 border bg-transparent px-3 py-2.5 text-left transition-colors hover:text-foreground"
+        className="text-muted-foreground border-border hover:border-[#4C93A6] flex cursor-pointer items-center gap-3.5 border bg-transparent px-3 py-2.5 text-left transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9AD4E3]"
       >
         <span className="grid size-[20px] flex-none place-items-center">
           <ChevronIcon size={15} className={expanded ? "rotate-180" : ""} />
@@ -103,7 +103,7 @@ export function Sidebar({
       <button
         onClick={onAdd}
         aria-label="Add transaction"
-        className="bg-[#123945] border-[#4C93A6] text-[#C4E7F0] hover:bg-[#174756] mt-1.5 flex cursor-pointer items-center gap-3.5 border px-3 py-3 text-left font-medium transition-colors"
+        className="bg-[#123945] border-[#4C93A6] text-[#C4E7F0] hover:bg-[#174756] mt-1.5 flex cursor-pointer items-center gap-3.5 border px-3 py-3 text-left font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9AD4E3]"
       >
         <span className="grid size-[20px] flex-none place-items-center text-[19px] leading-none">+</span>
         {expanded && <span className="text-[13.5px]">Add expense</span>}
@@ -112,7 +112,7 @@ export function Sidebar({
       {/* User */}
       <button
         onClick={() => onNavigate("profile")}
-        className="border-sidebar-border mt-1.5 flex cursor-pointer items-center gap-3 border-none border-t bg-transparent px-1 pt-3.5 text-left"
+        className="border-sidebar-border mt-1.5 flex cursor-pointer items-center gap-3 border-none border-t bg-transparent px-1 pt-3.5 text-left focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-[#9AD4E3]"
       >
         <div className="bg-popover border-border text-primary grid size-[32px] flex-none place-items-center rounded-full border text-sm font-medium">
           {initial}
@@ -148,9 +148,10 @@ export function MobileNav({
             onClick={() => onNavigate(item.key)}
             aria-current={active ? "page" : undefined}
             aria-label={item.label}
-            className={`flex flex-1 cursor-pointer flex-col items-center gap-1 border-none bg-transparent py-1.5 font-mono text-[9.5px] font-medium tracking-[0.06em] uppercase ${
+            className={`flex min-h-[60px] flex-1 cursor-pointer flex-col items-center justify-center gap-1 border-none bg-transparent py-1.5 font-mono text-[9.5px] font-medium tracking-[0.06em] uppercase focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-[#9AD4E3] ${
               active ? "text-primary" : "text-sidebar-foreground"
             }`}
+            style={{ boxShadow: active ? "inset 0 2px 0 0 var(--primary)" : "none" }}
           >
             <NavIcon name={item.icon} size={19} />
             {item.label}
@@ -160,7 +161,7 @@ export function MobileNav({
       <button
         onClick={onAdd}
         aria-label="Add transaction"
-        className="bg-[#123945] border-[#4C93A6] text-[#C4E7F0] ml-1 grid size-11 flex-none place-items-center border text-2xl leading-none"
+        className="bg-[#123945] border-[#4C93A6] text-[#C4E7F0] ml-1 grid size-11 flex-none place-items-center border text-2xl leading-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9AD4E3]"
       >
         +
       </button>
