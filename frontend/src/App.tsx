@@ -1,10 +1,12 @@
 import { Suspense, lazy } from "react"
 import { AuthProvider, useAuth } from "@/auth/AuthContext"
+import { ROUTES, usePath } from "@/lib/route"
 
-// The two halves of the app never render together, so neither belongs in the
-// other's download: a signed-out visitor pays for the auth screen alone.
+// The halves of the app never render together, so none belongs in another's
+// download: a signed-out visitor pays for the screen they actually landed on.
 const AuthPage = lazy(() => import("@/pages/AuthPage"))
 const HomePage = lazy(() => import("@/pages/HomePage"))
+const SalaryCalculatorPage = lazy(() => import("@/pages/SalaryCalculatorPage"))
 
 function Loading() {
   return (
@@ -16,6 +18,18 @@ function Loading() {
 
 function Shell() {
   const { user, loading } = useAuth()
+  const path = usePath()
+
+  // Answered before the session is known: the calculator is the one page that
+  // does not care whether anyone is signed in, and waiting on the auth check
+  // would make a stranger stare at a spinner for no reason.
+  if (path === ROUTES.salaryCalculator) {
+    return (
+      <Suspense fallback={<Loading />}>
+        <SalaryCalculatorPage />
+      </Suspense>
+    )
+  }
 
   if (loading) return <Loading />
 

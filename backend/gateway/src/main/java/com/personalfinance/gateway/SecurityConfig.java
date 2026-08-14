@@ -64,6 +64,12 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeExchange(exchange -> exchange
                         .pathMatchers("/api/v1/auth/**", "/actuator/**").permitAll()
+                        // The salary calculator is offered without an account, as a
+                        // way in for people who have never signed up. It is pure
+                        // arithmetic over the posted amount: no principal is read,
+                        // no record is touched, nothing is stored. POST only, and
+                        // throttled per caller address by AnonymousRateLimiterFilter.
+                        .pathMatchers(HttpMethod.POST, "/api/v1/salary-calculator").permitAll()
                         // WS handshake can't carry headers; STOMP CONNECT is
                         // authenticated inside notification-service instead.
                         .pathMatchers("/ws/**", "/ws").permitAll()
