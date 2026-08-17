@@ -1,0 +1,185 @@
+# Production stack for a single-owner deployment reachable from the web.
+#
+# Run with:  docker compose -f docker-compose.prod.yml --env-file .env up -d
+#
+# This is a standalone file, not an override of docker-compose.yml, deliberately:
+# Compose *appends* `ports` when merging, so an override cannot un-publish the
+# database and broker ports the development file exposes. Getting that wrong puts
+# Postgres and the RabbitMQ management UI on the public internet, so the safe
+# shape is a file that never publishes them in the first place.
+#
+# The only container bound to a public interface is Caddy, on 80/443. Everything
+# else talks over the internal Compose network and is unreachable from outside.
+
+name: argali
+
+x-jvm: &jvm
+  restart: unless-stopped
+  # Serial GC and a capped heap: these services are near-idle for one user, and
+  # the JVM otherwise sizes its heap against total host memory — six of them on a
+  # small box will exhaust it. See docs/deployment.md for per-host sizing.
+  environment: &jvm-env
+    TZ: Europe/Bucharest
+    JAVA_TOOL_OPTIONS: ${JVM_OPTS:--XX:MaxRAMPercentage=70 -XX:+UseSerialGC}
+  mem_limit: ${SERVICE_MEM_LIMIT:-700m}
+  depends_on:
+    postgres:
+      condition: service_healthy
+    rabbitmq:
+      condition: service_healthy
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    # The only ports open to the world. 80 stays open because Let's Encrypt
+    # redirects through it, and Caddy uses it to redirect callers to https.
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data      # issued certificates — losing this re-requests them
+      - caddy-config:/config
+    environment:
+      ARGALI_DOMAIN: ${ARGALI_DOMAIN:?set ARGALI_DOMAIN in .env}
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL in .env}
+    depends_on:
+      - frontend
+    mem_limit: 128m
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      TZ: Europe/Bucharest
+      POSTGRES_USER: ${POSTGRES_USER:-finance}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: finance
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./infra/postgres/init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-finance}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    mem_limit: 512m
+
+  rabbitmq:
+    image: rabbitmq:4-alpine
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-argali}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?set RABBITMQ_PASSWORD in .env}
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    mem_limit: 512m
+
+  gateway:
+    <<: *jvm
+    image: ${REGISTRY:-ghcr.io/alexmiuu/financeapp}/gateway:${TAG:-latest}
+    mem_limit: 512m
+    environment:
+      <<: *jvm-env
+      AUTH_JWKS_URI: http://user-service:8081/api/v1/auth/jwks
+      SERVICES_USER_URL: http://user-service:8081
+      SERVICES_EXPENSE_URL: http://expense-service:8082
+      SERVICES_REPORT_URL: http://report-service:8083
+      SERVICES_QUEST_URL: http://quest-service:8084
+      SERVICES_NOTIFICATION_URL: http://notification-service:8085
+      # The browser reaches the API same-origin through Caddy -> frontend nginx,
+      # so this is a backstop rather than the load-bearing check.
+      CORS_ALLOWED_ORIGINS: https://${ARGALI_DOMAIN}
+    depends_on:
+      - user-service
+      - expense-service
+      - report-service
+      - quest-service
+      - notification-service
+
+  user-service:
+    <<: *jvm
+    image: ${REGISTRY:-ghcr.io/alexmiuu/financeapp}/user-service:${TAG:-latest}
+    environment:
+      <<: *jvm-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/users_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-finance}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-argali}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      # Without a fixed key the service mints a throwaway one at boot and every
+      # restart signs everyone out. Generate it once — see .env.example.
+      AUTH_JWT_PRIVATE_KEY_PEM: ${AUTH_JWT_PRIVATE_KEY_PEM:?set AUTH_JWT_PRIVATE_KEY_PEM in .env}
+      AUTH_COOKIE_SECURE: "true"
+      AUTH_REGISTRATION_ENABLED: ${AUTH_REGISTRATION_ENABLED:-false}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+
+  expense-service:
+    <<: *jvm
+    image: ${REGISTRY:-ghcr.io/alexmiuu/financeapp}/expense-service:${TAG:-latest}
+    environment:
+      <<: *jvm-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/expenses_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-finance}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-argali}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      AUTH_JWKS_URI: http://user-service:8081/api/v1/auth/jwks
+
+  report-service:
+    <<: *jvm
+    image: ${REGISTRY:-ghcr.io/alexmiuu/financeapp}/report-service:${TAG:-latest}
+    environment:
+      <<: *jvm-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/reports_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-finance}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-argali}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      AUTH_JWKS_URI: http://user-service:8081/api/v1/auth/jwks
+
+  quest-service:
+    <<: *jvm
+    image: ${REGISTRY:-ghcr.io/alexmiuu/financeapp}/quest-service:${TAG:-latest}
+    environment:
+      <<: *jvm-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/quests_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-finance}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-argali}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      AUTH_JWKS_URI: http://user-service:8081/api/v1/auth/jwks
+
+  notification-service:
+    <<: *jvm
+    image: ${REGISTRY:-ghcr.io/alexmiuu/financeapp}/notification-service:${TAG:-latest}
+    environment:
+      <<: *jvm-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/notifications_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-finance}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-argali}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      AUTH_JWKS_URI: http://user-service:8081/api/v1/auth/jwks
+
+  frontend:
+    image: ${REGISTRY:-ghcr.io/alexmiuu/financeapp}/frontend:${TAG:-latest}
+    restart: unless-stopped
+    depends_on:
+      - gateway
+    mem_limit: 128m
+
+volumes:
+  postgres-data:
+  caddy-data:
+  caddy-config:

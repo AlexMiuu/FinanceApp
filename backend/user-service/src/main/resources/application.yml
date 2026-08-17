@@ -22,6 +22,7 @@ auth:
   access-token-ttl: 15m
   refresh-token-ttl: 30d
   cookie-secure: ${AUTH_COOKIE_SECURE:false}   # true once served over HTTPS
+  registration-enabled: ${AUTH_REGISTRATION_ENABLED:true}   # false closes signup on a public deployment
   jwt:
     private-key-pem: ${AUTH_JWT_PRIVATE_KEY_PEM:}   # PKCS#8 PEM; ephemeral key when empty (dev)
   google:

@@ -1,0 +1,37 @@
+# Caddy is the only process listening on the public internet. It terminates TLS
+# and hands everything to the frontend's nginx, which already serves the SPA and
+# proxies /api and /ws to the gateway — so there is nothing to duplicate here.
+#
+# Certificates are obtained and renewed automatically from Let's Encrypt. That
+# needs port 80 reachable and the domain's A record already pointing here; if
+# either is untrue Caddy will retry and log the reason.
+
+{
+	# Where Let's Encrypt sends expiry warnings.
+	email {$ACME_EMAIL}
+}
+
+{$ARGALI_DOMAIN} {
+	encode zstd gzip
+
+	# Caddy sets X-Forwarded-For itself; the gateway's anonymous rate limiter
+	# reads the left-most entry, so the real caller is what gets throttled.
+	reverse_proxy frontend:80
+
+	header {
+		# Only meaningful once the certificate is working — do not enable the
+		# preload directive until you are sure you want it, as it is very hard
+		# to undo.
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+		# The server name is not the caller's business.
+		-Server
+	}
+
+	log {
+		output stderr
+		format console
+	}
+}
