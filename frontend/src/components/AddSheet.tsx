@@ -1,7 +1,12 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useAuth } from "@/auth/AuthContext"
-import { createExpense, type Category } from "@/lib/api"
+import { createExpense, formatRon, listExpenses, type Category, type Expense } from "@/lib/api"
 import { lastUsedCategory, recordCategoryUse, topCategories } from "@/lib/categoryUsage"
+import {
+  categoryForNote,
+  recentRepeats,
+  type RepeatSuggestion,
+} from "@/lib/expenseSuggestions"
 import { useToast } from "@/components/Toast"
 import { CategorySelect } from "@/components/CategorySelect"
 import { CloseIcon } from "@/components/brand"
@@ -41,11 +46,16 @@ export function AddSheet({
   const [categoryId, setCategoryId] = useState<string | undefined>()
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [history, setHistory] = useState<Expense[]>([])
+  /** Set once the category is chosen by hand, so a later guess never overrules it. */
+  const [categoryPicked, setCategoryPicked] = useState(false)
   const amountRef = useRef<HTMLInputElement | null>(null)
 
   const chips = topCategories(userId, 5)
     .map((id) => categories.find((c) => c.id === id))
     .filter((c): c is Category => c !== undefined)
+
+  const repeats = useMemo(() => recentRepeats(history, 4), [history])
 
   // Fresh defaults each time it opens; focus the amount.
   useEffect(() => {
@@ -54,10 +64,29 @@ export function AddSheet({
     setNote("")
     setDate(today())
     setCategoryId(lastUsedCategory(userId) ?? undefined)
+    setCategoryPicked(false)
     setError(null)
     const t = setTimeout(() => amountRef.current?.focus(), 60)
     return () => clearTimeout(t)
   }, [open, userId])
+
+  // Own history, re-read on each open so a purchase logged a moment ago can be
+  // repeated immediately. Failure is silent: suggestions are a convenience, and
+  // losing them must never block recording an expense.
+  useEffect(() => {
+    if (!open) return
+    let cancelled = false
+    listExpenses({})
+      .then((page) => {
+        if (!cancelled) setHistory(page.items)
+      })
+      .catch(() => {
+        if (!cancelled) setHistory([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [open])
 
   // Escape closes.
   useEffect(() => {
@@ -68,6 +97,28 @@ export function AddSheet({
   }, [open, onClose])
 
   if (!open) return null
+
+  /** Fills the form from a past purchase. Still needs confirming — nothing is saved yet. */
+  function applyRepeat(repeat: RepeatSuggestion) {
+    setAmount((repeat.amount / 100).toFixed(2))
+    setNote(repeat.note)
+    setCategoryId(repeat.categoryId)
+    setError(null)
+    // Deliberately not marked as hand-picked: if the description is edited from
+    // here, re-guessing the category for the new description is the helpful move.
+  }
+
+  function onNoteChange(value: string) {
+    setNote(value)
+    if (categoryPicked) return
+    const guess = categoryForNote(history, value)
+    if (guess) setCategoryId(guess)
+  }
+
+  function pickCategory(id: string | undefined) {
+    setCategoryId(id)
+    setCategoryPicked(true)
+  }
 
   async function save() {
     setError(null)
@@ -128,6 +179,26 @@ export function AddSheet({
           </button>
         </div>
 
+        {repeats.length > 0 && (
+          <>
+            <label className={fieldLabelClass}>Log again</label>
+            <div className="flex flex-wrap gap-2">
+              {repeats.map((repeat) => (
+                <button
+                  key={repeat.id}
+                  onClick={() => applyRepeat(repeat)}
+                  className="border-border hover:border-[#4C93A6] flex min-h-11 max-w-full cursor-pointer items-center gap-2.5 border bg-transparent px-3 py-2 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9AD4E3]"
+                >
+                  <span className="min-w-0 truncate text-[13.5px]">{repeat.note}</span>
+                  <span className="figure text-muted-foreground flex-none text-[12px]">
+                    {formatRon(repeat.amount).replace(/\s?RON$/, "")}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+
         <label className={fieldLabelClass}>Amount · RON</label>
         <input
           ref={amountRef}
@@ -144,10 +215,10 @@ export function AddSheet({
         />
         {amountError && <p className="text-destructive mt-2 text-[12.5px]">{error}</p>}
 
-        <label className={fieldLabelClass}>What was it</label>
+        <label className={fieldLabelClass}>What was it · optional</label>
         <input
           value={note}
-          onChange={(e) => setNote(e.target.value)}
+          onChange={(e) => onNoteChange(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && save()}
           placeholder="Grocery run"
           className={fieldClass}
@@ -161,7 +232,7 @@ export function AddSheet({
               return (
                 <button
                   key={c.id}
-                  onClick={() => setCategoryId(c.id)}
+                  onClick={() => pickCategory(c.id)}
                   className={`status-tag cursor-pointer border px-3 py-1.5 transition-colors ${
                     active
                       ? "border-primary text-primary"
@@ -176,7 +247,7 @@ export function AddSheet({
         )}
         <div className="flex gap-3">
           <div className="min-w-0 flex-1">
-            <CategorySelect categories={categories} value={categoryId} onChange={setCategoryId} />
+            <CategorySelect categories={categories} value={categoryId} onChange={pickCategory} />
           </div>
           <div className="min-w-0 flex-1">
             <input
