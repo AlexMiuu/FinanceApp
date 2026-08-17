@@ -4,6 +4,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -53,6 +54,12 @@ public class SecurityConfig {
                 .exceptionHandling(e -> e.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
                 .authorizeHttpRequests(a -> a
                         .requestMatchers("/api/v1/auth/**", "/actuator/**").permitAll()
+                        // Offered without an account as a way in for people who have
+                        // never signed up. SalaryController takes no principal — the
+                        // reply is arithmetic over the posted amount alone, reading no
+                        // record and storing nothing — so there is no per-user data to
+                        // leak here. The gateway throttles it per caller address.
+                        .requestMatchers(HttpMethod.POST, "/api/v1/salary-calculator").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 

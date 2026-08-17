@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react"
 import { useAuth } from "@/auth/AuthContext"
 import { oauthProviders } from "@/lib/api"
 import { ArgaliMark } from "@/components/brand"
+import { ROUTES, navigate } from "@/lib/route"
 import { useToast } from "@/components/Toast"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -210,6 +211,18 @@ export default function AuthPage() {
               {mode === "login" ? "Create an account" : "Sign in"}
             </button>
           </div>
+
+          <p className="text-muted-foreground border-border border-t pt-4 text-center text-[13px]">
+            Just after the numbers?{" "}
+            <button
+              type="button"
+              onClick={() => navigate(ROUTES.salaryCalculator)}
+              className="text-primary cursor-pointer border-none bg-transparent p-0 font-medium"
+            >
+              Salary calculator
+            </button>{" "}
+            — no account needed.
+          </p>
         </div>
       </div>
     </main>

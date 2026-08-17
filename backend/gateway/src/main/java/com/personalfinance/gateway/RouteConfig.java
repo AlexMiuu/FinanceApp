@@ -27,10 +27,20 @@ public class RouteConfig {
             @Value("${services.report.url:http://localhost:8083}") String reportUrl,
             @Value("${services.quest.url:http://localhost:8084}") String questUrl,
             @Value("${services.notification.url:http://localhost:8085}") String notificationUrl,
-            PublicApiRateLimiterFilter publicApiRateLimiterFilter) {
+            PublicApiRateLimiterFilter publicApiRateLimiterFilter,
+            AnonymousRateLimiterFilter anonymousRateLimiterFilter) {
         return builder.routes()
+                // Ahead of the user-service route below, which would otherwise
+                // swallow this path and skip the throttle. The salary calculator
+                // is reachable without an account (it is pure arithmetic over the
+                // amount posted — it reads no data and writes none), so it is
+                // rate-limited per caller address rather than per principal.
+                .route("salary-calculator", r -> r
+                        .path("/api/v1/salary-calculator/**")
+                        .filters(f -> f.filter(anonymousRateLimiterFilter))
+                        .uri(userUrl))
                 .route("user-service", r -> r
-                        .path("/api/v1/auth/**", "/api/v1/me/**", "/api/v1/salary-calculator/**")
+                        .path("/api/v1/auth/**", "/api/v1/me/**")
                         .uri(userUrl))
                 .route("expense-service", r -> r
                         .path("/api/v1/expenses/**", "/api/v1/categories/**")
