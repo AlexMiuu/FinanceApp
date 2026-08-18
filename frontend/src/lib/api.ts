@@ -110,10 +110,18 @@ export async function logout(): Promise<void> {
   setAccessToken(null)
 }
 
-export async function oauthProviders(): Promise<{ google: boolean }> {
+/**
+ * Which ways in this deployment offers. `registration` is false on a deployment
+ * closed to new accounts; the sign-in screen then stops offering one. The server
+ * enforces it regardless — this only keeps the UI honest.
+ *
+ * Defaults on failure are the conservative pair: offer nothing that might not work.
+ */
+export async function oauthProviders(): Promise<{ google: boolean; registration: boolean }> {
   const res = await fetch("/api/v1/auth/oauth/providers")
-  if (!res.ok) return { google: false }
-  return res.json()
+  if (!res.ok) return { google: false, registration: false }
+  const body = await res.json()
+  return { google: body.google === true, registration: body.registration !== false }
 }
 
 // ---- Categories & expenses (M2) ----

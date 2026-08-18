@@ -16,7 +16,7 @@ class JwtServiceTest {
 
     /** Ephemeral key pair, 15 minute access tokens — the dev defaults. */
     private static AuthProperties authProperties() {
-        return new AuthProperties(Duration.ofMinutes(15), Duration.ofDays(30), false,
+        return new AuthProperties(Duration.ofMinutes(15), Duration.ofDays(30), false, true,
                 new AuthProperties.Jwt(""), new AuthProperties.Google("", ""));
     }
 

@@ -30,12 +30,19 @@ export default function AuthPage() {
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [googleAvailable, setGoogleAvailable] = useState(false)
+  // Assume open until told otherwise, so a slow or failed check never hides the
+  // way in on a deployment that does accept new accounts.
+  const [registrationOpen, setRegistrationOpen] = useState(true)
   const tally = useBrandTally(24)
   const toast = useToast()
 
   useEffect(() => {
     oauthProviders()
-      .then((p) => setGoogleAvailable(p.google))
+      .then((p) => {
+        setGoogleAvailable(p.google)
+        setRegistrationOpen(p.registration)
+        if (!p.registration) setMode("login")
+      })
       .catch(() => {})
     if (new URLSearchParams(window.location.search).get("login") === "error") {
       setError("Google sign-in failed. Please try again.")
@@ -200,16 +207,20 @@ export default function AuthPage() {
             ) : (
               <span />
             )}
-            <button
-              type="button"
-              className="text-primary min-h-11 cursor-pointer border-none bg-transparent p-0 font-medium"
-              onClick={() => {
-                setMode(mode === "login" ? "register" : "login")
-                setError(null)
-              }}
-            >
-              {mode === "login" ? "Create an account" : "Sign in"}
-            </button>
+            {registrationOpen ? (
+              <button
+                type="button"
+                className="text-primary min-h-11 cursor-pointer border-none bg-transparent p-0 font-medium"
+                onClick={() => {
+                  setMode(mode === "login" ? "register" : "login")
+                  setError(null)
+                }}
+              >
+                {mode === "login" ? "Create an account" : "Sign in"}
+              </button>
+            ) : (
+              <span className="text-muted-foreground">Closed to new accounts</span>
+            )}
           </div>
 
           <p className="text-muted-foreground border-border border-t pt-4 text-center text-[13px]">

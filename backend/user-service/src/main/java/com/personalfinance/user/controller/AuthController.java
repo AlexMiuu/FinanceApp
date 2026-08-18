@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.personalfinance.user.service.AuthService.TokenPair;
 
@@ -35,6 +36,12 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<AuthDtos.AuthResponse> register(@Valid @RequestBody AuthDtos.RegisterRequest request) {
+        // Enforced here rather than only hidden in the UI: a closed deployment must
+        // stay closed against anyone posting straight at the endpoint.
+        if (!authProperties.registrationEnabled()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "This Argali is not open for new accounts.");
+        }
         TokenPair tokens = authService.register(request.email(), request.password(), request.displayName());
         return withRefreshCookie(HttpStatus.CREATED, tokens);
     }
@@ -71,10 +78,13 @@ public class AuthController {
         return jwtService.jwks();
     }
 
+    /** Which ways in are available, so the sign-in screen only offers real ones. */
     @GetMapping("/oauth/providers")
     public Map<String, Boolean> providers() {
         String clientId = authProperties.google().clientId();
-        return Map.of("google", clientId != null && !clientId.isBlank());
+        return Map.of(
+                "google", clientId != null && !clientId.isBlank(),
+                "registration", authProperties.registrationEnabled());
     }
 
     private ResponseEntity<AuthDtos.AuthResponse> withRefreshCookie(HttpStatus status, TokenPair tokens) {

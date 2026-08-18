@@ -51,7 +51,7 @@ class AuthServiceTest {
         refreshTokens = mock(RefreshTokenRepository.class);
         consents = mock(ConsentRecordRepository.class);
         AuthProperties authProperties = new AuthProperties(
-                Duration.ofMinutes(15), Duration.ofDays(30), false,
+                Duration.ofMinutes(15), Duration.ofDays(30), false, true,
                 new AuthProperties.Jwt(""), new AuthProperties.Google("", ""));
         service = new AuthService(users, identities, refreshTokens, consents, encoder,
                 new JwtService(authProperties), event -> { }, authProperties);

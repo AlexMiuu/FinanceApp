@@ -15,6 +15,12 @@ public record AuthProperties(
         @DefaultValue("15m") Duration accessTokenTtl,
         @DefaultValue("30d") Duration refreshTokenTtl,
         @DefaultValue("false") boolean cookieSecure,
+        /**
+         * Whether strangers may create accounts. Defaults to true so development and
+         * the test suite are unaffected; a deployment that is reachable from the web
+         * but meant for one person sets this false once that person has signed up.
+         */
+        @DefaultValue("true") boolean registrationEnabled,
         @DefaultValue Jwt jwt,
         @DefaultValue Google google) {
 
