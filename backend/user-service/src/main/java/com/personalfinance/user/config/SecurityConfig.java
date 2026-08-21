@@ -1,11 +1,13 @@
 package com.personalfinance.user.config;
 
+import com.personalfinance.user.entity.RoleEnum;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -21,6 +23,7 @@ import org.springframework.security.config.oauth2.client.CommonOAuth2Provider;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
 
     /**
@@ -60,6 +63,7 @@ public class SecurityConfig {
                         // record and storing nothing — so there is no per-user data to
                         // leak here. The gateway throttles it per caller address.
                         .requestMatchers(HttpMethod.POST, "/api/v1/salary-calculator").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/admin").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 

@@ -3,16 +3,11 @@ package com.personalfinance.user.entity;
 import java.time.Instant;
 import java.util.UUID;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+import lombok.Getter;
 
 @Entity
+@Getter
 @Table(name = "auth_identities")
 public class AuthIdentityEntity {
 
@@ -35,14 +30,19 @@ public class AuthIdentityEntity {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    @ManyToOne(cascade = CascadeType.REMOVE)
+    @JoinColumn(name = "role_id", referencedColumnName = "id", nullable = false)
+    private Role role;
+
     protected AuthIdentityEntity() {
     }
 
-    public AuthIdentityEntity(UserEntity user, String provider, String providerUid) {
+    public AuthIdentityEntity(UserEntity user, String provider, String providerUid, Role role) {
         this.id = UUID.randomUUID();
         this.user = user;
         this.provider = provider;
         this.providerUid = providerUid;
+        this.role = role;
     }
 
     @PrePersist
@@ -50,19 +50,4 @@ public class AuthIdentityEntity {
         createdAt = Instant.now();
     }
 
-    public UserEntity getUser() {
-        return user;
-    }
-
-    public String getProvider() {
-        return provider;
-    }
-
-    public String getProviderUid() {
-        return providerUid;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
 }

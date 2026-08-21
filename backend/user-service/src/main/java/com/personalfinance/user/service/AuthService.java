@@ -9,9 +9,11 @@ import java.util.HexFormat;
 import java.util.Optional;
 
 import com.personalfinance.user.config.AuthProperties;
+import com.personalfinance.user.entity.*;
 import com.personalfinance.user.exception.EmailAlreadyUsedException;
 import com.personalfinance.user.exception.InvalidCredentialsException;
 import com.personalfinance.user.exception.InvalidRefreshTokenException;
+import com.personalfinance.user.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -19,15 +21,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.personalfinance.user.events.UserRegisteredEvent;
-
-import com.personalfinance.user.entity.AuthIdentityEntity;
-import com.personalfinance.user.repository.AuthIdentityRepository;
-import com.personalfinance.user.entity.ConsentRecordEntity;
-import com.personalfinance.user.repository.ConsentRecordRepository;
-import com.personalfinance.user.entity.RefreshTokenEntity;
-import com.personalfinance.user.repository.RefreshTokenRepository;
-import com.personalfinance.user.entity.UserEntity;
-import com.personalfinance.user.repository.UserRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -52,18 +45,23 @@ public class AuthService {
     private final JwtService jwtService;
     private final ApplicationEventPublisher eventPublisher;
     private final AuthProperties authProperties;
+    private final RoleRepository roles;
 
     @Transactional
     public TokenPair register(String email, String password, String displayName) {
         if (users.existsByEmailIgnoreCase(email)) {
             throw new EmailAlreadyUsedException();
         }
-        UserEntity user = new UserEntity(email, passwordEncoder.encode(password), displayName, null);
+        Role defaultRole = roles.findByName(RoleEnum.USER)
+                .orElseThrow(() -> new IllegalStateException(
+                "Role not seeded: " + RoleEnum.USER));
+
+        UserEntity user = new UserEntity(email, passwordEncoder.encode(password), displayName, null,defaultRole);
         users.save(user);
         recordSignupConsent(user);
-        identities.save(new AuthIdentityEntity(user, AuthIdentityEntity.PROVIDER_PASSWORD, user.getId().toString()));
+        identities.save(new AuthIdentityEntity(user, AuthIdentityEntity.PROVIDER_PASSWORD, user.getId().toString(),defaultRole));
         eventPublisher.publishEvent(
-                new UserRegisteredEvent(user.getId(), user.getEmail(), user.getDisplayName(), Instant.now()));
+                new UserRegisteredEvent(user.getId(), user.getEmail(), user.getDisplayName(), Instant.now(),defaultRole));
         return issueTokens(user);
     }
 
