@@ -86,7 +86,6 @@ public class JwtService {
                     .expirationTime(Date.from(now.plus(accessTokenTtl)))
                     .claim("email", user.getEmail())
                     .claim("name", user.getDisplayName())
-                    .claim("role", user.getRole())
                     .build();
             SignedJWT jwt = new SignedJWT(
                     new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(keyId).type(JOSEObjectType.JWT).build(),
