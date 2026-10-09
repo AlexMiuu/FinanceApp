@@ -514,10 +514,4 @@ export async function exportMyData(): Promise<{ user: unknown; expenses: unknown
     api("/api/v1/expenses/export/me"),
   ])
   return { user, expenses }
-
-
-  //ADMIN PANNEL
 }
-
-export const getAllUsers = () => api<User[]>("/api/v1/admin/users")
-
