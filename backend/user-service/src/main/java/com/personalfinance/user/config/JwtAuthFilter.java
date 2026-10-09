@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
+import com.personalfinance.user.entity.Role;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -37,8 +38,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         if (header != null && header.startsWith("Bearer ")) {
             jwtService.validate(header.substring(7)).ifPresent(claims -> {
                 UUID userId = UUID.fromString(claims.getSubject());
+                String role = claims.getStringClaim("role");
                 UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                        userId, null, List.of(new SimpleGrantedAuthority("ROLE_USER")));
+                        userId, null, List.of(new SimpleGrantedAuthority("ROLE_USER" + role)));
                 SecurityContextHolder.getContext().setAuthentication(auth);
             });
         }

@@ -22,6 +22,7 @@ public final class AuthDtos {
             @NotBlank String password) {
     }
 
+    public record AdminUserDto()
     public record UserDto(String id, String email, String displayName, String avatarUrl) {
 
         public static UserDto of(UserEntity user) {
